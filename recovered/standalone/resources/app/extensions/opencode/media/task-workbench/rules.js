@@ -1,0 +1,85 @@
+(() => {
+'use strict';
+const vscode=acquireVsCodeApi(),$=id=>document.getElementById(id),pending=new Map();let sequence=0,data,selectedGroup,groupVersion,libraryViewVersion,draft=[],dirty=false,globalDirty=false,bindingDirty=false,globalVersion,bindingVersion;
+function notice(text,error=false){$('feedback').textContent=text||'';$('feedback').classList.toggle('error',error);}
+function api(action,input={}){return new Promise((resolve,reject)=>{const id='rules_'+(++sequence);pending.set(id,{resolve,reject});vscode.postMessage({type:'action',id,action,input});});}
+async function act(action,input={},button){if(button)button.disabled=true;try{const value=await api(action,input);notice('已保存 / 已处理');return value;}catch(error){notice(error.message,true);throw error;}finally{if(button)button.disabled=false;}}
+function element(tag,text,className){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;}
+function option(value,text){const node=element('option',text);node.value=value;return node;}
+function options(select,items,value){select.replaceChildren(...items.map(item=>option(item.id,item.name)));if(items.some(item=>item.id===value))select.value=value;}
+function markDirty(){dirty=true;notice('规则组有未保存修改；多条已启用规则会在保存后一起生效。');}
+function groups(){if(!data)return;$('group-list').replaceChildren();for(const group of data.presets){const button=element('button',`${group.name} (${group.rules.filter(rule=>rule.enabled).length}/${group.rules.length})`,'secondary');button.classList.toggle('selected',group.id===selectedGroup);button.addEventListener('click',()=>{if(dirty&&group.id!==selectedGroup){notice('先保存或放弃当前规则组的修改。',true);return;}loadGroup(group.id);});$('group-list').append(button);}}
+function loadGroup(id){if(!data)return;const group=data.presets.find(item=>item.id===id);selectedGroup=group?.id??null;groupVersion=group?.version;draft=structuredClone(group?.rules||[]).map(rule=>resolveLink(rule));libraryViewVersion=data.ruleLibraryVersion;dirty=false;$('group-name').value=group?.name||'';$('group-readonly').checked=group?.policies.readOnly===true;$('group-commands').checked=group?.policies.allowCommands!==false;$('delete-group').disabled=!group;groups();rules();}
+function resolveLink(rule){const preset=data?.ruleLibrary?.find(item=>item.name===rule.name);if(preset){rule.libraryRuleId=preset.id;rule.libraryVersion=preset.version;rule.text=preset.text;}else{delete rule.libraryRuleId;delete rule.libraryVersion;}delete rule.editingLibrary;return rule;}
+const ruleExpanded=new WeakMap();let draggedRule=null,pickerSequence=0;
+function closeRulePickers(){for(const popup of document.querySelectorAll('.rule-name-options'))popup.hidden=true;for(const input of document.querySelectorAll('.rule-name-input')){input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');}}
+document.addEventListener('pointerdown',event=>{if(!event.target.closest('.rule-name-picker'))closeRulePickers();});
+function rules(){
+$('rule-list').replaceChildren();if(!draft.length)$('rule-list').append(element('p','当前规则组为空。使用下方按钮添加规则。','empty'));
+for(const [index,rule]of draft.entries()){
+ const card=element('article',undefined,'rule-entry'),header=element('div',undefined,'rule-entry-header'),body=element('div',undefined,'rule-entry-body');
+ const grip=element('span','⠿','rule-drag-handle');grip.draggable=true;grip.title='拖动规则排序';grip.setAttribute('aria-label','拖动排序');header.append(grip);
+ grip.addEventListener('dragstart',event=>{draggedRule=rule;closeRulePickers();event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain','opencode-rule');card.classList.add('dragging');});
+ grip.addEventListener('dragend',()=>{draggedRule=null;for(const item of document.querySelectorAll('.rule-entry'))item.classList.remove('dragging','drop-before','drop-after');});
+ card.addEventListener('dragover',event=>{if(!draggedRule||draggedRule===rule)return;event.preventDefault();event.dataTransfer.dropEffect='move';const after=event.clientY>card.getBoundingClientRect().top+card.getBoundingClientRect().height/2;for(const item of document.querySelectorAll('.rule-entry'))if(item!==card)item.classList.remove('drop-before','drop-after');card.classList.toggle('drop-after',after);card.classList.toggle('drop-before',!after);});
+ card.addEventListener('dragleave',event=>{if(!card.contains(event.relatedTarget))card.classList.remove('drop-before','drop-after');});
+ card.addEventListener('drop',event=>{if(!draggedRule||draggedRule===rule)return;event.preventDefault();const from=draft.indexOf(draggedRule),target=draft.indexOf(rule);if(from<0||target<0)return;const after=event.clientY>card.getBoundingClientRect().top+card.getBoundingClientRect().height/2;let destination=target+(after?1:0);const moved=draft.splice(from,1)[0];if(from<destination)destination--;draft.splice(destination,0,moved);draggedRule=null;markDirty();rules();});
+ const label=element('label',undefined,'checkbox-label'),enabled=element('input');enabled.type='checkbox';enabled.checked=rule.enabled;enabled.setAttribute('aria-label','启用规则 '+rule.name);enabled.addEventListener('change',()=>{rule.enabled=enabled.checked;markDirty();});label.append(enabled,element('span','启用'));header.append(label);
+ const picker=element('div',undefined,'rule-name-picker'),name=element('input'),popup=element('div',undefined,'rule-name-options');
+ const listId='rule-options-'+(++pickerSequence);popup.id=listId;popup.hidden=true;popup.setAttribute('role','listbox');name.value=rule.name;name.maxLength=200;name.className='rule-name-input';name.setAttribute('aria-label','规则名称，可搜索库内预设');name.setAttribute('role','combobox');name.setAttribute('aria-autocomplete','list');name.setAttribute('aria-haspopup','listbox');name.setAttribute('aria-expanded','false');name.setAttribute('aria-controls',listId);name.autocomplete='off';
+ let candidates=[],activeOption=-1;
+ function choose(preset){rule.name=preset.name;rule.text=preset.text;rule.libraryRuleId=preset.id;rule.libraryVersion=preset.version;rule.editingLibrary=false;name.value=preset.name;refreshBody();expand(true);markDirty();popup.hidden=true;name.setAttribute('aria-expanded','false');name.removeAttribute('aria-activedescendant');name.focus();}
+ function paintActive(){const nodes=[...popup.children];for(const [number,node]of nodes.entries()){const active=number===activeOption;node.classList.toggle('selected',active);node.setAttribute('aria-selected',String(active));}if(activeOption>=0&&nodes[activeOption]){name.setAttribute('aria-activedescendant',nodes[activeOption].id);nodes[activeOption].scrollIntoView({block:'nearest'});}else name.removeAttribute('aria-activedescendant');}
+ function showOptions(){
+   closeRulePickers();const value=name.value.trim(),library=data?.ruleLibrary||[],exact=library.some(item=>item.name===value);candidates=!value||exact?library:library.filter(item=>item.name.toLocaleLowerCase().includes(value.toLocaleLowerCase()));activeOption=-1;popup.replaceChildren();
+   for(const [number,preset]of candidates.entries()){const item=element('div',preset.name,'rule-name-option');item.id=listId+'-'+number;item.setAttribute('role','option');item.setAttribute('aria-selected','false');item.addEventListener('pointerdown',event=>{event.preventDefault();choose(preset);});popup.append(item);}
+   if(!candidates.length)popup.append(element('div','没有匹配预设；当前名称作为独立规则。','rule-name-empty'));popup.hidden=false;name.setAttribute('aria-expanded','true');
+ }
+ name.addEventListener('focus',showOptions);name.addEventListener('click',showOptions);
+ name.addEventListener('input',()=>{const previousName=rule.name,previousLibrary=rule.libraryRuleId;rule.name=name.value;const match=(data.ruleLibrary||[]).find(item=>item.name===rule.name.trim());if(match){rule.name=match.name;rule.text=match.text;rule.libraryRuleId=match.id;rule.libraryVersion=match.version;rule.editingLibrary=false;}else{delete rule.libraryRuleId;delete rule.libraryVersion;rule.editingLibrary=false;}refreshBody();if(!match||previousLibrary!==match.id||previousName!==rule.name)expand(true);markDirty();showOptions();});
+ name.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();popup.hidden=true;name.setAttribute('aria-expanded','false');name.removeAttribute('aria-activedescendant');return;}if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();if(popup.hidden)showOptions();if(!candidates.length)return;activeOption=event.key==='ArrowDown'?(activeOption+1)%candidates.length:(activeOption<0?candidates.length-1:(activeOption+candidates.length-1)%candidates.length);paintActive();return;}if(event.key==='Enter'&&!popup.hidden&&activeOption>=0&&candidates[activeOption]){event.preventDefault();choose(candidates[activeOption]);}});
+ name.addEventListener('blur',()=>{popup.hidden=true;name.setAttribute('aria-expanded','false');name.removeAttribute('aria-activedescendant');});picker.append(name,popup);header.append(picker);
+ const remove=element('button','删除','secondary');remove.addEventListener('click',()=>{draft.splice(draft.indexOf(rule),1);markDirty();rules();});header.append(remove);
+ const fold=element('button','▸','secondary rule-fold-toggle');fold.type='button';fold.setAttribute('aria-label','展开规则');header.append(fold);
+ function expand(value){ruleExpanded.set(rule,value);body.hidden=!value;fold.textContent=value?'▾':'▸';fold.title=value?'折叠规则':'展开规则';fold.setAttribute('aria-label',fold.title);fold.setAttribute('aria-expanded',String(value));card.classList.toggle('collapsed',!value);}
+ fold.addEventListener('click',()=>{closeRulePickers();expand(!ruleExpanded.get(rule));});card.append(header,body);
+ const text=element('textarea');text.rows=5;text.maxLength=32000;text.spellcheck=false;text.value=rule.text;text.readOnly=Boolean(rule.libraryRuleId)&&!rule.editingLibrary;text.setAttribute('aria-label','规则正文 '+rule.name);text.addEventListener('input',()=>{rule.text=text.value;markDirty();});body.append(text);
+ const source=element('p',rule.libraryRuleId?'引用库预设：正文随库规则同步':'独立规则：正文只属于当前规则组','hint');body.append(source);const controls=element('div',undefined,'actions');
+ const edit=element('button','编辑库正文','secondary');edit.disabled=!rule.libraryRuleId;edit.addEventListener('click',()=>{if(!rule.libraryRuleId)return;rule.editingLibrary=true;text.readOnly=false;expand(true);text.focus();notice('修改库正文后，使用“保存到规则库”；或改名成为独立规则。');});controls.append(edit);
+ const save=element('button','保存到规则库','secondary');save.addEventListener('click',async()=>{try{const preset=data.ruleLibrary.find(item=>item.name===rule.name.trim());const saved=await act('saveLibraryRule',{id:preset?.id,name:rule.name,text:rule.text,expected_version:rule.libraryVersion??preset?.version},save);if(saved){rule.name=saved.name;rule.text=saved.text;rule.libraryRuleId=saved.id;rule.libraryVersion=saved.version;rule.editingLibrary=false;ruleExpanded.set(rule,true);markDirty();rules();await api('refresh');}}catch{}});controls.append(save);
+ const removePreset=element('button','从库移除','secondary');removePreset.disabled=!rule.libraryRuleId;removePreset.addEventListener('click',async()=>{if(!rule.libraryRuleId)return;try{await act('deleteLibraryRule',{libraryId:rule.libraryRuleId,expected_version:rule.libraryVersion},removePreset);delete rule.libraryRuleId;delete rule.libraryVersion;rule.editingLibrary=false;ruleExpanded.set(rule,true);markDirty();rules();await api('refresh');}catch{}});controls.append(removePreset);body.append(controls);
+ function refreshBody(){text.value=rule.text;text.readOnly=Boolean(rule.libraryRuleId)&&!rule.editingLibrary;source.textContent=rule.libraryRuleId?'引用库预设：正文随库规则同步':'独立规则：正文只属于当前规则组';edit.disabled=!rule.libraryRuleId;removePreset.disabled=!rule.libraryRuleId;}
+ expand(ruleExpanded.get(rule)===true);$('rule-list').append(card);
+}
+$('add-rule').disabled=draft.length>=128;
+}
+function render(next){
+const previous=data;data=next;options($('workspace'),[{id:'global',name:'通用 / 未指定工作区'},...data.workspaces.map(item=>({id:item.id,name:item.name+' — '+item.root}))],data.workspaceId);
+options($('global-group'),data.presets,globalDirty?$('global-group').value:data.globalPresetId);if(!globalDirty)globalVersion=data.globalSelectionVersion;
+const binding=data.bindings[data.workspaceId]||{mode:'global',version:0};options($('binding-group'),data.presets,bindingDirty?$('binding-group').value:binding.presetId||data.globalPresetId);if(!bindingDirty){$('binding-mode').value=binding.mode;bindingVersion=binding.version;}
+$('binding-group').disabled=$('binding-mode').value!=='preset'||data.workspaceId==='global';$('save-binding').disabled=data.workspaceId==='global';$('binding-mode').disabled=data.workspaceId==='global';
+if(selectedGroup===undefined)selectedGroup=data.globalPresetId;
+if(!dirty&&selectedGroup!==null){const current=data.presets.find(group=>group.id===selectedGroup);if(!current)loadGroup(data.globalPresetId);else if(!previous||groupVersion!==current.version||libraryViewVersion!==data.ruleLibraryVersion)loadGroup(current.id);else groups();}else groups();
+const effective=data.effectiveRules;$('effective-source').textContent=`${effective.mode==='global'?'通用规则组':'工作区指定规则组'}：${effective.group_name||effective.preset_name}；同时启用 ${effective.active_rules.length} 条`;
+$('effective-rules').replaceChildren();for(const rule of effective.active_rules){const node=element('section',undefined,'effective-rule');node.append(element('h3',rule.name),element('pre',rule.text));$('effective-rules').append(node);}
+if(!effective.active_rules.length)$('effective-rules').append(element('p','此组没有已启用条目。平台基础要求和操作策略仍然有效。','hint'));
+$('effective-text').textContent=effective.text;$('effective-hash').textContent=effective.rules_hash;$('storage-file').textContent=data.storageFile;
+}
+$('workspace').addEventListener('change',()=>{bindingDirty=false;act('selectWorkspace',{workspaceId:$('workspace').value}).catch(()=>{});});
+$('add-workspace').addEventListener('click',()=>act('addWorkspace',{},$('add-workspace')).catch(()=>{}));
+$('refresh').addEventListener('click',()=>{globalDirty=false;bindingDirty=false;act('refresh',{},$('refresh')).catch(()=>{});});
+for(const id of ['group-name','group-readonly','group-commands'])$(id).addEventListener('input',markDirty);
+$('new-group').addEventListener('click',()=>{if(dirty){notice('先保存或放弃当前修改。',true);return;}loadGroup(null);$('group-name').focus();});
+$('add-rule').addEventListener('click',()=>{if(draft.length>=128)return;draft.push({name:'新规则 '+(draft.length+1),text:'',enabled:true});markDirty();rules();});
+$('copy-group').addEventListener('click',()=>{selectedGroup=null;groupVersion=undefined;draft=draft.map(({id,...rule})=>({...rule}));$('group-name').value=($('group-name').value||'规则组')+' 副本';$('delete-group').disabled=true;markDirty();groups();rules();});
+$('discard-group').addEventListener('click',()=>loadGroup(selectedGroup||data?.globalPresetId));
+$('save-group').addEventListener('click',async()=>{try{if(draft.some(rule=>rule.editingLibrary)){notice('先保存编辑中的库正文，或改名成为独立规则。',true);return;}const group=await act('savePreset',{id:selectedGroup||undefined,expected_version:groupVersion,name:$('group-name').value,rules:draft,readOnly:$('group-readonly').checked,allowCommands:$('group-commands').checked},$('save-group'));if(group?.id){selectedGroup=group.id;groupVersion=group.version;draft=structuredClone(group.rules);dirty=false;groups();rules();await api('refresh');}}catch{}});
+$('delete-group').addEventListener('click',async()=>{if(!selectedGroup)return;try{await act('deletePreset',{presetId:selectedGroup,expected_version:groupVersion},$('delete-group'));dirty=false;selectedGroup=undefined;await api('refresh');}catch{}});
+$('global-group').addEventListener('change',()=>{globalDirty=true;globalVersion=data?.globalSelectionVersion;});
+$('set-global').addEventListener('click',async()=>{try{await act('selectGlobal',{presetId:$('global-group').value,expected_version:globalVersion},$('set-global'));globalDirty=false;await api('refresh');}catch{}});
+for(const id of ['binding-mode','binding-group'])$(id).addEventListener('change',()=>{bindingDirty=true;bindingVersion=data?.bindings[data.workspaceId]?.version||0;$('binding-group').disabled=$('binding-mode').value!=='preset';});
+$('save-binding').addEventListener('click',async()=>{try{await act('bindWorkspace',{mode:$('binding-mode').value,presetId:$('binding-group').value,expected_version:bindingVersion},$('save-binding'));bindingDirty=false;await api('refresh');}catch{}});
+$('export-rules').addEventListener('click',()=>act('exportRules',{},$('export-rules')).catch(()=>{}));
+window.addEventListener('message',event=>{const message=event.data;if(!message||typeof message!=='object')return;if(message.type==='state')render(message.value);else if(message.type==='error')notice(message.message,true);else if(message.type==='result'){const request=pending.get(message.id);if(!request)return;pending.delete(message.id);if(message.error)request.reject(Error(message.error));else request.resolve(message.value);}});
+vscode.postMessage({type:'ready'});
+})();

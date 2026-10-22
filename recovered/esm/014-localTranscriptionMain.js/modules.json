@@ -1,0 +1,1504 @@
+{
+  "generatorVersion": 2,
+  "bundle": "014-localTranscriptionMain.js",
+  "artifactPath": "resources/app/out/vs/platform/localTranscription/node/localTranscriptionMain.js",
+  "status": "generated-not-validated",
+  "modules": [
+    {
+      "modulePath": "<bundle-preamble>",
+      "file": "module-0000.mjs",
+      "exportedBindings": [
+        "__extends",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension",
+        "extendStatics",
+        "__assign",
+        "__createBinding",
+        "__setModuleDefault",
+        "ownKeys",
+        "_SuppressedError",
+        "__defProp",
+        "__getOwnPropDesc",
+        "__decorateClass"
+      ],
+      "imports": [],
+      "sha256": "26fb6239c25838dd074f7d6c7d259768f1b58eda6dc365554c401fa6e300c0d4",
+      "directExportFix": [
+        "__extends",
+        "__assign",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__createBinding",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension"
+      ]
+    },
+    {
+      "modulePath": "src/vs/base/common/arraysFind.ts",
+      "file": "module-0001.mjs",
+      "exportedBindings": [
+        "findLastIdxMonotonous",
+        "MonotonousArray"
+      ],
+      "imports": [],
+      "sha256": "7644fc73da09c2ce8c4d6bb8c6a607e613768c58db6df12e5a9ed5e15cf77481"
+    },
+    {
+      "modulePath": "src/vs/base/common/errors.ts",
+      "file": "module-0002.mjs",
+      "exportedBindings": [
+        "onUnexpectedError",
+        "onUnexpectedExternalError",
+        "isCancellationError",
+        "ErrorHandler",
+        "errorHandler",
+        "canceledName",
+        "CancellationError",
+        "PendingMigrationError",
+        "ErrorNoTelemetry",
+        "BugIndicatingError"
+      ],
+      "imports": [],
+      "sha256": "3f6ed52bfd2b44cd79e3d51675105920296eee62a646bb0648f97d9b43a61b78"
+    },
+    {
+      "modulePath": "src/vs/base/common/arrays.ts",
+      "file": "module-0003.mjs",
+      "exportedBindings": [
+        "getRandomElement",
+        "compareBy",
+        "CompareResult",
+        "numberComparator",
+        "CallbackIterable"
+      ],
+      "imports": [],
+      "sha256": "b630e2a034bf65107819fd263d0c73bdfd7c52960f5a3ea6bc6c842a3202cc6f"
+    },
+    {
+      "modulePath": "src/vs/base/common/collections.ts",
+      "file": "module-0004.mjs",
+      "exportedBindings": [
+        "groupBy",
+        "_a",
+        "_b",
+        "SetWithKey"
+      ],
+      "imports": [],
+      "sha256": "d7c6a7287e4e5d1f6b346d4c7f0e876a870391653ddb1c78ab81827459c44257"
+    },
+    {
+      "modulePath": "src/vs/base/common/map.ts",
+      "file": "module-0005.mjs",
+      "exportedBindings": [
+        "isEntries",
+        "ResourceMapEntry",
+        "_a2",
+        "ResourceMap",
+        "_a3",
+        "ResourceSet",
+        "_a4",
+        "LinkedMap",
+        "Cache",
+        "LRUCache",
+        "SetMap"
+      ],
+      "imports": [],
+      "sha256": "28cf3b1e2e2d8ea59a577dbaf513cfded93c177086e25799e8aa4bea1cbd6c8f"
+    },
+    {
+      "modulePath": "src/vs/base/common/functional.ts",
+      "file": "module-0006.mjs",
+      "exportedBindings": [
+        "createSingleCallFunction"
+      ],
+      "imports": [],
+      "sha256": "6f4bc36a2cb7928ff349bf7857456c61b3e949fbedf67ee911ed5fdb46286437"
+    },
+    {
+      "modulePath": "src/vs/base/common/assert.ts",
+      "file": "module-0007.mjs",
+      "exportedBindings": [
+        "assert"
+      ],
+      "imports": [
+        {
+          "module": "module-0002",
+          "bindings": [
+            "BugIndicatingError"
+          ]
+        }
+      ],
+      "sha256": "8ccab0923b13ccc0dbd94da0737a3395e59970484aef159e118472e0018c4479"
+    },
+    {
+      "modulePath": "src/vs/base/common/types.ts",
+      "file": "module-0008.mjs",
+      "exportedBindings": [
+        "isIterable",
+        "isUndefined",
+        "isUndefinedOrNull",
+        "assertType",
+        "assertReturnsDefined",
+        "isFunction"
+      ],
+      "imports": [
+        {
+          "module": "module-0007",
+          "bindings": [
+            "assert"
+          ]
+        }
+      ],
+      "sha256": "a7c7710d7ba8caa8c34c2585a6a846918db38e52d14254d1de18e9dd79344494"
+    },
+    {
+      "modulePath": "src/vs/base/common/iterator.ts",
+      "file": "module-0009.mjs",
+      "exportedBindings": [
+        "Iterable"
+      ],
+      "imports": [
+        {
+          "module": "module-0008",
+          "bindings": [
+            "isIterable"
+          ]
+        }
+      ],
+      "sha256": "fb9a3b22c5560ae67efed773f0027544607d27b57a75bc3313c3df8849b24b21"
+    },
+    {
+      "modulePath": "src/vs/base/common/lifecycle.ts",
+      "file": "module-0010.mjs",
+      "exportedBindings": [
+        "setDisposableTracker",
+        "trackDisposable",
+        "markAsDisposed",
+        "setParentOfDisposable",
+        "setParentOfDisposables",
+        "isDisposable",
+        "dispose",
+        "combinedDisposable",
+        "toDisposable",
+        "TRACK_DISPOSABLES",
+        "disposableTracker",
+        "DisposableTracker",
+        "FunctionDisposable",
+        "DisposableStore",
+        "Disposable",
+        "DisposableMap"
+      ],
+      "imports": [
+        {
+          "module": "module-0005",
+          "bindings": [
+            "SetMap"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "compareBy",
+            "numberComparator"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "groupBy"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "Iterable"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "onUnexpectedError",
+            "BugIndicatingError"
+          ]
+        }
+      ],
+      "sha256": "e2932cd1fc5fdbf518cd6eb4a09f73ae592e57b365ac34302a17f0e653086099"
+    },
+    {
+      "modulePath": "src/vs/base/common/linkedList.ts",
+      "file": "module-0011.mjs",
+      "exportedBindings": [
+        "Node"
+      ],
+      "imports": [],
+      "sha256": "35b985059d98ad2b89f05cc233e23c0ac3c774730c66ca1a192330d1f0fb88be"
+    },
+    {
+      "modulePath": "src/vs/nls.ts",
+      "file": "module-0012.mjs",
+      "exportedBindings": [
+        "getNLSMessages",
+        "getNLSLanguage",
+        "_format",
+        "localize",
+        "lookupMessage",
+        "isPseudo"
+      ],
+      "imports": [],
+      "sha256": "1f463f6030562185b93194494b34020b7d836ce185faa0c010a6a7eda630eb1a"
+    },
+    {
+      "modulePath": "src/vs/base/common/platform.ts",
+      "file": "module-0013.mjs",
+      "exportedBindings": [
+        "LANGUAGE_DEFAULT",
+        "_isWindows",
+        "_isMacintosh",
+        "_isLinux",
+        "_isLinuxSnap",
+        "_isNative",
+        "_isWeb",
+        "_isElectron",
+        "_isIOS",
+        "_isCI",
+        "_isMobile",
+        "_locale",
+        "_language",
+        "_platformLocale",
+        "_translationsConfigFile",
+        "_userAgent",
+        "$globalThis",
+        "nodeProcess",
+        "isElectronProcess",
+        "isElectronRenderer",
+        "_platform",
+        "isWindows",
+        "isMacintosh",
+        "isLinux",
+        "isNative",
+        "isWeb",
+        "isWebWorker",
+        "webWorkerOrigin",
+        "userAgent",
+        "language",
+        "Language",
+        "setTimeout0IsFaster",
+        "setTimeout0",
+        "isChrome",
+        "isFirefox",
+        "isSafari",
+        "isEdge",
+        "isAndroid",
+        "hasElectronUserAgent"
+      ],
+      "imports": [
+        {
+          "module": "module-0012",
+          "bindings": [
+            "getNLSLanguage"
+          ]
+        }
+      ],
+      "sha256": "78f76189dbd8191da155111999f3720234358feabb0fd803d7e81472a9b96ec2"
+    },
+    {
+      "modulePath": "src/vs/base/common/process.ts",
+      "file": "module-0014.mjs",
+      "exportedBindings": [
+        "safeProcess",
+        "vscodeGlobal",
+        "cwd",
+        "env",
+        "platform",
+        "arch"
+      ],
+      "imports": [
+        {
+          "module": "module-0013",
+          "bindings": [
+            "isWindows",
+            "isMacintosh"
+          ]
+        }
+      ],
+      "sha256": "6deb964f7a9c9deada16bf384fd024bdfeb120013a2e59c0cf521b7767e6f03e"
+    },
+    {
+      "modulePath": "src/vs/base/common/stopwatch.ts",
+      "file": "module-0015.mjs",
+      "exportedBindings": [
+        "performanceNow",
+        "StopWatch"
+      ],
+      "imports": [],
+      "sha256": "f78cb082817294d659c12e19b777ed65d86ddd43cd05c975ce96a902fe3b649a"
+    },
+    {
+      "modulePath": "src/vs/base/common/event.ts",
+      "file": "module-0016.mjs",
+      "exportedBindings": [
+        "_isBufferLeakWarningEnabled",
+        "nextLeakageMonitorName",
+        "addToDisposables",
+        "disposeAndRemove",
+        "_enableDisposeWithListenerWarning",
+        "_enableSnapshotPotentialLeakWarning",
+        "_bufferLeakWarnCountThreshold",
+        "_bufferLeakWarnTimeThreshold",
+        "Event",
+        "EventProfiling",
+        "_globalLeakWarningThreshold",
+        "leakageMonitorId",
+        "LeakageMonitor",
+        "Stacktrace",
+        "ListenerLeakError",
+        "ListenerRefusalError",
+        "id",
+        "UniqueContainer",
+        "compactionThreshold",
+        "forEachListener",
+        "Emitter",
+        "EventDeliveryQueuePrivate",
+        "EventMultiplexer",
+        "Relay"
+      ],
+      "imports": [
+        {
+          "module": "module-0014",
+          "bindings": [
+            "env"
+          ]
+        },
+        {
+          "module": "module-0010",
+          "bindings": [
+            "Disposable",
+            "combinedDisposable",
+            "toDisposable",
+            "DisposableStore"
+          ]
+        },
+        {
+          "module": "module-0015",
+          "bindings": [
+            "StopWatch"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "onUnexpectedError"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "createSingleCallFunction"
+          ]
+        }
+      ],
+      "sha256": "6c4b8887fd3acc7664863ca1126e5f7ccc44ec0ee9cfbf48f0c3e5aeb3994c85"
+    },
+    {
+      "modulePath": "src/vs/base/common/cancellation.ts",
+      "file": "module-0017.mjs",
+      "exportedBindings": [
+        "shortcutEvent",
+        "CancellationToken",
+        "MutableToken",
+        "CancellationTokenSource"
+      ],
+      "imports": [
+        {
+          "module": "module-0016",
+          "bindings": [
+            "Event",
+            "Emitter"
+          ]
+        }
+      ],
+      "sha256": "edb6da31b0679dde362a3968517d92cfbfa71eb91c178ea6f6f6c88d98d81453"
+    },
+    {
+      "modulePath": "src/vs/base/common/path.ts",
+      "file": "module-0018.mjs",
+      "exportedBindings": [
+        "validateObject",
+        "validateString",
+        "isPathSeparator",
+        "isPosixPathSeparator",
+        "isWindowsDeviceRoot",
+        "normalizeString",
+        "formatExt",
+        "_format2",
+        "CHAR_UPPERCASE_A",
+        "CHAR_LOWERCASE_A",
+        "CHAR_UPPERCASE_Z",
+        "CHAR_LOWERCASE_Z",
+        "CHAR_DOT",
+        "CHAR_FORWARD_SLASH",
+        "CHAR_BACKWARD_SLASH",
+        "CHAR_COLON",
+        "CHAR_QUESTION_MARK",
+        "ErrorInvalidArgType",
+        "platformIsWin32",
+        "win32",
+        "posixCwd",
+        "posix",
+        "normalize",
+        "isAbsolute",
+        "join",
+        "resolve",
+        "relative",
+        "dirname",
+        "basename",
+        "extname",
+        "format",
+        "parse",
+        "toNamespacedPath",
+        "sep",
+        "delimiter"
+      ],
+      "imports": [
+        {
+          "module": "module-0014",
+          "bindings": [
+            "platform",
+            "cwd",
+            "env"
+          ]
+        }
+      ],
+      "sha256": "7d393fe7cf65766df6ef8062aaeefe1dd6c078314e924e7b285af2d523e15a0f"
+    },
+    {
+      "modulePath": "src/vs/base/common/cache.ts",
+      "file": "module-0019.mjs",
+      "exportedBindings": [
+        "identity",
+        "LRUCachedFunction"
+      ],
+      "imports": [],
+      "sha256": "a597d15ac635d72d58f69b89a8284f066bc1dbbec2f6585744dba711f69bf19f"
+    },
+    {
+      "modulePath": "src/vs/base/common/lazy.ts",
+      "file": "module-0020.mjs",
+      "exportedBindings": [
+        "Lazy"
+      ],
+      "imports": [],
+      "sha256": "8b3bc4103090fb293a46ea5b54d6c21a65de0433979fa6446b96790fb1155f6e"
+    },
+    {
+      "modulePath": "src/vs/base/common/strings.ts",
+      "file": "module-0021.mjs",
+      "exportedBindings": [
+        "format2",
+        "rtrim",
+        "compare",
+        "compareSubstring",
+        "compareSubstringIgnoreCase",
+        "isLowerAsciiLetter",
+        "isUpperAsciiLetter",
+        "equalsIgnoreCase",
+        "startsWithIgnoreCase",
+        "getGraphemeBreakRawData",
+        "_format2Regexp",
+        "CSI_SEQUENCE",
+        "OSC_SEQUENCE",
+        "ESC_SEQUENCE",
+        "CONTROL_SEQUENCES",
+        "UTF8_BOM_CHARACTER",
+        "GraphemeBreakTree",
+        "AmbiguousCharacters",
+        "InvisibleCharacters"
+      ],
+      "imports": [
+        {
+          "module": "module-0020",
+          "bindings": [
+            "Lazy"
+          ]
+        },
+        {
+          "module": "module-0019",
+          "bindings": [
+            "LRUCachedFunction"
+          ]
+        }
+      ],
+      "sha256": "273e262e2c6ac92219d232c3b0db51a7ca0c1ebe13ff8997cb44b48126365d45"
+    },
+    {
+      "modulePath": "src/vs/base/common/extpath.ts",
+      "file": "module-0022.mjs",
+      "exportedBindings": [
+        "isPathSeparator2",
+        "toSlashes",
+        "toPosixPath",
+        "getRoot",
+        "isEqualOrParent",
+        "isWindowsDriveLetter",
+        "isRootOrDriveLetter",
+        "hasDriveLetter",
+        "randomPath",
+        "pathChars",
+        "windowsSafePathFirstChars"
+      ],
+      "imports": [
+        {
+          "module": "module-0018",
+          "bindings": [
+            "posix",
+            "sep",
+            "normalize",
+            "join"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "startsWithIgnoreCase"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "isWindows"
+          ]
+        }
+      ],
+      "sha256": "9eb943e0d3f999d822d161ead3caab0d447c26cb4b436e3c62ed507c86950629"
+    },
+    {
+      "modulePath": "src/vs/base/common/uri.ts",
+      "file": "module-0023.mjs",
+      "exportedBindings": [
+        "_validateUri",
+        "_schemeFix",
+        "_referenceResolution",
+        "encodeURIComponentFast",
+        "encodeURIComponentMinimal",
+        "uriToFsPath",
+        "_asFormatted",
+        "decodeURIComponentGraceful",
+        "percentDecode",
+        "_schemePattern",
+        "_singleSlashStart",
+        "_doubleSlashStart",
+        "_empty",
+        "_slash",
+        "_regexp",
+        "URI",
+        "_pathSepMarker",
+        "Uri",
+        "encodeTable",
+        "_rEncodedAsHex"
+      ],
+      "imports": [
+        {
+          "module": "module-0013",
+          "bindings": [
+            "isWindows"
+          ]
+        },
+        {
+          "module": "module-0018",
+          "bindings": [
+            "win32",
+            "posix"
+          ]
+        }
+      ],
+      "sha256": "8303f925c94f499c5c2d4857b04f82601277ef7a8967c9c204c9cf44a2887fed"
+    },
+    {
+      "modulePath": "src/vs/base/common/network.ts",
+      "file": "module-0024.mjs",
+      "exportedBindings": [
+        "getServerProductSegment",
+        "Schemas",
+        "connectionTokenQueryName",
+        "RemoteAuthoritiesImpl",
+        "RemoteAuthorities",
+        "VSCODE_AUTHORITY",
+        "FileAccessImpl",
+        "FileAccess",
+        "CacheControlheaders",
+        "DocumentPolicyheaders",
+        "COI"
+      ],
+      "imports": [
+        {
+          "module": "module-0018",
+          "bindings": [
+            "posix",
+            "join"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "onUnexpectedExternalError"
+          ]
+        },
+        {
+          "module": "module-0023",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "isWeb",
+            "isNative",
+            "webWorkerOrigin"
+          ]
+        }
+      ],
+      "sha256": "aa6fb2c13c5b0d1a622dc2f74e98b15972636fe75ae25e2a69af9cf125d7bc83"
+    },
+    {
+      "modulePath": "src/vs/base/common/resources.ts",
+      "file": "module-0025.mjs",
+      "exportedBindings": [
+        "originalFSPath",
+        "ExtUri",
+        "extUri",
+        "extUriBiasedIgnorePathCase",
+        "extUriIgnorePathCase",
+        "isEqual",
+        "isEqualOrParent2",
+        "getComparisonKey",
+        "basenameOrAuthority",
+        "basename2",
+        "extname2",
+        "dirname2",
+        "joinPath",
+        "normalizePath",
+        "relativePath",
+        "resolvePath",
+        "isAbsolutePath",
+        "isEqualAuthority",
+        "hasTrailingPathSeparator",
+        "removeTrailingPathSeparator",
+        "addTrailingPathSeparator",
+        "DataUri"
+      ],
+      "imports": [
+        {
+          "module": "module-0023",
+          "bindings": [
+            "uriToFsPath",
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "compare",
+            "equalsIgnoreCase"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "Schemas"
+          ]
+        },
+        {
+          "module": "module-0022",
+          "bindings": [
+            "isEqualOrParent",
+            "toSlashes",
+            "toPosixPath",
+            "getRoot"
+          ]
+        },
+        {
+          "module": "module-0018",
+          "bindings": [
+            "posix",
+            "dirname",
+            "normalize",
+            "relative",
+            "resolve",
+            "sep"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "isWindows",
+            "isLinux"
+          ]
+        }
+      ],
+      "sha256": "351e77b381e6a57af975fcbd909dfaf5ed9342ef7e4aaa03fc0709136a3d5da1"
+    },
+    {
+      "modulePath": "src/vs/base/common/async.ts",
+      "file": "module-0026.mjs",
+      "exportedBindings": [
+        "createCancelablePromise",
+        "timeout",
+        "Sequencer",
+        "MAX_TIMEOUT_DELAY",
+        "Limiter",
+        "Queue",
+        "ResourceQueue",
+        "runWhenGlobalIdle",
+        "_runWhenIdle",
+        "DeferredPromise",
+        "Promises",
+        "AsyncIterableObject",
+        "ProducerConsumer",
+        "AsyncIterableProducer"
+      ],
+      "imports": [
+        {
+          "module": "module-0017",
+          "bindings": [
+            "CancellationTokenSource"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "CancellationError",
+            "BugIndicatingError"
+          ]
+        },
+        {
+          "module": "module-0010",
+          "bindings": [
+            "isDisposable",
+            "DisposableMap"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "Emitter",
+            "Event"
+          ]
+        },
+        {
+          "module": "module-0025",
+          "bindings": [
+            "extUri"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "setTimeout0"
+          ]
+        }
+      ],
+      "sha256": "71c80a0c59958e409a786263d3dd53ca3c4a8cc0babff20e158bc0f336b9bb3d"
+    },
+    {
+      "modulePath": "src/vs/base/common/buffer.ts",
+      "file": "module-0027.mjs",
+      "exportedBindings": [
+        "binaryIndexOf",
+        "readUInt32BE",
+        "writeUInt32BE",
+        "readUInt32LE",
+        "writeUInt32LE",
+        "readUInt8",
+        "writeUInt8",
+        "hasBuffer",
+        "indexOfTable",
+        "textEncoder",
+        "textDecoder",
+        "VSBuffer"
+      ],
+      "imports": [
+        {
+          "module": "module-0020",
+          "bindings": [
+            "Lazy"
+          ]
+        }
+      ],
+      "sha256": "a5f4c5ad13952643c81b0a6999ad6bef39a93834ba0f9d437b54523ae2cd0965"
+    },
+    {
+      "modulePath": "src/vs/base/common/decorators.ts",
+      "file": "module-0028.mjs",
+      "exportedBindings": [
+        "memoize"
+      ],
+      "imports": [],
+      "sha256": "8b5770c994cf034427d07a3dfee0bb648ae9195dde7a2fca9cdb5cb24aeae214"
+    },
+    {
+      "modulePath": "src/vs/base/common/marshalling.ts",
+      "file": "module-0029.mjs",
+      "exportedBindings": [
+        "revive"
+      ],
+      "imports": [
+        {
+          "module": "module-0023",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "VSBuffer"
+          ]
+        }
+      ],
+      "sha256": "19d48c53e1e837f091591420890899550e750e7ec2630358e8567f4226a0b924"
+    },
+    {
+      "modulePath": "src/vs/base/parts/ipc/common/ipc.ts",
+      "file": "module-0030.mjs",
+      "exportedBindings": [
+        "requestTypeToStr",
+        "responseTypeToStr",
+        "readIntVQL",
+        "writeInt32VQL",
+        "createOneByteBuffer",
+        "serialize",
+        "deserialize",
+        "getDelayedChannel",
+        "vqlZero",
+        "BufferReader",
+        "BufferWriter",
+        "BufferPresets",
+        "ChannelServer",
+        "ChannelClient",
+        "IPCServer",
+        "ProxyChannel"
+      ],
+      "imports": [
+        {
+          "module": "module-0027",
+          "bindings": [
+            "VSBuffer"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "CancellationTokenSource",
+            "CancellationToken"
+          ]
+        },
+        {
+          "module": "module-0010",
+          "bindings": [
+            "toDisposable",
+            "dispose",
+            "DisposableStore"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "Emitter",
+            "Event",
+            "EventMultiplexer",
+            "Relay"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "CancellationError",
+            "ErrorNoTelemetry"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "createCancelablePromise"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "createSingleCallFunction"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "memoize"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "isFunction",
+            "isUndefinedOrNull"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "getRandomElement"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "revive"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "isUpperAsciiLetter"
+          ]
+        }
+      ],
+      "sha256": "d37406cfd452a4f175333c620cd379ee259a3c74f33d0ddbdc283ad036c0bae5"
+    },
+    {
+      "modulePath": "src/vs/base/parts/sandbox/node/electronTypes.ts",
+      "file": "module-0031.mjs",
+      "exportedBindings": [
+        "isUtilityProcess"
+      ],
+      "imports": [],
+      "sha256": "a60bf59894a159f5c7af3c3f93fdca3b18765953f18a08ded9cbd1565261aab9"
+    },
+    {
+      "modulePath": "src/vs/base/parts/ipc/node/ipc.mp.ts",
+      "file": "module-0032.mjs",
+      "exportedBindings": [
+        "Protocol",
+        "Server"
+      ],
+      "imports": [
+        {
+          "module": "module-0016",
+          "bindings": [
+            "Event",
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "VSBuffer"
+          ]
+        },
+        {
+          "module": "module-0030",
+          "bindings": [
+            "IPCServer"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "assertType"
+          ]
+        },
+        {
+          "module": "module-0031",
+          "bindings": [
+            "isUtilityProcess"
+          ]
+        }
+      ],
+      "sha256": "570e695de51a76a41a67844b0eb042bd0e2c283585053d728a66c85248730b28"
+    },
+    {
+      "modulePath": "src/vs/platform/instantiation/common/instantiation.ts",
+      "file": "module-0033.mjs",
+      "exportedBindings": [
+        "storeServiceDependency",
+        "createDecorator",
+        "_util",
+        "IInstantiationService"
+      ],
+      "imports": [],
+      "sha256": "4ea91147dae9cb85362d7d8401ea7d19853cd4ffcf88039fcaaf00d75891d450"
+    },
+    {
+      "modulePath": "src/vs/platform/localTranscription/common/localTranscription.ts",
+      "file": "module-0034.mjs",
+      "exportedBindings": [
+        "ILocalTranscriptionService",
+        "localTranscriptionChannelName",
+        "DEFAULT_LOCAL_TRANSCRIPTION_MODEL"
+      ],
+      "imports": [
+        {
+          "module": "module-0033",
+          "bindings": [
+            "createDecorator"
+          ]
+        }
+      ],
+      "sha256": "fa2df18eaa7296cd6f8449e0ad689696172dc5f4eeb681ee92b00e7bffb6af71"
+    },
+    {
+      "modulePath": "src/vs/platform/localTranscription/node/foundryLocalRuntime.ts",
+      "file": "module-0035.mjs",
+      "exportedBindings": [
+        "foundryLocalPlatformKey",
+        "ensureFoundryLocalRuntime",
+        "doEnsure",
+        "provisionRuntime",
+        "foundryMarkerPath",
+        "foundryAddonPath",
+        "foundryCoreDir",
+        "isRuntimeProvisioned",
+        "promoteDir",
+        "randomSuffix",
+        "assertRuntimeLoadable",
+        "detectGlibcVersion",
+        "downloadAndExtractTarball",
+        "requiredCoreLibraryNames",
+        "hasAllCoreLibraries",
+        "resolveProxyUrl",
+        "isNoProxyHost",
+        "resolveProxyAgent",
+        "downloadFile",
+        "throwIfCancelled",
+        "fs",
+        "os",
+        "FOUNDRY_LOCAL_SUPPORTED_PLATFORMS",
+        "inFlight",
+        "DOWNLOAD_INACTIVITY_TIMEOUT_MS",
+        "MIN_GLIBC"
+      ],
+      "imports": [
+        {
+          "module": "module-0018",
+          "bindings": [
+            "join",
+            "dirname"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "format2"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "CancellationError"
+          ]
+        }
+      ],
+      "sha256": "51e937f3469802cc9ef15ca324a068ef3270985d5f7b5f60c81ce3bda575f26e"
+    },
+    {
+      "modulePath": "src/vs/platform/localTranscription/node/foundryLocalModelImport.ts",
+      "file": "module-0036.mjs",
+      "exportedBindings": [
+        "importFoundryLocalModel",
+        "prepareModelArchive",
+        "prepareModelSource",
+        "findOciIndex",
+        "materializeOciModel",
+        "resolveOciBlob",
+        "readVerifiedOciBlob",
+        "verifyOciBlob",
+        "modelVersionFromName",
+        "assertMaterializedIdentity",
+        "findPreparedModel",
+        "verifyPreparedModel",
+        "installPreparedModel",
+        "replaceDirectory",
+        "copyDirectory",
+        "writeInferenceModel",
+        "findNamedFiles",
+        "createHash",
+        "randomUUID",
+        "createReadStream",
+        "fs3",
+        "MODEL_PUBLISHER",
+        "MODEL_VARIANT",
+        "INFERENCE_MODEL_FILE",
+        "GENAI_CONFIG_FILE",
+        "OCI_TITLE_ANNOTATION"
+      ],
+      "imports": [
+        {
+          "module": "module-0034",
+          "bindings": [
+            "DEFAULT_LOCAL_TRANSCRIPTION_MODEL"
+          ]
+        },
+        {
+          "module": "module-0018",
+          "bindings": [
+            "join",
+            "dirname",
+            "basename"
+          ]
+        },
+        {
+          "module": "module-0037",
+          "bindings": [
+            "extract"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "CancellationToken"
+          ]
+        }
+      ],
+      "sha256": "5472c6786b46231c299e3a94ce9724b5b7921b6b588c5388fbb67d1f586448f7"
+    },
+    {
+      "modulePath": "src/vs/base/node/zip.ts",
+      "file": "module-0037.mjs",
+      "exportedBindings": [
+        "modeFromEntry",
+        "toExtractError",
+        "extractEntry",
+        "extractZip",
+        "openZip",
+        "openZipStream",
+        "extract",
+        "createWriteStream2",
+        "promises3",
+        "CorruptZipMessage",
+        "CORRUPT_ZIP_PATTERN",
+        "ExtractError"
+      ],
+      "imports": [
+        {
+          "module": "module-0018",
+          "bindings": [
+            "dirname",
+            "join"
+          ]
+        },
+        {
+          "module": "module-0012",
+          "bindings": [
+            "localize"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "createCancelablePromise",
+            "Sequencer"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "assertReturnsDefined"
+          ]
+        },
+        {
+          "module": "module-0038",
+          "bindings": [
+            "Promises2"
+          ]
+        }
+      ],
+      "sha256": "4f95e137eb41c791afbb85036ac28a4ea96f1a9f42a4cfe9390653565af48900"
+    },
+    {
+      "modulePath": "src/vs/base/node/pfs.ts",
+      "file": "module-0038.mjs",
+      "exportedBindings": [
+        "rimraf",
+        "rimrafMove",
+        "rimrafUnlink",
+        "readdir",
+        "doReaddir",
+        "safeReaddirWithFileTypes",
+        "handleDirectoryChildren",
+        "readDirsInDir",
+        "writeFile2",
+        "configureFlushOnWrite",
+        "doWriteFileAndFlush",
+        "ensureWriteOptions",
+        "rename",
+        "renameWithRetry",
+        "copy",
+        "doCopy",
+        "doCopyDirectory",
+        "doCopyFile",
+        "doCopySymlink",
+        "realpath2",
+        "normalizePath2",
+        "fs2",
+        "tmpdir2",
+        "promisify",
+        "SymlinkSupport",
+        "writeQueues",
+        "canFlush",
+        "COPY_MODE_MASK",
+        "Promises2"
+      ],
+      "imports": [
+        {
+          "module": "module-0022",
+          "bindings": [
+            "isRootOrDriveLetter",
+            "randomPath",
+            "isEqualOrParent"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "isWindows",
+            "isMacintosh",
+            "isLinux"
+          ]
+        },
+        {
+          "module": "module-0018",
+          "bindings": [
+            "join",
+            "normalize",
+            "sep"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "normalizeNFC"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "ResourceQueue",
+            "timeout"
+          ]
+        },
+        {
+          "module": "module-0023",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0025",
+          "bindings": [
+            "extUriBiasedIgnorePathCase"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "rtrim"
+          ]
+        }
+      ],
+      "sha256": "888fb0cd4c20be3243a3eb79fe834de3ba973c2cd8034dce12fbd430770b983c"
+    },
+    {
+      "modulePath": "src/vs/base/common/normalization.ts",
+      "file": "module-0039.mjs",
+      "exportedBindings": [
+        "normalizeNFC",
+        "normalizeNFD",
+        "normalize2",
+        "nfcCache",
+        "nfdCache",
+        "nonAsciiCharactersPattern",
+        "tryNormalizeToBase"
+      ],
+      "imports": [
+        {
+          "module": "module-0005",
+          "bindings": [
+            "LRUCache"
+          ]
+        }
+      ],
+      "sha256": "934d2eea4f61f77ffa35136d949b5553ca1a5adaf738aab9950b8974e5f23d20"
+    },
+    {
+      "modulePath": "src/vs/platform/localTranscription/node/localTranscriptionService.ts",
+      "file": "module-0040.mjs",
+      "exportedBindings": [
+        "runtimeCacheDir",
+        "classifyModelError",
+        "transcriptSeparator",
+        "appendTranscriptChunk",
+        "SAMPLE_RATE",
+        "CHANNELS",
+        "BITS_PER_SAMPLE",
+        "FOUNDRY_APP_NAME",
+        "TranscriptAccumulator",
+        "LocalTranscriptionService"
+      ],
+      "imports": [
+        {
+          "module": "module-0018",
+          "bindings": [
+            "join",
+            "dirname"
+          ]
+        },
+        {
+          "module": "module-0010",
+          "bindings": [
+            "Disposable",
+            "toDisposable"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0036",
+          "bindings": [
+            "importFoundryLocalModel"
+          ]
+        },
+        {
+          "module": "module-0034",
+          "bindings": [
+            "DEFAULT_LOCAL_TRANSCRIPTION_MODEL"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "CancellationTokenSource"
+          ]
+        },
+        {
+          "module": "module-0035",
+          "bindings": [
+            "ensureFoundryLocalRuntime"
+          ]
+        }
+      ],
+      "sha256": "740febd197323d57dc5517428adb70a3f4c49e5b6d2d0957ccc9f3db47ea8e7a"
+    },
+    {
+      "modulePath": "src/vs/platform/localTranscription/node/localTranscriptionMain.ts",
+      "file": "module-0041.mjs",
+      "exportedBindings": [
+        "server",
+        "service"
+      ],
+      "imports": [
+        {
+          "module": "module-0031",
+          "bindings": [
+            "isUtilityProcess"
+          ]
+        },
+        {
+          "module": "module-0032",
+          "bindings": [
+            "Server"
+          ]
+        },
+        {
+          "module": "module-0040",
+          "bindings": [
+            "LocalTranscriptionService"
+          ]
+        },
+        {
+          "module": "module-0034",
+          "bindings": [
+            "localTranscriptionChannelName"
+          ]
+        },
+        {
+          "module": "module-0030",
+          "bindings": [
+            "ProxyChannel"
+          ]
+        },
+        {
+          "module": "module-0010",
+          "bindings": [
+            "DisposableStore"
+          ]
+        }
+      ],
+      "sha256": "9a6d0dc65536382358f936c9b963eb3ea44340dd400fc22b1cdc703a61d191b5"
+    }
+  ],
+  "publicExports": [],
+  "topLevelBindings": 465,
+  "crossModuleWriteCount": 0,
+  "typescriptVersion": "6.0.3",
+  "directExportFix": true
+}

@@ -1,0 +1,3335 @@
+{
+  "generatorVersion": 2,
+  "bundle": "016-ptyHostMain.js",
+  "artifactPath": "resources/app/out/vs/platform/terminal/node/ptyHostMain.js",
+  "status": "generated-not-validated",
+  "modules": [
+    {
+      "modulePath": "<bundle-preamble>",
+      "file": "module-0000.mjs",
+      "exportedBindings": [
+        "__extends",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension",
+        "extendStatics",
+        "__assign",
+        "__createBinding",
+        "__setModuleDefault",
+        "ownKeys",
+        "_SuppressedError",
+        "__defProp",
+        "__getOwnPropDesc",
+        "__decorateClass",
+        "__decorateParam"
+      ],
+      "imports": [],
+      "sha256": "1a5ca10118dba8ce5737ebb7c08568646cf0462d4e37352d7190b75edfaa6013",
+      "directExportFix": [
+        "__extends",
+        "__assign",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__createBinding",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension"
+      ]
+    },
+    {
+      "modulePath": "src/vs/base/common/lazy.ts",
+      "file": "module-0001.mjs",
+      "exportedBindings": [
+        "Lazy"
+      ],
+      "imports": [],
+      "sha256": "fd674d321b79bf2be40987dab6ba2bbd5cab56b3ecd8aadec668a4f86fb578a3"
+    },
+    {
+      "modulePath": "src/vs/base/common/errors.ts",
+      "file": "module-0002.mjs",
+      "exportedBindings": [
+        "onUnexpectedError",
+        "onUnexpectedExternalError",
+        "isCancellationError",
+        "illegalState",
+        "ErrorHandler",
+        "errorHandler",
+        "canceledName",
+        "CancellationError",
+        "PendingMigrationError",
+        "ErrorNoTelemetry",
+        "BugIndicatingError"
+      ],
+      "imports": [],
+      "sha256": "8ab28d950a0c88e8420ffd96f347ec5532abc850da5cd8e63ac95f0038184ac0"
+    },
+    {
+      "modulePath": "src/vs/base/common/arraysFind.ts",
+      "file": "module-0003.mjs",
+      "exportedBindings": [
+        "findLastIdxMonotonous",
+        "MonotonousArray"
+      ],
+      "imports": [],
+      "sha256": "dd326cacb7a2fdd5e4caa3b3dc5913172a72444f3a6e769c22b83f541c52b664"
+    },
+    {
+      "modulePath": "src/vs/base/common/arrays.ts",
+      "file": "module-0004.mjs",
+      "exportedBindings": [
+        "coalesce",
+        "shuffle",
+        "getRandomElement",
+        "compareBy",
+        "CompareResult",
+        "numberComparator",
+        "CallbackIterable"
+      ],
+      "imports": [],
+      "sha256": "14194256486795a33896fb7c0c16fbb7c06c65ad2907c9be0592bab51fd7bce6"
+    },
+    {
+      "modulePath": "src/vs/base/common/collections.ts",
+      "file": "module-0005.mjs",
+      "exportedBindings": [
+        "groupBy",
+        "_a",
+        "_b",
+        "SetWithKey"
+      ],
+      "imports": [],
+      "sha256": "d133b1bc160994ec391f4f4dbb7f5cd49c24d041d3f3263b910dae5afe77a914"
+    },
+    {
+      "modulePath": "src/vs/base/common/map.ts",
+      "file": "module-0006.mjs",
+      "exportedBindings": [
+        "isEntries",
+        "mapsStrictEqualIgnoreOrder",
+        "ResourceMapEntry",
+        "_a2",
+        "ResourceMap",
+        "_a3",
+        "ResourceSet",
+        "_a4",
+        "LinkedMap",
+        "Cache",
+        "LRUCache",
+        "SetMap"
+      ],
+      "imports": [],
+      "sha256": "8836f663eeeb8203ff29ee5c471fef5c9eab2f300efed5eae825fe45e23869b1"
+    },
+    {
+      "modulePath": "src/vs/base/common/functional.ts",
+      "file": "module-0007.mjs",
+      "exportedBindings": [
+        "createSingleCallFunction"
+      ],
+      "imports": [],
+      "sha256": "8a2d6be428a71ea33b6a01c735a8caf8bc5ba4133cd02aaa7b336feb89d2e2e1"
+    },
+    {
+      "modulePath": "src/vs/base/common/assert.ts",
+      "file": "module-0008.mjs",
+      "exportedBindings": [
+        "ok",
+        "assert"
+      ],
+      "imports": [
+        {
+          "module": "module-0002",
+          "bindings": [
+            "BugIndicatingError"
+          ]
+        }
+      ],
+      "sha256": "241b75162010af7941ca634d5764632ec94b8a23a5a56d4866d42d9b975dd15c"
+    },
+    {
+      "modulePath": "src/vs/base/common/types.ts",
+      "file": "module-0009.mjs",
+      "exportedBindings": [
+        "isString",
+        "isObject",
+        "isNumber",
+        "isIterable",
+        "isUndefined",
+        "isUndefinedOrNull",
+        "assertType",
+        "isFunction",
+        "hasKey"
+      ],
+      "imports": [],
+      "sha256": "28ff9c40f2a9cc909e8b74521cecdc06312462046ebdecbe4303b69bffaf5f61"
+    },
+    {
+      "modulePath": "src/vs/base/common/iterator.ts",
+      "file": "module-0010.mjs",
+      "exportedBindings": [
+        "Iterable"
+      ],
+      "imports": [
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isIterable"
+          ]
+        }
+      ],
+      "sha256": "c988705b41023d6677ce2b685f78189faf078b5abced1b6df1279e91c0ada788"
+    },
+    {
+      "modulePath": "src/vs/base/common/lifecycle.ts",
+      "file": "module-0011.mjs",
+      "exportedBindings": [
+        "setDisposableTracker",
+        "trackDisposable",
+        "markAsDisposed",
+        "setParentOfDisposable",
+        "setParentOfDisposables",
+        "isDisposable",
+        "dispose",
+        "combinedDisposable",
+        "toDisposable",
+        "TRACK_DISPOSABLES",
+        "disposableTracker",
+        "DisposableTracker",
+        "FunctionDisposable",
+        "DisposableStore",
+        "Disposable",
+        "MutableDisposable",
+        "MandatoryMutableDisposable",
+        "DisposableMap"
+      ],
+      "imports": [
+        {
+          "module": "module-0006",
+          "bindings": [
+            "SetMap"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "compareBy",
+            "numberComparator"
+          ]
+        },
+        {
+          "module": "module-0005",
+          "bindings": [
+            "groupBy"
+          ]
+        },
+        {
+          "module": "module-0010",
+          "bindings": [
+            "Iterable"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "onUnexpectedError",
+            "BugIndicatingError"
+          ]
+        }
+      ],
+      "sha256": "43f592dd916471e0cbe859ad52818b1662160b880aaf7c6b3c09a42c1e38ddff"
+    },
+    {
+      "modulePath": "src/vs/base/common/buffer.ts",
+      "file": "module-0012.mjs",
+      "exportedBindings": [
+        "binaryIndexOf",
+        "readUInt32BE",
+        "writeUInt32BE",
+        "readUInt32LE",
+        "writeUInt32LE",
+        "readUInt8",
+        "writeUInt8",
+        "encodeHex",
+        "hasBuffer",
+        "indexOfTable",
+        "textEncoder",
+        "textDecoder",
+        "VSBuffer",
+        "hexChars"
+      ],
+      "imports": [
+        {
+          "module": "module-0001",
+          "bindings": [
+            "Lazy"
+          ]
+        }
+      ],
+      "sha256": "cfd0b481fedf41c209fcb39af978e5bab5623a0b5ef57e3dd8270877f257ef85"
+    },
+    {
+      "modulePath": "src/vs/nls.ts",
+      "file": "module-0013.mjs",
+      "exportedBindings": [
+        "getNLSMessages",
+        "getNLSLanguage",
+        "_format",
+        "localize",
+        "lookupMessage",
+        "isPseudo"
+      ],
+      "imports": [],
+      "sha256": "edb8d1e75abcb3a8bc09c13a054f27faac396e9390884cc274fa795c613b9a7e"
+    },
+    {
+      "modulePath": "src/vs/base/common/platform.ts",
+      "file": "module-0014.mjs",
+      "exportedBindings": [
+        "LANGUAGE_DEFAULT",
+        "_isWindows",
+        "_isMacintosh",
+        "_isLinux",
+        "_isLinuxSnap",
+        "_isNative",
+        "_isWeb",
+        "_isElectron",
+        "_isIOS",
+        "_isCI",
+        "_isMobile",
+        "_locale",
+        "_language",
+        "_platformLocale",
+        "_translationsConfigFile",
+        "_userAgent",
+        "$globalThis",
+        "nodeProcess",
+        "isElectronProcess",
+        "isElectronRenderer",
+        "_platform",
+        "isWindows",
+        "isMacintosh",
+        "isLinux",
+        "isNative",
+        "isWeb",
+        "isWebWorker",
+        "webWorkerOrigin",
+        "platform",
+        "userAgent",
+        "language",
+        "Language",
+        "setTimeout0IsFaster",
+        "setTimeout0",
+        "OS",
+        "isChrome",
+        "isFirefox",
+        "isSafari",
+        "isEdge",
+        "isAndroid",
+        "hasElectronUserAgent"
+      ],
+      "imports": [
+        {
+          "module": "module-0013",
+          "bindings": [
+            "getNLSLanguage"
+          ]
+        }
+      ],
+      "sha256": "e694a4beb238bb77099682b2e762a3c102330e2bb26f347ec31e1b47b2e7ee25"
+    },
+    {
+      "modulePath": "src/vs/base/common/process.ts",
+      "file": "module-0015.mjs",
+      "exportedBindings": [
+        "safeProcess",
+        "vscodeGlobal",
+        "cwd",
+        "env",
+        "platform2",
+        "arch"
+      ],
+      "imports": [
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows",
+            "isMacintosh"
+          ]
+        }
+      ],
+      "sha256": "2e8c100a97261872ce99e4edaf9024596b60dfbb65b42afd6626e332e6b4dcd3"
+    },
+    {
+      "modulePath": "src/vs/base/common/path.ts",
+      "file": "module-0016.mjs",
+      "exportedBindings": [
+        "validateObject",
+        "validateString",
+        "isPathSeparator",
+        "isPosixPathSeparator",
+        "isWindowsDeviceRoot",
+        "normalizeString",
+        "formatExt",
+        "_format2",
+        "CHAR_UPPERCASE_A",
+        "CHAR_LOWERCASE_A",
+        "CHAR_UPPERCASE_Z",
+        "CHAR_LOWERCASE_Z",
+        "CHAR_DOT",
+        "CHAR_FORWARD_SLASH",
+        "CHAR_BACKWARD_SLASH",
+        "CHAR_COLON",
+        "CHAR_QUESTION_MARK",
+        "ErrorInvalidArgType",
+        "platformIsWin32",
+        "win32",
+        "posixCwd",
+        "posix",
+        "normalize",
+        "isAbsolute",
+        "join",
+        "resolve",
+        "relative",
+        "dirname",
+        "basename",
+        "extname",
+        "format",
+        "parse",
+        "toNamespacedPath",
+        "sep",
+        "delimiter"
+      ],
+      "imports": [
+        {
+          "module": "module-0015",
+          "bindings": [
+            "platform2",
+            "cwd",
+            "env"
+          ]
+        }
+      ],
+      "sha256": "2cb3447d182fd6b6b0b21b62faaf8be937e2f3bc97d4e45d0d66e71418eb0921"
+    },
+    {
+      "modulePath": "src/vs/base/common/uri.ts",
+      "file": "module-0017.mjs",
+      "exportedBindings": [
+        "_validateUri",
+        "_schemeFix",
+        "_referenceResolution",
+        "encodeURIComponentFast",
+        "encodeURIComponentMinimal",
+        "uriToFsPath",
+        "_asFormatted",
+        "decodeURIComponentGraceful",
+        "percentDecode",
+        "_schemePattern",
+        "_singleSlashStart",
+        "_doubleSlashStart",
+        "_empty",
+        "_slash",
+        "_regexp",
+        "URI",
+        "_pathSepMarker",
+        "Uri",
+        "encodeTable",
+        "_rEncodedAsHex"
+      ],
+      "imports": [
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "win32",
+            "posix"
+          ]
+        }
+      ],
+      "sha256": "0bca585b0810d9ffa58c5153ebdae92b45d1c72ec4bff71843d236a8e825743c"
+    },
+    {
+      "modulePath": "src/vs/base/common/uriIpc.ts",
+      "file": "module-0018.mjs",
+      "exportedBindings": [
+        "DefaultURITransformer"
+      ],
+      "imports": [],
+      "sha256": "74d6002d0c38d472b246d33db6d48c9e8f42da532b191bfd4af48b6f9db33fd7"
+    },
+    {
+      "modulePath": "src/vs/base/common/linkedList.ts",
+      "file": "module-0019.mjs",
+      "exportedBindings": [
+        "Node"
+      ],
+      "imports": [],
+      "sha256": "92a0fc9856be26b3a4ba7b40afb15dff4c68cbae230b44a12b447d65584259b1"
+    },
+    {
+      "modulePath": "src/vs/base/common/stopwatch.ts",
+      "file": "module-0020.mjs",
+      "exportedBindings": [
+        "performanceNow",
+        "StopWatch"
+      ],
+      "imports": [],
+      "sha256": "1ccf0613393ab28737da47fbba8e0c6acdf09f905ad578863b3d12df2c9e17c1"
+    },
+    {
+      "modulePath": "src/vs/base/common/event.ts",
+      "file": "module-0021.mjs",
+      "exportedBindings": [
+        "_isBufferLeakWarningEnabled",
+        "nextLeakageMonitorName",
+        "addToDisposables",
+        "disposeAndRemove",
+        "_enableDisposeWithListenerWarning",
+        "_enableSnapshotPotentialLeakWarning",
+        "_bufferLeakWarnCountThreshold",
+        "_bufferLeakWarnTimeThreshold",
+        "Event",
+        "EventProfiling",
+        "_globalLeakWarningThreshold",
+        "leakageMonitorId",
+        "LeakageMonitor",
+        "Stacktrace",
+        "ListenerLeakError",
+        "ListenerRefusalError",
+        "id",
+        "UniqueContainer",
+        "compactionThreshold",
+        "forEachListener",
+        "Emitter",
+        "EventDeliveryQueuePrivate",
+        "EventMultiplexer",
+        "Relay"
+      ],
+      "imports": [
+        {
+          "module": "module-0015",
+          "bindings": [
+            "env"
+          ]
+        },
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable",
+            "combinedDisposable",
+            "toDisposable",
+            "DisposableStore"
+          ]
+        },
+        {
+          "module": "module-0020",
+          "bindings": [
+            "StopWatch"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "onUnexpectedError"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "createSingleCallFunction"
+          ]
+        }
+      ],
+      "sha256": "b43a6a20cbebe7f538e82232e6b28dabd3ba43a5cfe518dc3709f4a5a629f443"
+    },
+    {
+      "modulePath": "src/vs/base/common/cancellation.ts",
+      "file": "module-0022.mjs",
+      "exportedBindings": [
+        "shortcutEvent",
+        "CancellationToken",
+        "MutableToken",
+        "CancellationTokenSource"
+      ],
+      "imports": [
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Event",
+            "Emitter"
+          ]
+        }
+      ],
+      "sha256": "95ca1596ce3e48b2a4c6bc68cf7b251319b43f4663722ee06775844d1a60c4ab"
+    },
+    {
+      "modulePath": "src/vs/base/common/cache.ts",
+      "file": "module-0023.mjs",
+      "exportedBindings": [
+        "identity",
+        "LRUCachedFunction"
+      ],
+      "imports": [],
+      "sha256": "273d4d418d095ad18e417a56f2b0d1dae6c4c00e976e75d914ad817ecca5f9bc"
+    },
+    {
+      "modulePath": "src/vs/base/common/strings.ts",
+      "file": "module-0024.mjs",
+      "exportedBindings": [
+        "isFalsyOrWhitespace",
+        "format2",
+        "rtrim",
+        "compare",
+        "compareSubstring",
+        "compareIgnoreCase",
+        "compareSubstringIgnoreCase",
+        "isLowerAsciiLetter",
+        "isUpperAsciiLetter",
+        "equalsIgnoreCase",
+        "startsWithIgnoreCase",
+        "isHighSurrogate",
+        "isLowSurrogate",
+        "computeCodePoint",
+        "removeAnsiEscapeCodes",
+        "removeAnsiEscapeCodesFromPrompt",
+        "getGraphemeBreakRawData",
+        "_formatRegexp",
+        "CSI_SEQUENCE",
+        "OSC_SEQUENCE",
+        "ESC_SEQUENCE",
+        "CONTROL_SEQUENCES",
+        "PROMPT_NON_PRINTABLE",
+        "UTF8_BOM_CHARACTER",
+        "GraphemeBreakTree",
+        "AmbiguousCharacters",
+        "InvisibleCharacters"
+      ],
+      "imports": [
+        {
+          "module": "module-0001",
+          "bindings": [
+            "Lazy"
+          ]
+        },
+        {
+          "module": "module-0023",
+          "bindings": [
+            "LRUCachedFunction"
+          ]
+        }
+      ],
+      "sha256": "e738cfb93fb3663291df4959224af907cbd431c415dd5a32351ecfefc2b14309"
+    },
+    {
+      "modulePath": "src/vs/base/common/extpath.ts",
+      "file": "module-0025.mjs",
+      "exportedBindings": [
+        "isPathSeparator2",
+        "toSlashes",
+        "toPosixPath",
+        "getRoot",
+        "isEqualOrParent",
+        "isWindowsDriveLetter",
+        "isRootOrDriveLetter",
+        "hasDriveLetter",
+        "randomPath",
+        "pathChars",
+        "windowsSafePathFirstChars"
+      ],
+      "imports": [
+        {
+          "module": "module-0016",
+          "bindings": [
+            "posix",
+            "sep",
+            "normalize",
+            "join"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "startsWithIgnoreCase"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows"
+          ]
+        }
+      ],
+      "sha256": "6188046cdf18d7de729180862cba3d78dd82285a61ff424d384bf94f016d841e"
+    },
+    {
+      "modulePath": "src/vs/base/common/network.ts",
+      "file": "module-0026.mjs",
+      "exportedBindings": [
+        "getServerProductSegment",
+        "Schemas",
+        "connectionTokenQueryName",
+        "RemoteAuthoritiesImpl",
+        "RemoteAuthorities",
+        "VSCODE_AUTHORITY",
+        "FileAccessImpl",
+        "FileAccess",
+        "CacheControlheaders",
+        "DocumentPolicyheaders",
+        "COI"
+      ],
+      "imports": [
+        {
+          "module": "module-0016",
+          "bindings": [
+            "posix",
+            "join"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "onUnexpectedExternalError"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWeb",
+            "isNative",
+            "webWorkerOrigin"
+          ]
+        }
+      ],
+      "sha256": "050211f903b717d44737fbb0fd1c5aef1a92c286ce3a847087b41ac733b02dad"
+    },
+    {
+      "modulePath": "src/vs/base/common/resources.ts",
+      "file": "module-0027.mjs",
+      "exportedBindings": [
+        "originalFSPath",
+        "ExtUri",
+        "extUri",
+        "extUriBiasedIgnorePathCase",
+        "extUriIgnorePathCase",
+        "isEqual",
+        "isEqualOrParent2",
+        "getComparisonKey",
+        "basenameOrAuthority",
+        "basename2",
+        "extname2",
+        "dirname2",
+        "joinPath",
+        "normalizePath",
+        "relativePath",
+        "resolvePath",
+        "isAbsolutePath",
+        "isEqualAuthority",
+        "hasTrailingPathSeparator",
+        "removeTrailingPathSeparator",
+        "addTrailingPathSeparator",
+        "DataUri"
+      ],
+      "imports": [
+        {
+          "module": "module-0017",
+          "bindings": [
+            "uriToFsPath",
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "compare",
+            "equalsIgnoreCase"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "Schemas"
+          ]
+        },
+        {
+          "module": "module-0025",
+          "bindings": [
+            "isEqualOrParent",
+            "toSlashes",
+            "toPosixPath",
+            "getRoot"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "posix",
+            "dirname",
+            "normalize",
+            "relative",
+            "resolve",
+            "sep"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows",
+            "isLinux"
+          ]
+        }
+      ],
+      "sha256": "84b1724ff5edaa7bb38322ba74f0ca12f5035c5240d483dcb199a1341a45687a"
+    },
+    {
+      "modulePath": "src/vs/base/common/async.ts",
+      "file": "module-0028.mjs",
+      "exportedBindings": [
+        "createCancelablePromise",
+        "timeout",
+        "Barrier",
+        "AutoOpenBarrier",
+        "MAX_TIMEOUT_DELAY",
+        "Limiter",
+        "Queue",
+        "ResourceQueue",
+        "RunOnceScheduler",
+        "ProcessTimeRunOnceScheduler",
+        "runWhenGlobalIdle",
+        "_runWhenIdle",
+        "DeferredPromise",
+        "Promises",
+        "AsyncIterableObject",
+        "ProducerConsumer",
+        "AsyncIterableProducer"
+      ],
+      "imports": [
+        {
+          "module": "module-0022",
+          "bindings": [
+            "CancellationTokenSource"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "CancellationError",
+            "BugIndicatingError"
+          ]
+        },
+        {
+          "module": "module-0011",
+          "bindings": [
+            "isDisposable",
+            "DisposableMap"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter",
+            "Event"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "extUri"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "setTimeout0"
+          ]
+        }
+      ],
+      "sha256": "12ffb914d57e4d60563c85799e1a92de8b484c956f320f19112cecfd0c721b15"
+    },
+    {
+      "modulePath": "src/vs/base/common/decorators.ts",
+      "file": "module-0029.mjs",
+      "exportedBindings": [
+        "createDecorator",
+        "memoize",
+        "debounce",
+        "throttle"
+      ],
+      "imports": [],
+      "sha256": "c9c3cb7a3dcccdf6b8f3b1c498611c2c12eb620f198002aa890dbf0ef47e52cc"
+    },
+    {
+      "modulePath": "src/vs/base/common/marshalling.ts",
+      "file": "module-0030.mjs",
+      "exportedBindings": [
+        "revive"
+      ],
+      "imports": [
+        {
+          "module": "module-0017",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0012",
+          "bindings": [
+            "VSBuffer"
+          ]
+        }
+      ],
+      "sha256": "406c9aa9d7eb5b174776d06162f11813519e6abdbd0944c34f5c0aa030921029"
+    },
+    {
+      "modulePath": "src/vs/base/parts/ipc/common/ipc.ts",
+      "file": "module-0031.mjs",
+      "exportedBindings": [
+        "requestTypeToStr",
+        "responseTypeToStr",
+        "readIntVQL",
+        "writeInt32VQL",
+        "createOneByteBuffer",
+        "serialize",
+        "deserialize",
+        "getDelayedChannel",
+        "vqlZero",
+        "BufferReader",
+        "BufferWriter",
+        "BufferPresets",
+        "ChannelServer",
+        "ChannelClient",
+        "IPCServer",
+        "ProxyChannel"
+      ],
+      "imports": [
+        {
+          "module": "module-0012",
+          "bindings": [
+            "VSBuffer"
+          ]
+        },
+        {
+          "module": "module-0022",
+          "bindings": [
+            "CancellationTokenSource",
+            "CancellationToken"
+          ]
+        },
+        {
+          "module": "module-0011",
+          "bindings": [
+            "toDisposable",
+            "dispose",
+            "DisposableStore"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter",
+            "Event",
+            "EventMultiplexer",
+            "Relay"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "CancellationError",
+            "ErrorNoTelemetry"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "createCancelablePromise"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "createSingleCallFunction"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "memoize"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isFunction",
+            "isUndefinedOrNull"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "getRandomElement"
+          ]
+        },
+        {
+          "module": "module-0030",
+          "bindings": [
+            "revive"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "isUpperAsciiLetter"
+          ]
+        }
+      ],
+      "sha256": "3e76f642475bce8d33dbb106ccf4759d54774adbdf5872a9c6d3e9defa1c5884"
+    },
+    {
+      "modulePath": "src/vs/base/parts/ipc/node/ipc.cp.ts",
+      "file": "module-0032.mjs",
+      "exportedBindings": [
+        "fork",
+        "Server"
+      ],
+      "imports": [
+        {
+          "module": "module-0031",
+          "bindings": [
+            "ChannelServer"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Event"
+          ]
+        },
+        {
+          "module": "module-0012",
+          "bindings": [
+            "VSBuffer"
+          ]
+        }
+      ],
+      "sha256": "040599f4dff585a9b7b25d07b35d1b2ff9c074672fcb9799fa5c4d1c626fbf62"
+    },
+    {
+      "modulePath": "src/vs/base/common/objects.ts",
+      "file": "module-0033.mjs",
+      "exportedBindings": [
+        "equals",
+        "getCaseInsensitive"
+      ],
+      "imports": [],
+      "sha256": "cb67b5a5aa3a2d27b839fd57ec02ad96f966b4907eba5b7e868260fa8a3ab0f0"
+    },
+    {
+      "modulePath": "src/vs/base/node/processes.ts",
+      "file": "module-0034.mjs",
+      "exportedBindings": [
+        "getWindowsShell",
+        "fileExistsDefault",
+        "findExecutable",
+        "cp",
+        "promises2"
+      ],
+      "imports": [
+        {
+          "module": "module-0015",
+          "bindings": [
+            "env",
+            "cwd"
+          ]
+        },
+        {
+          "module": "module-0035",
+          "bindings": [
+            "Promises2"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "isAbsolute",
+            "dirname",
+            "join",
+            "delimiter"
+          ]
+        },
+        {
+          "module": "module-0033",
+          "bindings": [
+            "getCaseInsensitive"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isString"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows"
+          ]
+        }
+      ],
+      "sha256": "afd49b257333ea2593af876754e2acdb896baf159f87f9c2c7a8c8c2eba8a512"
+    },
+    {
+      "modulePath": "src/vs/base/node/pfs.ts",
+      "file": "module-0035.mjs",
+      "exportedBindings": [
+        "rimraf",
+        "rimrafMove",
+        "rimrafUnlink",
+        "readdir",
+        "doReaddir",
+        "safeReaddirWithFileTypes",
+        "handleDirectoryChildren",
+        "readDirsInDir",
+        "writeFile2",
+        "configureFlushOnWrite",
+        "doWriteFileAndFlush",
+        "ensureWriteOptions",
+        "rename",
+        "renameWithRetry",
+        "copy",
+        "doCopy",
+        "doCopyDirectory",
+        "doCopyFile",
+        "doCopySymlink",
+        "realpath2",
+        "normalizePath2",
+        "fs",
+        "tmpdir",
+        "promisify",
+        "SymlinkSupport",
+        "writeQueues",
+        "canFlush",
+        "COPY_MODE_MASK",
+        "Promises2"
+      ],
+      "imports": [
+        {
+          "module": "module-0025",
+          "bindings": [
+            "isRootOrDriveLetter",
+            "randomPath",
+            "isEqualOrParent"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows",
+            "isMacintosh",
+            "isLinux"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "join",
+            "normalize",
+            "sep"
+          ]
+        },
+        {
+          "module": "module-0036",
+          "bindings": [
+            "normalizeNFC"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "ResourceQueue",
+            "timeout"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "extUriBiasedIgnorePathCase"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "rtrim"
+          ]
+        }
+      ],
+      "sha256": "e6aea396da9c581666188d036c7f4cd40061dc8ff2a5fbaa33c575b643e38473"
+    },
+    {
+      "modulePath": "src/vs/base/common/normalization.ts",
+      "file": "module-0036.mjs",
+      "exportedBindings": [
+        "normalizeNFC",
+        "normalizeNFD",
+        "normalize2",
+        "nfcCache",
+        "nfdCache",
+        "nonAsciiCharactersPattern",
+        "tryNormalizeToBase"
+      ],
+      "imports": [
+        {
+          "module": "module-0006",
+          "bindings": [
+            "LRUCache"
+          ]
+        }
+      ],
+      "sha256": "eb1173c8b5382c366c5c189c3d7ac58419d1b0bece22e514ae3f29e9a856d7da"
+    },
+    {
+      "modulePath": "src/vs/base/parts/sandbox/node/electronTypes.ts",
+      "file": "module-0037.mjs",
+      "exportedBindings": [
+        "isUtilityProcess"
+      ],
+      "imports": [],
+      "sha256": "8c2a56a57bef50b12c90338c3726ff49a41fd8c93720c4fa56cd2f3215215fd0"
+    },
+    {
+      "modulePath": "src/vs/base/parts/ipc/node/ipc.mp.ts",
+      "file": "module-0038.mjs",
+      "exportedBindings": [
+        "Protocol",
+        "Server2"
+      ],
+      "imports": [
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Event",
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0012",
+          "bindings": [
+            "VSBuffer"
+          ]
+        },
+        {
+          "module": "module-0031",
+          "bindings": [
+            "IPCServer"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "assertType"
+          ]
+        },
+        {
+          "module": "module-0037",
+          "bindings": [
+            "isUtilityProcess"
+          ]
+        }
+      ],
+      "sha256": "946b8b8f2b088705d7c322338692eb708228cb5fc5291ec486dc762c7e3a70d0"
+    },
+    {
+      "modulePath": "src/vs/platform/environment/node/argv.ts",
+      "file": "module-0039.mjs",
+      "exportedBindings": [
+        "parseArgs",
+        "minimist",
+        "helpCategories",
+        "OPTIONS",
+        "ignoringReporter"
+      ],
+      "imports": [
+        {
+          "module": "module-0013",
+          "bindings": [
+            "localize"
+          ]
+        }
+      ],
+      "sha256": "e14ab0b1ec5b7c1730bce581c8c171609f5c395120b6bff19ceaac124caf234c"
+    },
+    {
+      "modulePath": "src/vs/platform/environment/node/environmentService.ts",
+      "file": "module-0040.mjs",
+      "exportedBindings": [
+        "homedir2",
+        "tmpdir2",
+        "NativeEnvironmentService"
+      ],
+      "imports": [
+        {
+          "module": "module-0042",
+          "bindings": [
+            "AbstractNativeEnvironmentService"
+          ]
+        },
+        {
+          "module": "module-0043",
+          "bindings": [
+            "getUserDataPath"
+          ]
+        }
+      ],
+      "sha256": "ccf643e88db7401da223272dfc2d8194b9d3923e443f23a3aba14d5687b0445c"
+    },
+    {
+      "modulePath": "src/vs/base/common/date.ts",
+      "file": "module-0041.mjs",
+      "exportedBindings": [
+        "toLocalISOString",
+        "minute",
+        "hour",
+        "day",
+        "week",
+        "month",
+        "year"
+      ],
+      "imports": [],
+      "sha256": "a5ec44f7d105a411cf75fe8adc47cecd56b1a2c600050f54781454a8c7cbbe1a"
+    },
+    {
+      "modulePath": "src/vs/platform/environment/common/environmentService.ts",
+      "file": "module-0042.mjs",
+      "exportedBindings": [
+        "parseExtensionHostDebugPort",
+        "parseDebugParams",
+        "EXTENSION_IDENTIFIER_WITH_LOG_REGEX",
+        "AbstractNativeEnvironmentService"
+      ],
+      "imports": [
+        {
+          "module": "module-0016",
+          "bindings": [
+            "dirname",
+            "join",
+            "resolve",
+            "normalize"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "FileAccess",
+            "Schemas"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "joinPath"
+          ]
+        },
+        {
+          "module": "module-0041",
+          "bindings": [
+            "toLocalISOString"
+          ]
+        },
+        {
+          "module": "module-0015",
+          "bindings": [
+            "env"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "memoize"
+          ]
+        }
+      ],
+      "sha256": "09c4f3be90ac794b843640a61372cb9e39159e021b86403b51e22148a8aff462"
+    },
+    {
+      "modulePath": "src/vs/platform/environment/node/userDataPath.ts",
+      "file": "module-0043.mjs",
+      "exportedBindings": [
+        "getUserDataPath",
+        "doGetUserDataPath",
+        "getDefaultUserDataPath",
+        "homedir",
+        "resolve2",
+        "isAbsolute2",
+        "join2",
+        "cwd2"
+      ],
+      "imports": [],
+      "sha256": "8cfcddca9f57aa6e61bfb18210409c01547798c9600b02e54a9800978cb144c3"
+    },
+    {
+      "modulePath": "src/vs/base/common/errorMessage.ts",
+      "file": "module-0044.mjs",
+      "exportedBindings": [
+        "exceptionToErrorMessage",
+        "stackToString",
+        "detectSystemErrorMessage",
+        "toErrorMessage"
+      ],
+      "imports": [
+        {
+          "module": "module-0013",
+          "bindings": [
+            "localize"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "coalesce"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isString"
+          ]
+        }
+      ],
+      "sha256": "495a00478af81ed4663a7b0de4ffac39f29caad11aeca7d36d9cdfc75fbadbb2"
+    },
+    {
+      "modulePath": "src/vs/base/common/hash.ts",
+      "file": "module-0045.mjs",
+      "exportedBindings": [
+        "hash",
+        "doHash",
+        "numberHash",
+        "booleanHash",
+        "stringHash",
+        "arrayHash",
+        "objectHash",
+        "leftRotate",
+        "toHexString",
+        "StringSHA1"
+      ],
+      "imports": [
+        {
+          "module": "module-0012",
+          "bindings": [
+            "encodeHex",
+            "VSBuffer"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "isHighSurrogate",
+            "isLowSurrogate",
+            "computeCodePoint"
+          ]
+        }
+      ],
+      "sha256": "91257dea4060049ca4973b32fb3a3378a84d43b19d8b44848fbdef351958a003"
+    },
+    {
+      "modulePath": "src/vs/platform/contextkey/common/scanner.ts",
+      "file": "module-0046.mjs",
+      "exportedBindings": [
+        "hintDidYouMean",
+        "hintDidYouForgetToOpenOrCloseQuote",
+        "hintDidYouForgetToEscapeSlash",
+        "Scanner"
+      ],
+      "imports": [
+        {
+          "module": "module-0013",
+          "bindings": [
+            "localize"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "illegalState"
+          ]
+        }
+      ],
+      "sha256": "53b071ac18004dd437ca830fe9805325bee6a3e8b89205da21e3f2b7f07dcdfe"
+    },
+    {
+      "modulePath": "src/vs/platform/instantiation/common/instantiation.ts",
+      "file": "module-0047.mjs",
+      "exportedBindings": [
+        "storeServiceDependency",
+        "createDecorator2",
+        "_util",
+        "IInstantiationService"
+      ],
+      "imports": [],
+      "sha256": "99e53fb95e8ad3a13a3e2a492c97b48db5cf05e6c2bad2604630e6d9ca6e5efa"
+    },
+    {
+      "modulePath": "src/vs/platform/contextkey/common/contextkey.ts",
+      "file": "module-0048.mjs",
+      "exportedBindings": [
+        "cmp",
+        "withFloatOrStr",
+        "eliminateConstantsInArray",
+        "cmp1",
+        "cmp2",
+        "getTerminals",
+        "CONSTANT_VALUES",
+        "hasOwnProperty",
+        "defaultConfig",
+        "errorEmptyString",
+        "hintEmptyString",
+        "errorNoInAfterNot",
+        "errorClosingParenthesis",
+        "errorUnexpectedToken",
+        "hintUnexpectedToken",
+        "errorUnexpectedEOF",
+        "hintUnexpectedEOF",
+        "Parser",
+        "ContextKeyExpr",
+        "ContextKeyFalseExpr",
+        "ContextKeyTrueExpr",
+        "ContextKeyDefinedExpr",
+        "ContextKeyEqualsExpr",
+        "ContextKeyInExpr",
+        "ContextKeyNotInExpr",
+        "ContextKeyNotEqualsExpr",
+        "ContextKeyNotExpr",
+        "ContextKeyGreaterExpr",
+        "ContextKeyGreaterEqualsExpr",
+        "ContextKeySmallerExpr",
+        "ContextKeySmallerEqualsExpr",
+        "ContextKeyRegexExpr",
+        "ContextKeyNotRegexExpr",
+        "ContextKeyAndExpr",
+        "ContextKeyOrExpr",
+        "RawContextKey",
+        "IContextKeyService"
+      ],
+      "imports": [
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isMacintosh",
+            "isLinux",
+            "isWindows",
+            "isWeb",
+            "isEdge",
+            "isFirefox",
+            "isChrome",
+            "isSafari"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "localize"
+          ]
+        },
+        {
+          "module": "module-0046",
+          "bindings": [
+            "Scanner"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "isFalsyOrWhitespace"
+          ]
+        },
+        {
+          "module": "module-0047",
+          "bindings": [
+            "createDecorator2"
+          ]
+        }
+      ],
+      "sha256": "62cfa5fb60c1541622d71770a6b284a5f5616326cc8ba3c9cdffe216963e1858"
+    },
+    {
+      "modulePath": "src/vs/platform/log/common/log.ts",
+      "file": "module-0049.mjs",
+      "exportedBindings": [
+        "isLogLevel",
+        "canLog",
+        "log2",
+        "setConsoleMethod",
+        "registerDevConsoleLogForwarder",
+        "format3",
+        "getLogLevel",
+        "LogLevelToString",
+        "parseLogLevel",
+        "ILogService",
+        "ILoggerService",
+        "DEFAULT_LOG_LEVEL",
+        "isDevConsoleLogForwardingEnabled",
+        "isConsoleForwarding",
+        "isLogServiceConsoleEcho",
+        "AbstractLogger",
+        "AbstractMessageLogger",
+        "MultiplexLogger",
+        "AbstractLoggerService",
+        "CONTEXT_LOG_LEVEL"
+      ],
+      "imports": [
+        {
+          "module": "module-0047",
+          "bindings": [
+            "createDecorator2"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isNumber",
+            "isString"
+          ]
+        },
+        {
+          "module": "module-0011",
+          "bindings": [
+            "toDisposable",
+            "Disposable"
+          ]
+        },
+        {
+          "module": "module-0044",
+          "bindings": [
+            "toErrorMessage"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "ResourceMap"
+          ]
+        },
+        {
+          "module": "module-0045",
+          "bindings": [
+            "hash"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "joinPath"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0048",
+          "bindings": [
+            "RawContextKey"
+          ]
+        }
+      ],
+      "sha256": "61a809b6956de6917efe1de0d1de9af2cb385bc0581e4253166acbea75877716"
+    },
+    {
+      "modulePath": "src/vs/platform/log/common/logIpc.ts",
+      "file": "module-0050.mjs",
+      "exportedBindings": [
+        "LoggerChannel"
+      ],
+      "imports": [
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Event"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "isLogLevel"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "URI"
+          ]
+        }
+      ],
+      "sha256": "710c2addcbca1cbb8fff0428bd6b8f797686d7eafd84d9959e8efb9c6462d8be"
+    },
+    {
+      "modulePath": "src/vs/platform/log/common/logService.ts",
+      "file": "module-0051.mjs",
+      "exportedBindings": [
+        "LogService"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "MultiplexLogger"
+          ]
+        }
+      ],
+      "sha256": "2973cd31344266eecfce0009bd3d34bc6fe5e5a544a26b69892dbb1a0f78d23b"
+    },
+    {
+      "modulePath": "src/vs/base/common/uuid.ts",
+      "file": "module-0052.mjs",
+      "exportedBindings": [
+        "generateUuid"
+      ],
+      "imports": [],
+      "sha256": "24bcd20988bc3d189fba928f003015772d2ef6ace2b47190f917926c657f8c82"
+    },
+    {
+      "modulePath": "src/vs/base/common/ternarySearchTree.ts",
+      "file": "module-0053.mjs",
+      "exportedBindings": [
+        "StringIterator",
+        "ConfigKeysIterator",
+        "PathIterator",
+        "UriIterator",
+        "Undef",
+        "TernarySearchTreeNode",
+        "TernarySearchTree"
+      ],
+      "imports": [
+        {
+          "module": "module-0024",
+          "bindings": [
+            "compareSubstring",
+            "compareSubstringIgnoreCase",
+            "compareIgnoreCase",
+            "compare"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "shuffle"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "assert"
+          ]
+        }
+      ],
+      "sha256": "01284f8c614f4987676aa7f50ff449b3936fcdf3daa6914d584ce18454193394"
+    },
+    {
+      "modulePath": "src/vs/platform/files/common/files.ts",
+      "file": "module-0054.mjs",
+      "exportedBindings": [
+        "IFileService",
+        "FileChangesEvent",
+        "ByteSize"
+      ],
+      "imports": [
+        {
+          "module": "module-0047",
+          "bindings": [
+            "createDecorator2"
+          ]
+        },
+        {
+          "module": "module-0001",
+          "bindings": [
+            "Lazy"
+          ]
+        },
+        {
+          "module": "module-0053",
+          "bindings": [
+            "TernarySearchTree"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isNumber"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "localize"
+          ]
+        }
+      ],
+      "sha256": "c7743bf58dc054a42eb2affa7bdd8230257a929524811c7b8b64c228f931d2ad"
+    },
+    {
+      "modulePath": "src/vs/platform/log/node/spdlogLog.ts",
+      "file": "module-0055.mjs",
+      "exportedBindings": [
+        "createSpdLogLogger",
+        "log3",
+        "setLogLevel",
+        "SpdLogLogger"
+      ],
+      "imports": [
+        {
+          "module": "module-0049",
+          "bindings": [
+            "AbstractMessageLogger"
+          ]
+        },
+        {
+          "module": "module-0054",
+          "bindings": [
+            "ByteSize"
+          ]
+        }
+      ],
+      "sha256": "fe283a8c98e78c8a3caf69e00c8054bd27f75f054574cdc6dcf56815bc6904f2"
+    },
+    {
+      "modulePath": "src/vs/platform/log/node/loggerService.ts",
+      "file": "module-0056.mjs",
+      "exportedBindings": [
+        "LoggerService"
+      ],
+      "imports": [
+        {
+          "module": "module-0049",
+          "bindings": [
+            "AbstractLoggerService"
+          ]
+        },
+        {
+          "module": "module-0055",
+          "bindings": [
+            "SpdLogLogger"
+          ]
+        },
+        {
+          "module": "module-0052",
+          "bindings": [
+            "generateUuid"
+          ]
+        }
+      ],
+      "sha256": "9055bbbee166d2bdf6913fd8a6307f078d273c937f9197a6ce02137be715426b"
+    },
+    {
+      "modulePath": "src/vs/platform/product/common/product.ts",
+      "file": "module-0057.mjs",
+      "exportedBindings": [
+        "getDependencyVersion",
+        "product",
+        "vscodeGlobal2",
+        "product_default"
+      ],
+      "imports": [
+        {
+          "module": "module-0015",
+          "bindings": [
+            "env"
+          ]
+        }
+      ],
+      "sha256": "36b4fe1caa9a0d4748072c9141fd6d019de818ddae4844675d308cbcc54aad0a"
+    },
+    {
+      "modulePath": "src/vs/platform/registry/common/platform.ts",
+      "file": "module-0058.mjs",
+      "exportedBindings": [
+        "RegistryImpl",
+        "Registry"
+      ],
+      "imports": [
+        {
+          "module": "module-0008",
+          "bindings": [
+            "ok"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isString",
+            "isObject",
+            "isFunction"
+          ]
+        }
+      ],
+      "sha256": "8051fe5c3808e08e3614baa945dd610e1b8965392259b1e1b1919b917d96bd11"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/terminal.ts",
+      "file": "module-0059.mjs",
+      "exportedBindings": [
+        "IPtyService",
+        "TerminalExtensions",
+        "TerminalBackendRegistry",
+        "ILocalPtyService",
+        "ITerminalLogService"
+      ],
+      "imports": [
+        {
+          "module": "module-0047",
+          "bindings": [
+            "createDecorator2"
+          ]
+        },
+        {
+          "module": "module-0058",
+          "bindings": [
+            "Registry"
+          ]
+        }
+      ],
+      "sha256": "05c2bfeae480bae8a718398c7dc4375b28fa9e65cd3a1934b18e001106066aaa"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/node/heartbeatService.ts",
+      "file": "module-0060.mjs",
+      "exportedBindings": [
+        "HeartbeatService"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable",
+            "toDisposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        }
+      ],
+      "sha256": "5b940ecebcb63efd9701838de74b173cf4367291fec15bb869827e4346e167c3"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/node/ptyService.ts",
+      "file": "module-0061.mjs",
+      "exportedBindings": [
+        "sanitizeArgsForLogging",
+        "traceRpc",
+        "printTime",
+        "execFile",
+        "exec3",
+        "pkg",
+        "XtermTerminal",
+        "SerializeAddon",
+        "Unicode11Addon",
+        "PtyService",
+        "PersistentTerminalProcess",
+        "MutationLogger",
+        "XtermSerializer"
+      ],
+      "imports": [
+        {
+          "module": "module-0067",
+          "bindings": [
+            "sanitizeEnvForLogging"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isFunction",
+            "isString",
+            "isNumber",
+            "hasKey"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "timeout",
+            "Promises",
+            "Queue",
+            "ProcessTimeRunOnceScheduler",
+            "AutoOpenBarrier"
+          ]
+        },
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable",
+            "toDisposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0064",
+          "bindings": [
+            "RequestStore"
+          ]
+        },
+        {
+          "module": "module-0089",
+          "bindings": [
+            "AutoRepliesPtyServiceContribution"
+          ]
+        },
+        {
+          "module": "module-0074",
+          "bindings": [
+            "ignoreProcessNames"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows",
+            "OS"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "localize"
+          ]
+        },
+        {
+          "module": "module-0086",
+          "bindings": [
+            "formatMessageForTerminal"
+          ]
+        },
+        {
+          "module": "module-0071",
+          "bindings": [
+            "TerminalProcess"
+          ]
+        },
+        {
+          "module": "module-0087",
+          "bindings": [
+            "getMarks",
+            "mark"
+          ]
+        },
+        {
+          "module": "module-0062",
+          "bindings": [
+            "getSystemShell"
+          ]
+        },
+        {
+          "module": "module-0070",
+          "bindings": [
+            "getWindowsBuildNumberAsync"
+          ]
+        },
+        {
+          "module": "module-0066",
+          "bindings": [
+            "escapeNonWindowsPath"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "join"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "ErrorNoTelemetry"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "memoize"
+          ]
+        },
+        {
+          "module": "module-0065",
+          "bindings": [
+            "TerminalDataBufferer"
+          ]
+        },
+        {
+          "module": "module-0085",
+          "bindings": [
+            "ShellIntegrationAddon"
+          ]
+        }
+      ],
+      "sha256": "b4da894f1ff4d6085350e4afc8a12fe8dda481146a9f63fd9c02802170546fd0"
+    },
+    {
+      "modulePath": "src/vs/base/node/shell.ts",
+      "file": "module-0062.mjs",
+      "exportedBindings": [
+        "getSystemShell",
+        "getSystemShellUnixLike",
+        "getSystemShellWindows",
+        "userInfo",
+        "_TERMINAL_DEFAULT_SHELL_UNIX_LIKE",
+        "_TERMINAL_DEFAULT_SHELL_WINDOWS"
+      ],
+      "imports": [
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows",
+            "isLinux",
+            "isMacintosh"
+          ]
+        },
+        {
+          "module": "module-0034",
+          "bindings": [
+            "getWindowsShell"
+          ]
+        },
+        {
+          "module": "module-0063",
+          "bindings": [
+            "getFirstAvailablePowerShellInstallation"
+          ]
+        }
+      ],
+      "sha256": "af17d334c0a458d67e90e39b4521d52e455cd5348e71fe3ae2b6606021d500fe"
+    },
+    {
+      "modulePath": "src/vs/base/node/powershell.ts",
+      "file": "module-0063.mjs",
+      "exportedBindings": [
+        "getProgramFilesPath",
+        "findPSCoreWindowsInstallation",
+        "findPSCoreMsix",
+        "findPSCoreDotnetGlobalTool",
+        "findPSCoreScoopInstallation",
+        "findWinPS",
+        "enumerateDefaultPowerShellInstallations",
+        "enumeratePowerShellInstallations",
+        "getFirstAvailablePowerShellInstallation",
+        "os",
+        "IntRegex",
+        "PwshMsixRegex",
+        "PwshPreviewMsixRegex",
+        "processArch",
+        "osArch",
+        "PossiblePowerShellExe"
+      ],
+      "imports": [
+        {
+          "module": "module-0035",
+          "bindings": [
+            "SymlinkSupport",
+            "Promises2"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "join"
+          ]
+        }
+      ],
+      "sha256": "51375e54f912f6e4725316765110218143c3e45e971b514a62048e1b20d8f514"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/requestStore.ts",
+      "file": "module-0064.mjs",
+      "exportedBindings": [
+        "RequestStore"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable",
+            "toDisposable",
+            "dispose"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0022",
+          "bindings": [
+            "CancellationTokenSource"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "timeout"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass",
+            "__decorateParam"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "ILogService"
+          ]
+        }
+      ],
+      "sha256": "86a0e5e0dd61bb1c69c2eebcb9b81003953c07bd26fb53c6537d989a038e8634"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/terminalDataBuffering.ts",
+      "file": "module-0065.mjs",
+      "exportedBindings": [
+        "TerminalDataBufferer"
+      ],
+      "imports": [
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isString"
+          ]
+        }
+      ],
+      "sha256": "11df5027eeb6b7b397579b51154a9bbc4939cf81a8b5505a30de1e88af9f68b6"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/terminalEnvironment.ts",
+      "file": "module-0066.mjs",
+      "exportedBindings": [
+        "escapeNonWindowsPath",
+        "sanitizeCwd"
+      ],
+      "imports": [
+        {
+          "module": "module-0014",
+          "bindings": [
+            "OS"
+          ]
+        }
+      ],
+      "sha256": "eb69e505548107f97216771db59e8ef1d00c3bbad126688e9a46df43f5c90596"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/node/terminalEnvironment.ts",
+      "file": "module-0067.mjs",
+      "exportedBindings": [
+        "getShellIntegrationInjection",
+        "addEnvMixinPathPrefix",
+        "arePwshLoginArgs",
+        "arePwshImpliedArgs",
+        "areZshBashFishLoginArgs",
+        "sanitizeEnvForLogging",
+        "os3",
+        "chmod",
+        "realpathSync2",
+        "mkdirSync",
+        "promisify2",
+        "shellIntegrationArgs",
+        "pwshLoginArgs",
+        "shLoginArgs",
+        "shInteractiveArgs",
+        "pwshImpliedArgs",
+        "sensitiveEnvVarNames",
+        "secretValuePatterns"
+      ],
+      "imports": [
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows",
+            "isMacintosh"
+          ]
+        },
+        {
+          "module": "module-0070",
+          "bindings": [
+            "getWindowsBuildNumberAsync"
+          ]
+        },
+        {
+          "module": "module-0015",
+          "bindings": [
+            "platform2"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "basename",
+            "join"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "FileAccess"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "format2"
+          ]
+        },
+        {
+          "module": "module-0068",
+          "bindings": [
+            "deserializeEnvironmentVariableCollections"
+          ]
+        },
+        {
+          "module": "module-0069",
+          "bindings": [
+            "MergedEnvironmentVariableCollection"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isString"
+          ]
+        }
+      ],
+      "sha256": "0063e802f6993a9d0fb8cd428023ed4326fa8e77a7b6776284ce0bc75f602cce"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/environmentVariableShared.ts",
+      "file": "module-0068.mjs",
+      "exportedBindings": [
+        "deserializeEnvironmentVariableCollection",
+        "deserializeEnvironmentDescriptionMap",
+        "deserializeEnvironmentVariableCollections"
+      ],
+      "imports": [],
+      "sha256": "91b917997aeeac0df1638b1143e868598e15bbd95e886726705d34462c2006b0"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/environmentVariableCollection.ts",
+      "file": "module-0069.mjs",
+      "exportedBindings": [
+        "filterScope",
+        "getMissingMutatorsFromArray",
+        "getChangedMutatorsFromArray",
+        "mutatorTypeToLabelMap",
+        "PYTHON_ACTIVATION_VARS_PATTERN",
+        "PYTHON_ENV_EXTENSION_ID",
+        "MergedEnvironmentVariableCollection"
+      ],
+      "imports": [
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows"
+          ]
+        }
+      ],
+      "sha256": "3bade6762ead2237c041198cf3eb074d83893ae5068842216bed05f8df1f6ee4"
+    },
+    {
+      "modulePath": "src/vs/base/node/windowsVersion.ts",
+      "file": "module-0070.mjs",
+      "exportedBindings": [
+        "initWindowsVersionInfo",
+        "getWindowsBuildNumberAsync",
+        "getWindowsBuildNumberSync",
+        "getWindowsBuildNumberFromOsRelease",
+        "os2",
+        "versionInfo"
+      ],
+      "imports": [
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows"
+          ]
+        }
+      ],
+      "sha256": "aa9c2857d6b215eb3efc277c425aa927bf26a0ce6e724e0b8548815f36a035bf"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/node/terminalProcess.ts",
+      "file": "module-0071.mjs",
+      "exportedBindings": [
+        "hasConptyOption",
+        "fs2",
+        "exec2",
+        "spawn2",
+        "posixShellTypeMap",
+        "generalShellTypeMap",
+        "TerminalProcess",
+        "DelayedResizer"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable",
+            "toDisposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows",
+            "isMacintosh",
+            "isLinux"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "basename",
+            "dirname",
+            "delimiter"
+          ]
+        },
+        {
+          "module": "module-0070",
+          "bindings": [
+            "getWindowsBuildNumberSync"
+          ]
+        },
+        {
+          "module": "module-0075",
+          "bindings": [
+            "WindowsShellHelper"
+          ]
+        },
+        {
+          "module": "module-0067",
+          "bindings": [
+            "getShellIntegrationInjection",
+            "sanitizeEnvForLogging"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "localize"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0034",
+          "bindings": [
+            "findExecutable"
+          ]
+        },
+        {
+          "module": "module-0074",
+          "bindings": [
+            "ChildProcessMonitor"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "timeout"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isNumber"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass",
+            "__decorateParam"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "ILogService"
+          ]
+        },
+        {
+          "module": "module-0072",
+          "bindings": [
+            "IProductService"
+          ]
+        }
+      ],
+      "sha256": "4a0395deb434b469b2a1c2c6a46e90136822c913d77e57db0c6fb7e3868b2ee6"
+    },
+    {
+      "modulePath": "src/vs/platform/product/common/productService.ts",
+      "file": "module-0072.mjs",
+      "exportedBindings": [
+        "IProductService"
+      ],
+      "imports": [
+        {
+          "module": "module-0047",
+          "bindings": [
+            "createDecorator2"
+          ]
+        }
+      ],
+      "sha256": "e5c11dd7329aa73e7462c9e5f4e7a5d30a21ddcbcffd3b9f0ad2940f02e8ac2f"
+    },
+    {
+      "modulePath": "src/vs/base/node/ps.ts",
+      "file": "module-0073.mjs",
+      "exportedBindings": [
+        "listProcesses",
+        "parsePsOutput",
+        "exec",
+        "totalmem",
+        "JS_FILENAME_PATTERN"
+      ],
+      "imports": [
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "FileAccess"
+          ]
+        }
+      ],
+      "sha256": "20fce8fa002340e0265e4d5d3f4b51e637d1e9a8f57b70760e6f2b88ff832328"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/node/childProcessMonitor.ts",
+      "file": "module-0074.mjs",
+      "exportedBindings": [
+        "ignoreProcessNames",
+        "ChildProcessMonitor"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0073",
+          "bindings": [
+            "listProcesses"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "parse"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass",
+            "__decorateParam"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "debounce",
+            "throttle"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "ILogService"
+          ]
+        }
+      ],
+      "sha256": "45220a3d3ae03ed8c8ba465e84a89129d61b66710323516df479634a6288c86a"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/node/windowsShellHelper.ts",
+      "file": "module-0075.mjs",
+      "exportedBindings": [
+        "SHELL_EXECUTABLES",
+        "SHELL_EXECUTABLE_REGEXES",
+        "NODE_AGENT_CLI_PATTERNS",
+        "windowsProcessTree",
+        "WindowsShellHelper"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows",
+            "platform"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "timeout"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "debounce"
+          ]
+        }
+      ],
+      "sha256": "8919efacbd1ff7ebf3b99e50703f92f5e40697d7180353169341b06722d76547"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/capabilities/terminalCapabilityStore.ts",
+      "file": "module-0076.mjs",
+      "exportedBindings": [
+        "createCapabilityEvent",
+        "TerminalCapabilityStore",
+        "TerminalCapabilityStoreMultiplexer"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter",
+            "Event"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "memoize"
+          ]
+        }
+      ],
+      "sha256": "caf505c86fad1373702b0021c30d9c58f3ed40dbe2e7c6bfb538ae92a7290dab"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/capabilities/commandDetection/terminalCommand.ts",
+      "file": "module-0077.mjs",
+      "exportedBindings": [
+        "extractCommandLine",
+        "getXtermLineContent",
+        "countNewLines",
+        "getPromptRowCount",
+        "getCommandRowCount",
+        "isFullTerminalCommand",
+        "TerminalCommand",
+        "PartialTerminalCommand"
+      ],
+      "imports": [
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isString"
+          ]
+        },
+        {
+          "module": "module-0052",
+          "bindings": [
+            "generateUuid"
+          ]
+        }
+      ],
+      "sha256": "413094ed2ce9571400e3bf6030f00e046e28635d949ef5a48f70d58bc96f90fe"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/capabilities/commandDetection/promptInputModel.ts",
+      "file": "module-0078.mjs",
+      "exportedBindings": [
+        "PromptInputModel"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter",
+            "Event"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass",
+            "__decorateParam"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "throttle"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "ILogService"
+          ]
+        }
+      ],
+      "sha256": "134dd84df9cc460daec11e98f948eb6623062ddb2e2a931f6471e4f65d7c08b9"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/capabilities/commandDetectionCapability.ts",
+      "file": "module-0079.mjs",
+      "exportedBindings": [
+        "cloneMarker",
+        "CommandDetectionCapability",
+        "UnixPtyHeuristics",
+        "WindowsPtyHeuristics"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable",
+            "MandatoryMutableDisposable",
+            "MutableDisposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0077",
+          "bindings": [
+            "PartialTerminalCommand",
+            "isFullTerminalCommand",
+            "TerminalCommand"
+          ]
+        },
+        {
+          "module": "module-0078",
+          "bindings": [
+            "PromptInputModel"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass",
+            "__decorateParam"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "debounce"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "ILogService"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "RunOnceScheduler"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isString"
+          ]
+        }
+      ],
+      "sha256": "39ceb471f8346616d4e59f00a5c2ca4fba7ef77e78ac3a37d407b4c6a69b266b"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/capabilities/cwdDetectionCapability.ts",
+      "file": "module-0080.mjs",
+      "exportedBindings": [
+        "CwdDetectionCapability"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        }
+      ],
+      "sha256": "e8caa376adeea44e244079236f017aee6def713d58a319861faaea24cfe36094"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/capabilities/partialCommandDetectionCapability.ts",
+      "file": "module-0081.mjs",
+      "exportedBindings": [
+        "PartialCommandDetectionCapability"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "DisposableStore"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        }
+      ],
+      "sha256": "44e77359cd11bdb975aa2322d30dc93a0296db7684955d8a3e9c830310d7a393"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/capabilities/bufferMarkCapability.ts",
+      "file": "module-0082.mjs",
+      "exportedBindings": [
+        "BufferMarkCapability"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        }
+      ],
+      "sha256": "5d74ea82ad60975fe0f7dd9b249980230d577c656f646c1beebfd7904092a0be"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/capabilities/shellEnvDetectionCapability.ts",
+      "file": "module-0083.mjs",
+      "exportedBindings": [
+        "ShellEnvDetectionCapability"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0033",
+          "bindings": [
+            "equals"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "mapsStrictEqualIgnoreOrder"
+          ]
+        }
+      ],
+      "sha256": "fd57a869a701095dbe63ee0975babf0af8bfd41ce30641396976618d58296e4d"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/capabilities/promptTypeDetectionCapability.ts",
+      "file": "module-0084.mjs",
+      "exportedBindings": [
+        "PromptTypeDetectionCapability"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        }
+      ],
+      "sha256": "8ea4e9ac158af62bf0495276cbb598d941c8f25c74da3c2e3da61a8d712a4401"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/xterm/shellIntegrationAddon.ts",
+      "file": "module-0085.mjs",
+      "exportedBindings": [
+        "deserializeVSCodeOscMessage",
+        "parseKeyValueAssignment",
+        "parseMarkSequence",
+        "ShellIntegrationAddon"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable",
+            "toDisposable",
+            "dispose"
+          ]
+        },
+        {
+          "module": "module-0076",
+          "bindings": [
+            "TerminalCapabilityStore"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0081",
+          "bindings": [
+            "PartialCommandDetectionCapability"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "removeAnsiEscapeCodesFromPrompt"
+          ]
+        },
+        {
+          "module": "module-0066",
+          "bindings": [
+            "sanitizeCwd"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0080",
+          "bindings": [
+            "CwdDetectionCapability"
+          ]
+        },
+        {
+          "module": "module-0079",
+          "bindings": [
+            "CommandDetectionCapability"
+          ]
+        },
+        {
+          "module": "module-0082",
+          "bindings": [
+            "BufferMarkCapability"
+          ]
+        },
+        {
+          "module": "module-0083",
+          "bindings": [
+            "ShellEnvDetectionCapability"
+          ]
+        },
+        {
+          "module": "module-0084",
+          "bindings": [
+            "PromptTypeDetectionCapability"
+          ]
+        }
+      ],
+      "sha256": "0dcd5ac01a3cb142ca24a949330a6b7aadcb0c216d18b13a58fb54e823383344"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/common/terminalStrings.ts",
+      "file": "module-0086.mjs",
+      "exportedBindings": [
+        "formatMessageForTerminal"
+      ],
+      "imports": [],
+      "sha256": "6840b1c26faec0d76281963e38e674321139bfaffae1d275b7d287d367ad6d45"
+    },
+    {
+      "modulePath": "src/vs/base/common/performance.ts",
+      "file": "module-0087.mjs",
+      "exportedBindings": [
+        "_definePolyfillMarks",
+        "_define",
+        "_factory",
+        "perf",
+        "mark",
+        "clearMarks",
+        "getMarks"
+      ],
+      "imports": [],
+      "sha256": "ac3eafb617845cd4385bfb2d9887119e946a0003a10acbb71fab6716881b87b0"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/node/terminalContrib/autoReplies/terminalAutoResponder.ts",
+      "file": "module-0088.mjs",
+      "exportedBindings": [
+        "TerminalAutoResponder"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "Disposable"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "isString"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "timeout"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows"
+          ]
+        }
+      ],
+      "sha256": "d373e66feb5865aaeec6de1148f96b6dc24e4caa12cf82afb78833df0afde8c1"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/node/terminalContrib/autoReplies/autoRepliesContribController.ts",
+      "file": "module-0089.mjs",
+      "exportedBindings": [
+        "AutoRepliesPtyServiceContribution"
+      ],
+      "imports": [
+        {
+          "module": "module-0088",
+          "bindings": [
+            "TerminalAutoResponder"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass",
+            "__decorateParam"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "ILogService"
+          ]
+        }
+      ],
+      "sha256": "68d07ecc0f41a23271754ff1e72031b17826ef182eeeb0582f83f3b554f97197"
+    },
+    {
+      "modulePath": "src/vs/platform/terminal/node/ptyHostMain.ts",
+      "file": "module-0090.mjs",
+      "exportedBindings": [
+        "startPtyHost"
+      ],
+      "imports": [
+        {
+          "module": "module-0028",
+          "bindings": [
+            "timeout"
+          ]
+        },
+        {
+          "module": "module-0037",
+          "bindings": [
+            "isUtilityProcess"
+          ]
+        },
+        {
+          "module": "module-0038",
+          "bindings": [
+            "Server2"
+          ]
+        },
+        {
+          "module": "module-0032",
+          "bindings": [
+            "Server"
+          ]
+        },
+        {
+          "module": "module-0011",
+          "bindings": [
+            "DisposableStore"
+          ]
+        },
+        {
+          "module": "module-0057",
+          "bindings": [
+            "product_default"
+          ]
+        },
+        {
+          "module": "module-0040",
+          "bindings": [
+            "NativeEnvironmentService"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "parseArgs",
+            "OPTIONS"
+          ]
+        },
+        {
+          "module": "module-0056",
+          "bindings": [
+            "LoggerService"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "getLogLevel",
+            "isDevConsoleLogForwardingEnabled",
+            "registerDevConsoleLogForwarder"
+          ]
+        },
+        {
+          "module": "module-0050",
+          "bindings": [
+            "LoggerChannel"
+          ]
+        },
+        {
+          "module": "module-0018",
+          "bindings": [
+            "DefaultURITransformer"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "localize"
+          ]
+        },
+        {
+          "module": "module-0051",
+          "bindings": [
+            "LogService"
+          ]
+        },
+        {
+          "module": "module-0060",
+          "bindings": [
+            "HeartbeatService"
+          ]
+        },
+        {
+          "module": "module-0031",
+          "bindings": [
+            "ProxyChannel"
+          ]
+        },
+        {
+          "module": "module-0061",
+          "bindings": [
+            "PtyService"
+          ]
+        }
+      ],
+      "sha256": "99c63a46b298e1a70a8a08b9ec8e13d62ec10ddca5f97d8a6160dec0fac6125c"
+    }
+  ],
+  "publicExports": [],
+  "topLevelBindings": 687,
+  "crossModuleWriteCount": 0,
+  "typescriptVersion": "6.0.3",
+  "directExportFix": true
+}

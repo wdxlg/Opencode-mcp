@@ -1,0 +1,468 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/sessions/sessions.desktop.main.js
+// Original module marker: src/vs/base/browser/ui/dialog/dialog.ts
+import { Disposable, toDisposable } from "./module-0012.mjs";
+import { $, EventHelper, EventType, addDisposableListener, addStandardDisposableListener, clearNode, getWindow, hide, isActiveElement, isAncestor, isEditableElement, isHTMLElement, show } from "./module-0075.mjs";
+import { localize } from "./module-0001.mjs";
+import { InputBox } from "./module-0600.mjs";
+import { Checkbox } from "./module-0549.mjs";
+import { ButtonBar, ButtonWithDescription, ButtonWithDropdown } from "./module-0546.mjs";
+import { isActionProvider } from "./module-0501.mjs";
+import { Action, toAction } from "./module-0082.mjs";
+import { mnemonicButtonLabel } from "./module-0711.mjs";
+import { StandardKeyboardEvent } from "./module-0022.mjs";
+import { isLinux, isMacintosh, isWindows } from "./module-0014.mjs";
+import { ThemeIcon } from "./module-0086.mjs";
+import { Codicon } from "./module-0085.mjs";
+import { ActionBar } from "./module-0477.mjs";
+
+
+// src/vs/base/browser/ui/dialog/dialog.ts
+var Dialog = class extends Disposable {
+  constructor(container2, message, buttons, options3) {
+    super();
+    this.container = container2;
+    this.message = message;
+    this.options = options3;
+    this.modalElement = this.container.appendChild($(`.monaco-dialog-modal-block.dimmed`));
+    if (options3.modalBlockExtraClasses) {
+      this.modalElement.classList.add(...options3.modalBlockExtraClasses);
+    }
+    this._register(addStandardDisposableListener(this.modalElement, EventType.CLICK, (e4) => {
+      if (e4.target === this.modalElement) {
+        this.element.focus();
+      }
+    }));
+    this.shadowElement = this.modalElement.appendChild($(".dialog-shadow"));
+    this.element = this.shadowElement.appendChild($(".monaco-dialog-box"));
+    if (options3.alignment === 1 /* Vertical */) {
+      this.element.classList.add("align-vertical");
+    }
+    if (options3.extraClasses) {
+      this.element.classList.add(...options3.extraClasses);
+    }
+    this.element.setAttribute("role", "dialog");
+    this.element.tabIndex = -1;
+    hide(this.element);
+    if (this.options.renderFooter) {
+      this.footerContainer = this.element.appendChild($(".dialog-footer-row"));
+      const customFooter = this.footerContainer.appendChild($("#monaco-dialog-footer.dialog-footer"));
+      this.options.renderFooter(customFooter);
+      for (const el of this.footerContainer.querySelectorAll("a")) {
+        el.tabIndex = 0;
+        this.footerActionToFocus ??= el;
+      }
+    }
+    this.buttonStyles = options3.buttonStyles;
+    if (Array.isArray(buttons) && buttons.length > 0) {
+      this.buttons = buttons;
+    } else if (!this.options.disableDefaultAction) {
+      this.buttons = [localize(7, null)];
+    } else {
+      this.buttons = [];
+    }
+    const buttonsRowElement = this.element.appendChild($(".dialog-buttons-row"));
+    this.buttonsContainer = buttonsRowElement.appendChild($(".dialog-buttons"));
+    const messageRowElement = this.element.appendChild($(".dialog-message-row"));
+    this.iconElement = messageRowElement.appendChild($("#monaco-dialog-icon.dialog-icon"));
+    this.iconElement.setAttribute("aria-label", this.getIconAriaLabel());
+    this.messageContainer = messageRowElement.appendChild($(".dialog-message-container"));
+    const hasDetail = !!this.options.detail || !!this.options.detailElement;
+    if (hasDetail || this.options.renderBody) {
+      const messageElement = this.messageContainer.appendChild($(".dialog-message"));
+      const messageTextElement = messageElement.appendChild($("#monaco-dialog-message-text.dialog-message-text"));
+      messageTextElement.innerText = this.message;
+    }
+    this.messageDetailElement = this.messageContainer.appendChild($("#monaco-dialog-message-detail.dialog-message-detail"));
+    if (this.options.detailElement) {
+      this.messageDetailElement.appendChild(this.options.detailElement);
+    } else if (hasDetail || !this.options.renderBody) {
+      this.messageDetailElement.innerText = this.options.detail ? this.options.detail : message;
+    } else {
+      this.messageDetailElement.style.display = "none";
+    }
+    if (this.options.renderBody) {
+      const customBody = this.messageContainer.appendChild($("#monaco-dialog-message-body.dialog-message-body"));
+      this.options.renderBody(customBody);
+    }
+    if (this.options.renderBody || this.options.detailElement) {
+      for (const el of this.messageContainer.querySelectorAll("a")) {
+        el.tabIndex = 0;
+      }
+    }
+    if (this.options.inputs) {
+      this.inputs = this.options.inputs.map((input) => {
+        const inputRowElement = this.messageContainer.appendChild($(".dialog-message-input"));
+        const inputBox = this._register(new InputBox(inputRowElement, void 0, {
+          placeholder: input.placeholder,
+          type: input.type ?? "text",
+          inputBoxStyles: options3.inputBoxStyles
+        }));
+        if (input.value) {
+          inputBox.value = input.value;
+        }
+        return inputBox;
+      });
+    } else {
+      this.inputs = [];
+    }
+    if (this.options.checkboxLabel) {
+      const checkboxRowElement = this.messageContainer.appendChild($(".dialog-checkbox-row"));
+      const checkbox = this.checkbox = this._register(
+        new Checkbox(this.options.checkboxLabel, !!this.options.checkboxChecked, options3.checkboxStyles)
+      );
+      checkboxRowElement.appendChild(checkbox.domNode);
+      const checkboxMessageElement = checkboxRowElement.appendChild($(".dialog-checkbox-message"));
+      checkboxMessageElement.innerText = this.options.checkboxLabel;
+      this._register(addDisposableListener(checkboxMessageElement, EventType.CLICK, () => checkbox.checked = !checkbox.checked));
+    }
+    const toolbarRowElement = this.element.appendChild($(".dialog-toolbar-row"));
+    this.toolbarContainer = toolbarRowElement.appendChild($(".dialog-toolbar"));
+    this.applyStyles();
+  }
+  getIconAriaLabel() {
+    let typeLabel = localize(4, null);
+    switch (this.options.type) {
+      case "error":
+        typeLabel = localize(3, null);
+        break;
+      case "warning":
+        typeLabel = localize(6, null);
+        break;
+      case "pending":
+        typeLabel = localize(5, null);
+        break;
+      case "none":
+      case "info":
+      case "question":
+      default:
+        break;
+    }
+    return typeLabel;
+  }
+  updateMessage(message) {
+    this.messageDetailElement.innerText = message;
+  }
+  async show() {
+    this.focusToReturn = this.container.ownerDocument.activeElement;
+    return new Promise((resolve3) => {
+      clearNode(this.buttonsContainer);
+      const close2 = () => {
+        resolve3({
+          button: this.options.cancelId || 0,
+          checkboxChecked: this.checkbox ? this.checkbox.checked : void 0
+        });
+        return;
+      };
+      this._register(toDisposable(close2));
+      const buttonBar = this.buttonBar = this._register(new ButtonBar(this.buttonsContainer, { alignment: this.options?.alignment === 1 /* Vertical */ ? 1 /* Vertical */ : 0 /* Horizontal */ }));
+      const buttonMap = this.rearrangeButtons(this.buttons, this.options.cancelId);
+      const onButtonClick = (index2) => {
+        resolve3({
+          button: buttonMap[index2].index,
+          checkboxChecked: this.checkbox ? this.checkbox.checked : void 0,
+          values: this.inputs.length > 0 ? this.inputs.map((input) => input.value) : void 0
+        });
+      };
+      buttonMap.forEach((_, index2) => {
+        const primary = buttonMap[index2].index === 0;
+        let button;
+        const buttonOptions = this.options.buttonOptions?.[buttonMap[index2]?.index];
+        if (primary && this.options?.primaryButtonDropdown) {
+          const actions = isActionProvider(this.options.primaryButtonDropdown.actions) ? this.options.primaryButtonDropdown.actions.getActions() : this.options.primaryButtonDropdown.actions;
+          button = this._register(buttonBar.addButtonWithDropdown({
+            ...this.options.primaryButtonDropdown,
+            ...this.buttonStyles,
+            dropdownLayer: 2600,
+            // ensure the dropdown is above the dialog
+            actions: actions.map((action) => toAction({
+              ...action,
+              run: async () => {
+                await action.run();
+                onButtonClick(index2);
+              }
+            }))
+          }));
+        } else if (buttonOptions?.sublabel) {
+          button = this._register(buttonBar.addButtonWithDescription({ secondary: !primary, ...this.buttonStyles }));
+        } else {
+          button = this._register(buttonBar.addButton({ secondary: !primary, ...this.buttonStyles }));
+        }
+        if (buttonOptions?.styleButton) {
+          buttonOptions.styleButton(button);
+        }
+        button.label = mnemonicButtonLabel(buttonMap[index2].label, true);
+        if (button instanceof ButtonWithDescription) {
+          if (buttonOptions?.sublabel) {
+            button.description = buttonOptions?.sublabel;
+          }
+        }
+        this._register(button.onDidClick((e4) => {
+          if (e4) {
+            EventHelper.stop(e4);
+          }
+          onButtonClick(index2);
+        }));
+      });
+      const window2 = getWindow(this.container);
+      let sawEscapeKeyDown = false;
+      this._register(addDisposableListener(window2, "keydown", (e4) => {
+        const evt = new StandardKeyboardEvent(e4);
+        if (evt.equals(9 /* Escape */)) {
+          sawEscapeKeyDown = true;
+        }
+        if (evt.equals(512 /* Alt */)) {
+          evt.preventDefault();
+        }
+        if (evt.equals(3 /* Enter */)) {
+          if (this.inputs.some((input) => input.hasFocus())) {
+            EventHelper.stop(e4);
+            resolve3({
+              button: buttonMap.find((button) => button.index !== this.options.cancelId)?.index ?? 0,
+              checkboxChecked: this.checkbox ? this.checkbox.checked : void 0,
+              values: this.inputs.length > 0 ? this.inputs.map((input) => input.value) : void 0
+            });
+          }
+          return;
+        }
+        if (isMacintosh && evt.equals(2048 /* CtrlCmd */ | 34 /* KeyD */)) {
+          EventHelper.stop(e4);
+          const noButton = buttonMap.find((button) => button.index === 1 && button.index !== this.options.cancelId);
+          if (noButton) {
+            resolve3({
+              button: noButton.index,
+              checkboxChecked: this.checkbox ? this.checkbox.checked : void 0,
+              values: this.inputs.length > 0 ? this.inputs.map((input) => input.value) : void 0
+            });
+          }
+          return;
+        }
+        if (evt.equals(10 /* Space */)) {
+          return;
+        }
+        let eventHandled = false;
+        const isArrowNavigation = evt.equals(17 /* RightArrow */) || evt.equals(15 /* LeftArrow */);
+        const isEditableTarget = isHTMLElement(e4.target) && (isEditableElement(e4.target) || e4.target.isContentEditable);
+        if (evt.equals(2 /* Tab */) || evt.equals(1024 /* Shift */ | 2 /* Tab */) || isArrowNavigation && !isEditableTarget) {
+          const focusableElements = [];
+          let focusedIndex = -1;
+          if (this.messageContainer) {
+            const links = this.messageContainer.querySelectorAll("a");
+            for (const link2 of links) {
+              focusableElements.push(link2);
+              if (isActiveElement(link2)) {
+                focusedIndex = focusableElements.length - 1;
+              }
+            }
+          }
+          for (const input of this.inputs) {
+            focusableElements.push(input);
+            if (input.hasFocus()) {
+              focusedIndex = focusableElements.length - 1;
+            }
+          }
+          if (this.checkbox) {
+            focusableElements.push(this.checkbox);
+            if (this.checkbox.hasFocus()) {
+              focusedIndex = focusableElements.length - 1;
+            }
+          }
+          if (this.buttonBar) {
+            for (const button of this.buttonBar.buttons) {
+              if (button instanceof ButtonWithDropdown) {
+                focusableElements.push(button.primaryButton);
+                if (button.primaryButton.hasFocus()) {
+                  focusedIndex = focusableElements.length - 1;
+                }
+                focusableElements.push(button.dropdownButton);
+                if (button.dropdownButton.hasFocus()) {
+                  focusedIndex = focusableElements.length - 1;
+                }
+              } else {
+                focusableElements.push(button);
+                if (button.hasFocus()) {
+                  focusedIndex = focusableElements.length - 1;
+                }
+              }
+            }
+          }
+          if (this.footerContainer) {
+            const links = this.footerContainer.querySelectorAll("a");
+            for (const link2 of links) {
+              focusableElements.push(link2);
+              if (isActiveElement(link2)) {
+                focusedIndex = focusableElements.length - 1;
+              }
+            }
+          }
+          if (evt.equals(2 /* Tab */) || evt.equals(17 /* RightArrow */)) {
+            const newFocusedIndex = (focusedIndex + 1) % focusableElements.length;
+            focusableElements[newFocusedIndex].focus();
+          } else {
+            if (focusedIndex === -1) {
+              focusedIndex = focusableElements.length;
+            }
+            let newFocusedIndex = focusedIndex - 1;
+            if (newFocusedIndex === -1) {
+              newFocusedIndex = focusableElements.length - 1;
+            }
+            focusableElements[newFocusedIndex].focus();
+          }
+          eventHandled = true;
+        }
+        if (eventHandled) {
+          EventHelper.stop(e4, true);
+        } else if (this.options.keyEventProcessor) {
+          this.options.keyEventProcessor(evt);
+        }
+      }, true));
+      this._register(addDisposableListener(window2, "keyup", (e4) => {
+        EventHelper.stop(e4, true);
+        const evt = new StandardKeyboardEvent(e4);
+        if (!this.options.disableCloseAction && evt.equals(9 /* Escape */) && sawEscapeKeyDown) {
+          close2();
+        }
+      }, true));
+      this._register(addDisposableListener(this.element, "focusout", (e4) => {
+        if (!!e4.relatedTarget && !!this.element) {
+          if (!isAncestor(e4.relatedTarget, this.element)) {
+            if (this.options.isExternalFocusAllowed?.(e4.relatedTarget)) {
+              return;
+            }
+            this.focusToReturn = e4.relatedTarget;
+            if (e4.target) {
+              e4.target.focus();
+              EventHelper.stop(e4, true);
+            }
+          }
+        }
+      }, false));
+      const spinModifierClassName = "codicon-modifier-spin";
+      this.iconElement.classList.remove(...ThemeIcon.asClassNameArray(Codicon.dialogError), ...ThemeIcon.asClassNameArray(Codicon.dialogWarning), ...ThemeIcon.asClassNameArray(Codicon.dialogInfo), ...ThemeIcon.asClassNameArray(Codicon.loading), spinModifierClassName);
+      if (this.options.icon) {
+        this.iconElement.classList.add(...ThemeIcon.asClassNameArray(this.options.icon));
+      } else {
+        switch (this.options.type) {
+          case "error":
+            this.iconElement.classList.add(...ThemeIcon.asClassNameArray(Codicon.dialogError));
+            break;
+          case "warning":
+            this.iconElement.classList.add(...ThemeIcon.asClassNameArray(Codicon.dialogWarning));
+            break;
+          case "pending":
+            this.iconElement.classList.add(...ThemeIcon.asClassNameArray(Codicon.loading), spinModifierClassName);
+            break;
+          case "none":
+            this.iconElement.classList.add("no-codicon");
+            break;
+          case "info":
+          case "question":
+          default:
+            this.iconElement.classList.add(...ThemeIcon.asClassNameArray(Codicon.dialogInfo));
+            break;
+        }
+      }
+      if (!this.options.disableCloseAction && !this.options.disableCloseButton) {
+        const actionBar3 = this._register(new ActionBar(this.toolbarContainer, {}));
+        const action = this._register(new Action("dialog.close", localize(2, null), ThemeIcon.asClassName(Codicon.dialogClose), true, async () => {
+          resolve3({
+            button: this.options.cancelId || 0,
+            checkboxChecked: this.checkbox ? this.checkbox.checked : void 0
+          });
+        }));
+        actionBar3.push(action, { icon: true, label: false });
+      }
+      this.applyStyles();
+      this.element.setAttribute("aria-modal", "true");
+      this.element.setAttribute("aria-labelledby", "monaco-dialog-icon monaco-dialog-message-text");
+      this.element.setAttribute("aria-describedby", "monaco-dialog-icon monaco-dialog-message-text monaco-dialog-message-detail monaco-dialog-message-body monaco-dialog-footer");
+      show(this.element);
+      this.options.onVisibilityChange?.(window2, true);
+      this._register(toDisposable(() => this.options.onVisibilityChange?.(window2, false)));
+      if (this.inputs.length > 0) {
+        this.inputs[0].focus();
+        this.inputs[0].select();
+      } else {
+        let focusedButton = false;
+        buttonMap.forEach((value2, index2) => {
+          if (value2.index === 0) {
+            buttonBar.buttons[index2].focus();
+            focusedButton = true;
+          }
+        });
+        if (!focusedButton) {
+          (this.footerActionToFocus ?? this.element).focus();
+        }
+      }
+    });
+  }
+  applyStyles() {
+    const style = this.options.dialogStyles;
+    const fgColor = style.dialogForeground;
+    const bgColor = style.dialogBackground;
+    const shadowColor = style.dialogShadow ? `0 0px 8px ${style.dialogShadow}` : "";
+    const border = style.dialogBorder ? `1px solid ${style.dialogBorder}` : "";
+    const linkFgColor = style.textLinkForeground;
+    this.shadowElement.style.boxShadow = shadowColor;
+    this.element.style.color = fgColor ?? "";
+    this.element.style.backgroundColor = bgColor ?? "";
+    this.element.style.border = border;
+    if (linkFgColor) {
+      for (const el of [...this.messageContainer.getElementsByTagName("a"), ...this.footerContainer?.getElementsByTagName("a") ?? []]) {
+        if (el.classList.contains("monaco-button")) {
+          continue;
+        }
+        el.style.color = linkFgColor;
+        el.style.textDecoration = "underline";
+      }
+    }
+    let color2;
+    switch (this.options.type) {
+      case "none":
+        break;
+      case "error":
+        color2 = style.errorIconForeground;
+        break;
+      case "warning":
+        color2 = style.warningIconForeground;
+        break;
+      default:
+        color2 = style.infoIconForeground;
+        break;
+    }
+    if (color2) {
+      this.iconElement.style.color = color2;
+    }
+  }
+  dispose() {
+    super.dispose();
+    if (this.modalElement) {
+      this.modalElement.remove();
+      this.modalElement = void 0;
+    }
+    if (this.focusToReturn && isAncestor(this.focusToReturn, this.container.ownerDocument.body)) {
+      this.focusToReturn.focus();
+      this.focusToReturn = void 0;
+    }
+  }
+  rearrangeButtons(buttons, cancelId) {
+    const buttonMap = buttons.map((label3, index2) => ({ label: label3, index: index2 }));
+    if (buttons.length < 2 || this.options.alignment === 1 /* Vertical */) {
+      return buttonMap;
+    }
+    if (isMacintosh || isLinux) {
+      if (typeof cancelId === "number" && buttonMap[cancelId]) {
+        const cancelButton = buttonMap.splice(cancelId, 1)[0];
+        buttonMap.splice(1, 0, cancelButton);
+      }
+      buttonMap.reverse();
+    } else if (isWindows) {
+      if (typeof cancelId === "number" && buttonMap[cancelId]) {
+        const cancelButton = buttonMap.splice(cancelId, 1)[0];
+        buttonMap.push(cancelButton);
+      }
+    }
+    return buttonMap;
+  }
+};
+export { Dialog };

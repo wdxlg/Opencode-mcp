@@ -1,0 +1,76 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/sessions/sessions.desktop.main.js
+// Original module marker: src/vs/workbench/contrib/chat/common/chatSideChatService.ts
+import { createDecorator } from "./module-0077.mjs";
+import { Disposable, toDisposable } from "./module-0012.mjs";
+import { observableValue } from "./module-0048.mjs";
+import { ResourceMap } from "./module-0008.mjs";
+import { derived } from "./module-0054.mjs";
+
+
+// src/vs/workbench/contrib/chat/common/chatSideChatService.ts
+var IChatSideChatService = createDecorator("chatSideChatService");
+
+var ChatSideChatService = class extends Disposable {
+  constructor() {
+    super(...arguments);
+    this._providers = observableValue(this, []);
+    // Cheap deriveds keyed by session resource keep observable identities stable across renders.
+    this._sideChatOrigins = new ResourceMap();
+  }
+  registerProvider(provider) {
+    if (!this._providers.get().includes(provider)) {
+      this._providers.set([...this._providers.get(), provider], void 0);
+    }
+    return toDisposable(() => {
+      const providers2 = this._providers.get();
+      const index2 = providers2.indexOf(provider);
+      if (index2 !== -1) {
+        this._providers.set([...providers2.slice(0, index2), ...providers2.slice(index2 + 1)], void 0);
+      }
+    });
+  }
+  canAskInSideChat(sessionResource) {
+    return !!this._findProvider(sessionResource);
+  }
+  async askInSideChat(sessionResource, query, selection) {
+    const provider = this._findProvider(sessionResource);
+    if (!provider) {
+      throw new Error(`No side chat provider for ${sessionResource.toString()}`);
+    }
+    await provider.askInSideChat(sessionResource, query, selection);
+  }
+  observeSideChatOrigin(sessionResource) {
+    let origin = this._sideChatOrigins.get(sessionResource);
+    if (!origin) {
+      origin = derived(this, (reader) => {
+        for (const provider of this._providers.read(reader)) {
+          const providerOrigin = provider.observeSideChatOrigin(sessionResource).read(reader);
+          if (providerOrigin !== void 0) {
+            return providerOrigin;
+          }
+        }
+        return void 0;
+      });
+      this._sideChatOrigins.set(sessionResource, origin);
+    }
+    return origin;
+  }
+  async revealSideChatSource(sessionResource) {
+    for (const provider of this._providers.get()) {
+      if (provider.observeSideChatOrigin(sessionResource).get() !== void 0) {
+        await provider.revealSideChatSource(sessionResource);
+        return;
+      }
+    }
+  }
+  _findProvider(sessionResource) {
+    for (const provider of this._providers.get()) {
+      if (provider.canAskInSideChat(sessionResource)) {
+        return provider;
+      }
+    }
+    return void 0;
+  }
+};
+export { IChatSideChatService, ChatSideChatService };

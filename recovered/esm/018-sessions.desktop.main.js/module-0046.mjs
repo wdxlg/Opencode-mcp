@@ -1,0 +1,74 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/sessions/sessions.desktop.main.js
+// Original module marker: src/vs/base/common/observableInternal/debugLocation.ts
+
+
+
+// src/vs/base/common/observableInternal/debugLocation.ts
+var DebugLocation;
+
+((DebugLocation2) => {
+  let enabled = false;
+  function enable() {
+    enabled = true;
+  }
+  DebugLocation2.enable = enable;
+  function ofCaller() {
+    if (!enabled) {
+      return void 0;
+    }
+    const Err = Error;
+    const l = Err.stackTraceLimit;
+    Err.stackTraceLimit = 3;
+    const stack = new Error().stack;
+    Err.stackTraceLimit = l;
+    return DebugLocationImpl.fromStack(stack, 2);
+  }
+  DebugLocation2.ofCaller = ofCaller;
+})(DebugLocation || (DebugLocation = {}));
+
+var DebugLocationImpl = class _DebugLocationImpl {
+  constructor(fileName, line, column, id2) {
+    this.fileName = fileName;
+    this.line = line;
+    this.column = column;
+    this.id = id2;
+  }
+  static fromStack(stack, parentIdx) {
+    const lines = stack.split("\n");
+    const location2 = parseLine(lines[parentIdx + 1]);
+    if (location2) {
+      return new _DebugLocationImpl(
+        location2.fileName,
+        location2.line,
+        location2.column,
+        location2.id
+      );
+    } else {
+      return void 0;
+    }
+  }
+};
+
+function parseLine(stackLine) {
+  const match2 = stackLine.match(/\((.*):(\d+):(\d+)\)/);
+  if (match2) {
+    return {
+      fileName: match2[1],
+      line: parseInt(match2[2]),
+      column: parseInt(match2[3]),
+      id: stackLine
+    };
+  }
+  const match22 = stackLine.match(/at ([^\(\)]*):(\d+):(\d+)/);
+  if (match22) {
+    return {
+      fileName: match22[1],
+      line: parseInt(match22[2]),
+      column: parseInt(match22[3]),
+      id: stackLine
+    };
+  }
+  return void 0;
+}
+export { parseLine, DebugLocation, DebugLocationImpl };

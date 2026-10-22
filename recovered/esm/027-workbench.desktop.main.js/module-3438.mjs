@@ -1,0 +1,396 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/workbench/workbench.desktop.main.js
+// Original module marker: src/vs/workbench/services/suggest/browser/simpleSuggestWidgetDetails.ts
+import { Emitter } from "./module-0017.mjs";
+import { DisposableStore } from "./module-0012.mjs";
+import { $, Dimension, append, clearNode, getClientArea, hide, show, size } from "./module-0075.mjs";
+import { DomScrollableElement } from "./module-0259.mjs";
+import { ThemeIcon } from "./module-0086.mjs";
+import { Codicon } from "./module-0085.mjs";
+import { localize } from "./module-0001.mjs";
+import { MarkdownString } from "./module-0462.mjs";
+import { __decorateClass, __decorateParam } from "./module-0000.mjs";
+import { IInstantiationService } from "./module-0077.mjs";
+import { IMarkdownRendererService } from "./module-0541.mjs";
+import { ResizableHTMLElement } from "./module-0585.mjs";
+
+
+// src/vs/workbench/services/suggest/browser/simpleSuggestWidgetDetails.ts
+function canExpandCompletionItem2(item) {
+  return !!item && Boolean(item.completion.documentation || item.completion.detail && item.completion.detail !== item.completion.label);
+}
+
+var SuggestDetailsClassName = "suggest-details";
+
+var SimpleSuggestDetailsWidget = class {
+  constructor(_getFontInfo, onDidFontInfoChange, _getAdvancedExplainModeDetails, instaService, markdownRendererService) {
+    this._getFontInfo = _getFontInfo;
+    this._getAdvancedExplainModeDetails = _getAdvancedExplainModeDetails;
+    this.markdownRendererService = markdownRendererService;
+    this._onDidClose = new Emitter();
+    this.onDidClose = this._onDidClose.event;
+    this._onDidChangeContents = new Emitter();
+    this.onDidChangeContents = this._onDidChangeContents.event;
+    this._disposables = new DisposableStore();
+    this._renderDisposeable = this._disposables.add(new DisposableStore());
+    this._borderWidth = 1;
+    this._size = new Dimension(330, 0);
+    this.domNode = $(".suggest-details");
+    this.domNode.classList.add("no-docs");
+    this._body = $(".body");
+    this._scrollbar = new DomScrollableElement(this._body, {
+      alwaysConsumeMouseWheel: true
+    });
+    append(this.domNode, this._scrollbar.getDomNode());
+    this._disposables.add(this._scrollbar);
+    this._header = append(this._body, $(".header"));
+    this._close = append(this._header, $("span" + ThemeIcon.asCSSSelector(Codicon.close)));
+    this._close.title = localize(23365, null);
+    this._close.role = "button";
+    this._close.tabIndex = -1;
+    this._type = append(this._header, $("p.type"));
+    this._docs = append(this._body, $("p.docs"));
+    this._configureFont();
+    this._disposables.add(onDidFontInfoChange(() => this._configureFont()));
+  }
+  _configureFont() {
+    const fontInfo = this._getFontInfo();
+    const fontFamily = fontInfo.fontFamily;
+    const fontSize = fontInfo.fontSize;
+    const lineHeight = fontInfo.lineHeight;
+    const fontWeight = fontInfo.fontWeight;
+    const fontSizePx = `${fontSize}px`;
+    const lineHeightPx = `${lineHeight}px`;
+    this.domNode.style.fontSize = fontSizePx;
+    this.domNode.style.lineHeight = `${lineHeight / fontSize}`;
+    this.domNode.style.fontWeight = fontWeight;
+    this._type.style.fontFamily = fontFamily;
+    this._close.style.height = lineHeightPx;
+    this._close.style.width = lineHeightPx;
+  }
+  dispose() {
+    this._disposables.dispose();
+    this._onDidClose.dispose();
+    this._onDidChangeContents.dispose();
+  }
+  getLayoutInfo() {
+    const lineHeight = this._getFontInfo().lineHeight;
+    const borderWidth = this._borderWidth;
+    const borderHeight = borderWidth * 2;
+    return {
+      lineHeight,
+      borderWidth,
+      borderHeight,
+      verticalPadding: 22,
+      horizontalPadding: 14
+    };
+  }
+  renderLoading() {
+    this._type.textContent = localize(23366, null);
+    this._docs.textContent = "";
+    this.domNode.classList.remove("no-docs", "no-type");
+    this.layout(this.size.width, this.getLayoutInfo().lineHeight * 2);
+    this._onDidChangeContents.fire(this);
+  }
+  renderItem(item, explainMode) {
+    this._renderDisposeable.clear();
+    let { detail: detail2, documentation } = item.completion;
+    let md = "";
+    if (explainMode) {
+      md += `score: ${item.score[0]}
+`;
+      md += `prefix: ${item.word ?? "(no prefix)"}
+`;
+      const vs = item.completion.replacementRange;
+      md += `valueSelection: ${vs ? `[${vs[0]}, ${vs[1]}]` : "undefined"}
+`;
+      md += `index: ${item.idx}
+`;
+      if (this._getAdvancedExplainModeDetails) {
+        const advancedDetails = this._getAdvancedExplainModeDetails();
+        if (advancedDetails) {
+          md += `${advancedDetails}
+`;
+        }
+      }
+      detail2 = `Provider: ${item.completion.provider}`;
+      documentation = new MarkdownString().appendCodeblock("empty", md);
+    }
+    const hasDetail = typeof detail2 === "string" ? detail2.trim().length > 0 : !!detail2;
+    const hasDocs = typeof documentation === "string" ? documentation.trim().length > 0 : !!(documentation && documentation.value?.trim().length > 0);
+    const updateSize = () => {
+      this.layout(this._size.width, this._type.clientHeight + this._docs.clientHeight);
+      this._onDidChangeContents.fire(this);
+    };
+    if (!explainMode && (!canExpandCompletionItem2(item) || !hasDetail && !hasDocs)) {
+      this.clearContents();
+      return;
+    }
+    this.domNode.classList.remove("no-docs", "no-type");
+    if (hasDetail && detail2) {
+      const cappedDetail = detail2.length > 1e5 ? `${detail2.substr(0, 1e5)}\u2026` : detail2;
+      this._type.textContent = cappedDetail;
+      this._type.title = cappedDetail;
+      show(this._type);
+      this._type.classList.toggle("auto-wrap", !/\r?\n^\s+/gmi.test(cappedDetail));
+    } else {
+      clearNode(this._type);
+      this._type.title = "";
+      hide(this._type);
+      this.domNode.classList.add("no-type");
+    }
+    clearNode(this._docs);
+    if (hasDocs && typeof documentation === "string") {
+      this._docs.classList.remove("markdown-docs");
+      this._docs.textContent = documentation;
+    } else if (hasDocs && documentation && typeof documentation !== "string") {
+      this._docs.classList.add("markdown-docs");
+      clearNode(this._docs);
+      const renderedContents = this.markdownRendererService.render(documentation, {
+        asyncRenderCallback: () => {
+          updateSize();
+        }
+      });
+      this._docs.appendChild(renderedContents.element);
+      this._renderDisposeable.add(renderedContents);
+    } else {
+      this._docs.classList.remove("markdown-docs");
+    }
+    this.domNode.classList.toggle("detail-and-doc", hasDetail && hasDocs);
+    this.domNode.style.userSelect = "text";
+    this.domNode.tabIndex = -1;
+    this._close.onmousedown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    this._close.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this._onDidClose.fire();
+    };
+    this._body.scrollTop = 0;
+    updateSize();
+  }
+  clearContents() {
+    this.domNode.classList.add("no-docs");
+    this._type.textContent = "";
+    this._docs.textContent = "";
+  }
+  get isEmpty() {
+    return this.domNode.classList.contains("no-docs");
+  }
+  get size() {
+    return this._size;
+  }
+  layout(width2, height) {
+    const newSize = new Dimension(width2, height);
+    if (!Dimension.equals(newSize, this._size)) {
+      this._size = newSize;
+      size(this.domNode, width2, height);
+    }
+    this._scrollbar.scanDomNode();
+  }
+  scrollDown(much = 8) {
+    this._body.scrollTop += much;
+  }
+  scrollUp(much = 8) {
+    this._body.scrollTop -= much;
+  }
+  scrollTop() {
+    this._body.scrollTop = 0;
+  }
+  scrollBottom() {
+    this._body.scrollTop = this._body.scrollHeight;
+  }
+  pageDown() {
+    this.scrollDown(80);
+  }
+  pageUp() {
+    this.scrollUp(80);
+  }
+  set borderWidth(width2) {
+    this._borderWidth = width2;
+  }
+  get borderWidth() {
+    return this._borderWidth;
+  }
+  focus() {
+    this.domNode.focus();
+  }
+};
+
+SimpleSuggestDetailsWidget = __decorateClass([
+  __decorateParam(3, IInstantiationService),
+  __decorateParam(4, IMarkdownRendererService)
+], SimpleSuggestDetailsWidget);
+
+var SimpleSuggestDetailsOverlay = class {
+  constructor(widget, _container, preventPlacements) {
+    this.widget = widget;
+    this._container = _container;
+    this._disposables = new DisposableStore();
+    this._added = false;
+    this._resizable = this._disposables.add(new ResizableHTMLElement());
+    this._resizable.domNode.classList.add("suggest-details-container");
+    this._resizable.domNode.appendChild(widget.domNode);
+    this._resizable.enableSashes(false, true, true, false);
+    this._preventPlacements = preventPlacements && preventPlacements.length ? new Set(preventPlacements) : void 0;
+    let topLeftNow;
+    let sizeNow;
+    let deltaTop = 0;
+    let deltaLeft = 0;
+    this._disposables.add(this._resizable.onDidWillResize(() => {
+      topLeftNow = this._topLeft;
+      sizeNow = this._resizable.size;
+    }));
+    this._disposables.add(this._resizable.onDidResize((e) => {
+      if (topLeftNow && sizeNow) {
+        this.widget.layout(e.dimension.width, e.dimension.height);
+        let updateTopLeft = false;
+        if (e.west) {
+          deltaLeft = sizeNow.width - e.dimension.width;
+          updateTopLeft = true;
+        }
+        if (e.north) {
+          deltaTop = sizeNow.height - e.dimension.height;
+          updateTopLeft = true;
+        }
+        if (updateTopLeft) {
+          this._applyTopLeft({
+            top: topLeftNow.top + deltaTop,
+            left: topLeftNow.left + deltaLeft
+          });
+        }
+      }
+      if (e.done) {
+        topLeftNow = void 0;
+        sizeNow = void 0;
+        deltaTop = 0;
+        deltaLeft = 0;
+        this._userSize = e.dimension;
+      }
+    }));
+    this._disposables.add(this.widget.onDidChangeContents(() => {
+      if (this._anchorBox) {
+        this._placeAtAnchor(this._anchorBox, this._userSize ?? this.widget.size);
+      }
+    }));
+  }
+  dispose() {
+    this.widget.dispose();
+    this._disposables.dispose();
+    this.hide();
+  }
+  getId() {
+    return "suggest.details";
+  }
+  getDomNode() {
+    return this._resizable.domNode;
+  }
+  show() {
+    if (!this._added) {
+      this._container.appendChild(this._resizable.domNode);
+      this._added = true;
+    }
+  }
+  hide(sessionEnded = false) {
+    this._resizable.clearSashHoverState();
+    if (this._added) {
+      this._container.removeChild(this._resizable.domNode);
+      this._added = false;
+      this._anchorBox = void 0;
+    }
+    if (sessionEnded) {
+      this._userSize = void 0;
+      this.widget.clearContents();
+    }
+  }
+  placeAtAnchor(anchor) {
+    const anchorBox = anchor.getBoundingClientRect();
+    this._anchorBox = anchorBox;
+    this.widget.layout(this._resizable.size.width, this._resizable.size.height);
+    this._placeAtAnchor(this._anchorBox, this._userSize ?? this.widget.size);
+  }
+  _placeAtAnchor(anchorBox, size3) {
+    const bodyBox = getClientArea(this.getDomNode().ownerDocument.body);
+    const info = this.widget.getLayoutInfo();
+    const defaultMinSize = new Dimension(220, 2 * info.lineHeight);
+    const defaultTop = anchorBox.top;
+    const eastPlacement = (function() {
+      const width2 = bodyBox.width - (anchorBox.left + anchorBox.width + info.borderWidth + info.horizontalPadding);
+      const left2 = -info.borderWidth + anchorBox.left + anchorBox.width;
+      const maxSizeTop = new Dimension(width2, bodyBox.height - anchorBox.top - info.borderHeight - info.verticalPadding);
+      const maxSizeBottom = maxSizeTop.with(void 0, anchorBox.top + anchorBox.height - info.borderHeight - info.verticalPadding);
+      return { top: defaultTop, left: left2, fit: width2 - size3.width, maxSizeTop, maxSizeBottom, minSize: defaultMinSize.with(Math.min(width2, defaultMinSize.width)) };
+    })();
+    const westPlacement = (function() {
+      const width2 = anchorBox.left - info.borderWidth - info.horizontalPadding;
+      const left2 = Math.max(info.horizontalPadding, anchorBox.left - size3.width - info.borderWidth);
+      const maxSizeTop = new Dimension(width2, bodyBox.height - anchorBox.top - info.borderHeight - info.verticalPadding);
+      const maxSizeBottom = maxSizeTop.with(void 0, anchorBox.top + anchorBox.height - info.borderHeight - info.verticalPadding);
+      return { top: defaultTop, left: left2, fit: width2 - size3.width, maxSizeTop, maxSizeBottom, minSize: defaultMinSize.with(Math.min(width2, defaultMinSize.width)) };
+    })();
+    const southPlacement = (function() {
+      const left2 = anchorBox.left;
+      const top3 = -info.borderWidth + anchorBox.top + anchorBox.height;
+      const maxSizeBottom = new Dimension(anchorBox.width - info.borderHeight, bodyBox.height - anchorBox.top - anchorBox.height - info.verticalPadding);
+      return { top: top3, left: left2, fit: maxSizeBottom.height - size3.height, maxSizeBottom, maxSizeTop: maxSizeBottom, minSize: defaultMinSize.with(maxSizeBottom.width) };
+    })();
+    const northPlacement = (function() {
+      const width2 = Math.max(anchorBox.width - info.borderHeight, 0);
+      const left2 = anchorBox.left;
+      const maxHeightAbove = Math.max(anchorBox.top - info.verticalPadding, 0);
+      const heightForTop = Math.min(size3.height, maxHeightAbove);
+      const top3 = anchorBox.top - info.borderWidth - heightForTop;
+      const maxSize2 = new Dimension(width2, Math.max(maxHeightAbove, 0));
+      return { top: top3, left: left2, fit: maxSize2.height - size3.height, maxSizeTop: maxSize2, maxSizeBottom: maxSize2, minSize: defaultMinSize.with(maxSize2.width) };
+    })();
+    const placementEntries = [
+      [0 /* East */, eastPlacement],
+      [2 /* South */, southPlacement],
+      [3 /* North */, northPlacement],
+      [1 /* West */, westPlacement]
+    ];
+    const orientations = (this._preventPlacements ? placementEntries.filter(([direction]) => !this._preventPlacements.has(direction)) : placementEntries).map(([, entry]) => entry);
+    const candidates = orientations.length ? orientations : placementEntries.map(([, entry]) => entry);
+    const placement = candidates.find((p) => p.fit >= 0) ?? candidates.reduce((best, current) => !best || current.fit > best.fit ? current : best, void 0) ?? eastPlacement;
+    const bottom = anchorBox.top + anchorBox.height - info.borderHeight;
+    let alignAtTop;
+    let height = size3.height;
+    const maxHeight = Math.max(placement.maxSizeTop.height, placement.maxSizeBottom.height);
+    if (height > maxHeight) {
+      height = maxHeight;
+    }
+    let maxSize;
+    if (height <= placement.maxSizeTop.height) {
+      alignAtTop = true;
+      maxSize = placement.maxSizeTop;
+    } else {
+      alignAtTop = false;
+      maxSize = placement.maxSizeBottom;
+    }
+    let { top: top2, left } = placement;
+    if (!alignAtTop && height > anchorBox.height) {
+      top2 = bottom - height;
+    }
+    const editorDomNode = this._container;
+    if (editorDomNode) {
+      const editorBoundingBox = editorDomNode.getBoundingClientRect();
+      top2 -= editorBoundingBox.top;
+      left -= editorBoundingBox.left;
+    }
+    this._applyTopLeft({ left, top: top2 });
+    this._resizable.enableSashes(!alignAtTop, placement === eastPlacement, alignAtTop, placement !== eastPlacement);
+    this._resizable.minSize = placement.minSize;
+    this._resizable.maxSize = maxSize;
+    this._resizable.layout(height, Math.min(maxSize.width, size3.width));
+    this.widget.layout(this._resizable.size.width, this._resizable.size.height);
+  }
+  _applyTopLeft(topLeft) {
+    this._topLeft = topLeft;
+    this._resizable.domNode.style.top = `${topLeft.top}px`;
+    this._resizable.domNode.style.left = `${topLeft.left}px`;
+    this._resizable.domNode.style.position = "absolute";
+  }
+};
+export { canExpandCompletionItem2, SuggestDetailsClassName, SimpleSuggestDetailsWidget, SimpleSuggestDetailsOverlay };

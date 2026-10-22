@@ -1,0 +1,72 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/sessions/sessions.desktop.main.js
+// Original module marker: src/vs/workbench/services/configuration/common/configuration.ts
+import { refineServiceDecorator } from "./module-0077.mjs";
+import { IConfigurationService } from "./module-0132.mjs";
+
+
+// src/vs/workbench/services/configuration/common/configuration.ts
+var FOLDER_CONFIG_FOLDER_NAME = ".vscode";
+
+var FOLDER_SETTINGS_NAME = "settings";
+
+var FOLDER_SETTINGS_PATH = `${FOLDER_CONFIG_FOLDER_NAME}/${FOLDER_SETTINGS_NAME}.json`;
+
+var defaultSettingsSchemaId = "vscode://schemas/settings/default";
+
+var userSettingsSchemaId = "vscode://schemas/settings/user";
+
+var profileSettingsSchemaId = "vscode://schemas/settings/profile";
+
+var machineSettingsSchemaId = "vscode://schemas/settings/machine";
+
+var workspaceSettingsSchemaId = "vscode://schemas/settings/workspace";
+
+var folderSettingsSchemaId = "vscode://schemas/settings/folder";
+
+var launchSchemaId = "vscode://schemas/launch";
+
+var tasksSchemaId = "vscode://schemas/tasks";
+
+var mcpSchemaId = "vscode://schemas/mcp";
+
+var APPLICATION_SCOPES = [1 /* APPLICATION */, 3 /* APPLICATION_MACHINE */];
+
+var PROFILE_SCOPES = [2 /* MACHINE */, 4 /* WINDOW */, 5 /* RESOURCE */, 6 /* LANGUAGE_OVERRIDABLE */, 7 /* MACHINE_OVERRIDABLE */];
+
+var LOCAL_MACHINE_PROFILE_SCOPES = [4 /* WINDOW */, 5 /* RESOURCE */, 6 /* LANGUAGE_OVERRIDABLE */];
+
+var LOCAL_MACHINE_SCOPES = [1 /* APPLICATION */, ...LOCAL_MACHINE_PROFILE_SCOPES];
+
+var REMOTE_MACHINE_SCOPES = [2 /* MACHINE */, 3 /* APPLICATION_MACHINE */, 4 /* WINDOW */, 5 /* RESOURCE */, 6 /* LANGUAGE_OVERRIDABLE */, 7 /* MACHINE_OVERRIDABLE */];
+
+var WORKSPACE_SCOPES = [4 /* WINDOW */, 5 /* RESOURCE */, 6 /* LANGUAGE_OVERRIDABLE */, 7 /* MACHINE_OVERRIDABLE */];
+
+var FOLDER_SCOPES = [5 /* RESOURCE */, 6 /* LANGUAGE_OVERRIDABLE */, 7 /* MACHINE_OVERRIDABLE */];
+
+var TASKS_CONFIGURATION_KEY = "tasks";
+
+var LAUNCH_CONFIGURATION_KEY = "launch";
+
+var MCP_CONFIGURATION_KEY = "mcp";
+
+var WORKSPACE_STANDALONE_CONFIGURATIONS = /* @__PURE__ */ Object.create(null);
+
+WORKSPACE_STANDALONE_CONFIGURATIONS[TASKS_CONFIGURATION_KEY] = `${FOLDER_CONFIG_FOLDER_NAME}/${TASKS_CONFIGURATION_KEY}.json`;
+
+WORKSPACE_STANDALONE_CONFIGURATIONS[LAUNCH_CONFIGURATION_KEY] = `${FOLDER_CONFIG_FOLDER_NAME}/${LAUNCH_CONFIGURATION_KEY}.json`;
+
+WORKSPACE_STANDALONE_CONFIGURATIONS[MCP_CONFIGURATION_KEY] = `${FOLDER_CONFIG_FOLDER_NAME}/${MCP_CONFIGURATION_KEY}.json`;
+
+var USER_STANDALONE_CONFIGURATIONS = /* @__PURE__ */ Object.create(null);
+
+USER_STANDALONE_CONFIGURATIONS[TASKS_CONFIGURATION_KEY] = `${TASKS_CONFIGURATION_KEY}.json`;
+
+USER_STANDALONE_CONFIGURATIONS[MCP_CONFIGURATION_KEY] = `${MCP_CONFIGURATION_KEY}.json`;
+
+var IWorkbenchConfigurationService = refineServiceDecorator(IConfigurationService);
+
+var TASKS_DEFAULT = '{\n	"version": "2.0.0",\n	"tasks": []\n}';
+
+var APPLY_ALL_PROFILES_SETTING = "workbench.settings.applyToAllProfiles";
+export { FOLDER_CONFIG_FOLDER_NAME, FOLDER_SETTINGS_NAME, FOLDER_SETTINGS_PATH, defaultSettingsSchemaId, userSettingsSchemaId, profileSettingsSchemaId, machineSettingsSchemaId, workspaceSettingsSchemaId, folderSettingsSchemaId, launchSchemaId, tasksSchemaId, mcpSchemaId, APPLICATION_SCOPES, PROFILE_SCOPES, LOCAL_MACHINE_PROFILE_SCOPES, LOCAL_MACHINE_SCOPES, REMOTE_MACHINE_SCOPES, WORKSPACE_SCOPES, FOLDER_SCOPES, TASKS_CONFIGURATION_KEY, LAUNCH_CONFIGURATION_KEY, MCP_CONFIGURATION_KEY, WORKSPACE_STANDALONE_CONFIGURATIONS, USER_STANDALONE_CONFIGURATIONS, IWorkbenchConfigurationService, TASKS_DEFAULT, APPLY_ALL_PROFILES_SETTING };

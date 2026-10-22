@@ -1,0 +1,3211 @@
+{
+  "generatorVersion": 2,
+  "bundle": "002-agent-host.js",
+  "artifactPath": "resources/app/extensions/opencode/runtime/agent-host.js",
+  "status": "generated-not-validated",
+  "modules": [
+    {
+      "modulePath": "<bundle-preamble>",
+      "file": "module-0000.mjs",
+      "exportedBindings": [
+        "__opencodeImportMetaUrl",
+        "__create",
+        "__defProp",
+        "__getOwnPropDesc",
+        "__getOwnPropNames",
+        "__getProtoOf",
+        "__hasOwnProp",
+        "__esm",
+        "__commonJS",
+        "__export",
+        "__copyProps",
+        "__toESM",
+        "init_define_OPENCODE_BUILD_INFO"
+      ],
+      "imports": [],
+      "sha256": "6ee3ddc9e4fb753bd6d7e370c0473aa97c6bad297f7283b4711f6ba9e677be39"
+    },
+    {
+      "modulePath": "node_modules/isexe/windows.js",
+      "file": "module-0001.mjs",
+      "exportedBindings": [
+        "require_windows"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "7b086aad0bbfceb2fffc6b5b430245cff3f31f6cdcc418679730d63855215433"
+    },
+    {
+      "modulePath": "node_modules/isexe/mode.js",
+      "file": "module-0002.mjs",
+      "exportedBindings": [
+        "require_mode"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "62e430f99514f9d5a3338081e9b524069e888354839567833b3eab40801bd822"
+    },
+    {
+      "modulePath": "node_modules/isexe/index.js",
+      "file": "module-0003.mjs",
+      "exportedBindings": [
+        "require_isexe"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0001",
+          "bindings": [
+            "require_windows"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "require_mode"
+          ]
+        }
+      ],
+      "sha256": "89655bd79c75e176dd169df998d68e7072f972182c9911acfff94b1733d567e2"
+    },
+    {
+      "modulePath": "node_modules/which/which.js",
+      "file": "module-0004.mjs",
+      "exportedBindings": [
+        "require_which"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "require_isexe"
+          ]
+        }
+      ],
+      "sha256": "99a4aef1d14310d359cc6af1a7cd4742fda68053f9754c224ff27197780f4482"
+    },
+    {
+      "modulePath": "node_modules/path-key/index.js",
+      "file": "module-0005.mjs",
+      "exportedBindings": [
+        "require_path_key"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "6604cc317e34bb07d0864e06cbd9953dd32817a36b5a83d875e5354015e4327f"
+    },
+    {
+      "modulePath": "node_modules/cross-spawn/lib/util/resolveCommand.js",
+      "file": "module-0006.mjs",
+      "exportedBindings": [
+        "require_resolveCommand"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "require_which"
+          ]
+        },
+        {
+          "module": "module-0005",
+          "bindings": [
+            "require_path_key"
+          ]
+        }
+      ],
+      "sha256": "7bd3fa31f1e453a0197bb00556fa07d6b8e90603d79e6e3b223530f7a8cc6751"
+    },
+    {
+      "modulePath": "node_modules/cross-spawn/lib/util/escape.js",
+      "file": "module-0007.mjs",
+      "exportedBindings": [
+        "require_escape"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "cd8a829808eafc9f1b9ecc9af5b0b0e5ce305878f541f35e55a17cbd9ea9a8fb"
+    },
+    {
+      "modulePath": "node_modules/shebang-regex/index.js",
+      "file": "module-0008.mjs",
+      "exportedBindings": [
+        "require_shebang_regex"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "5b35c9f61df3cd521edc59efa28d154a94f0b37b5e9617797938276813f6d1d8"
+    },
+    {
+      "modulePath": "node_modules/shebang-command/index.js",
+      "file": "module-0009.mjs",
+      "exportedBindings": [
+        "require_shebang_command"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "require_shebang_regex"
+          ]
+        }
+      ],
+      "sha256": "a3bd716538c5f365a5e73d79b80596dd7877c89b4cd3b2b550b274f0663d5da6"
+    },
+    {
+      "modulePath": "node_modules/cross-spawn/lib/util/readShebang.js",
+      "file": "module-0010.mjs",
+      "exportedBindings": [
+        "require_readShebang"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "require_shebang_command"
+          ]
+        }
+      ],
+      "sha256": "b4d6fbdfc39105b2e6951576905fffe0b48c76b363afe5bc27cafc09c0756b33"
+    },
+    {
+      "modulePath": "node_modules/cross-spawn/lib/parse.js",
+      "file": "module-0011.mjs",
+      "exportedBindings": [
+        "require_parse"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "require_resolveCommand"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "require_escape"
+          ]
+        },
+        {
+          "module": "module-0010",
+          "bindings": [
+            "require_readShebang"
+          ]
+        }
+      ],
+      "sha256": "af7bb5a99219e9ac9f90c2059095898f5f0b2bc92f6177e6a953195c2efc6bf8"
+    },
+    {
+      "modulePath": "node_modules/cross-spawn/lib/enoent.js",
+      "file": "module-0012.mjs",
+      "exportedBindings": [
+        "require_enoent"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "d0cb8b8a4b598e4063305b8e0aed3e02e29860773183cc71d2eb59814e4fc5bc"
+    },
+    {
+      "modulePath": "node_modules/cross-spawn/index.js",
+      "file": "module-0013.mjs",
+      "exportedBindings": [
+        "require_cross_spawn"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0011",
+          "bindings": [
+            "require_parse"
+          ]
+        },
+        {
+          "module": "module-0012",
+          "bindings": [
+            "require_enoent"
+          ]
+        }
+      ],
+      "sha256": "9f699c0e7cf9c27bba2662e605f4d0a442207cc59671c66756149d703e0a293a"
+    },
+    {
+      "modulePath": "src/agent-host.ts",
+      "file": "module-0014.mjs",
+      "exportedBindings": [
+        "writeMessage",
+        "asRecord",
+        "parseImages",
+        "parseHistory",
+        "parseExternalTools",
+        "parseAgentCheckpoint",
+        "parseAgentRunInput",
+        "clearPeerRequest",
+        "createPeerRequest",
+        "requestPeer",
+        "cleanupPeerFetchStream",
+        "cancelPeerFetch",
+        "fetchThroughExtensionHost",
+        "handlePeerFetchNotification",
+        "dispatch",
+        "handlePeerResponse",
+        "handleIncomingRequest",
+        "handleLine",
+        "import_node_readline",
+        "import_node_path",
+        "PROTOCOL_VERSION",
+        "TOOL_NAMES",
+        "peerPending",
+        "peerFetchStreams",
+        "activeRuns",
+        "nextPeerRequestId",
+        "input"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO",
+            "__toESM"
+          ]
+        },
+        {
+          "module": "module-0015",
+          "bindings": [
+            "FILE_TOOL_NAMES"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "IDE_TOOL_NAMES",
+            "IDE_TOOL_DEFINITIONS"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "runOpenAICompatibleAgent"
+          ]
+        }
+      ],
+      "sha256": "666ed4c2e430403fc8905c7e3dd0512e11238ccc5f132ec7f7eb8ffd8853cf1f"
+    },
+    {
+      "modulePath": "src/file-tool-registry.ts",
+      "file": "module-0015.mjs",
+      "exportedBindings": [
+        "APPLY_PATCH_TOOL",
+        "READ_FILES_TOOL",
+        "READ_IMAGE_TOOL",
+        "FIND_FILES_TOOL",
+        "SEARCH_FILES_TOOL",
+        "FILE_TOOL_DEFINITIONS",
+        "FILE_TOOL_NAMES"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "4fc6f1d3d0affbecbcc5536f8ba9cc67b251297f953aea07cd0b2aab77841469"
+    },
+    {
+      "modulePath": "src/apply-patch.ts",
+      "file": "module-0016.mjs",
+      "exportedBindings": [
+        "DEFAULT_APPLY_PATCH_CONFIG"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "ee4d0099dc06874900c8b28bdd51de5bbdff3a3027d10bd2f2c1d622ebf3574c"
+    },
+    {
+      "modulePath": "src/canonical-diff.ts",
+      "file": "module-0017.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "6723efc6b8941f1ba5a85ebca18b7368ce7ec61f4d67c16f51cd3bb9e7b9a3f7"
+    },
+    {
+      "modulePath": "src/apply-patch-directories.ts",
+      "file": "module-0018.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "86e4971e677a3a6cb2cc0c068c60a50a7f75ed780ccbd65fb726aabdbd2af2ec"
+    },
+    {
+      "modulePath": "src/workspace-paths.ts",
+      "file": "module-0019.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "24794f15ac71bad99a8dacd291e1c53e303f55fb7c3ba9540a6f237bd2d316dc"
+    },
+    {
+      "modulePath": "src/file-tool-input-compat.ts",
+      "file": "module-0020.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "bf6bc8d5568a0e97d8398663057f204f3cf45ff82064694ea32785f0c80d5c7c"
+    },
+    {
+      "modulePath": "src/find-files.ts",
+      "file": "module-0021.mjs",
+      "exportedBindings": [
+        "rgPath"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "eb65858fd07244e82b36e2f4a0d1399fdbfaffa49f8e7b226b9e85aa887d1df3"
+    },
+    {
+      "modulePath": "src/ripgrep-diagnostics.ts",
+      "file": "module-0022.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "308442cfd394ae3d68b1324983817bb829c11dc5b4aadf0d31d0c3affe6dd6c6"
+    },
+    {
+      "modulePath": "src/read-files.ts",
+      "file": "module-0023.mjs",
+      "exportedBindings": [
+        "DEFAULT_READ_FILES_CONFIG"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "4a0c4079f82c4fa820ff13a8959bc97fd83ca219b4c4224378bb90574764e3d9"
+    },
+    {
+      "modulePath": "src/read-image.ts",
+      "file": "module-0024.mjs",
+      "exportedBindings": [
+        "DEFAULT_READ_IMAGE_CONFIG"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "7f76586fe853754c867c4e094d0e39c90f171099e12722bdeb0b6ba419b9b5aa"
+    },
+    {
+      "modulePath": "src/search-files.ts",
+      "file": "module-0025.mjs",
+      "exportedBindings": [
+        "DEFAULT_SEARCH_FILES_CONFIG"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "76b34ee5be505d73865f8de6a9a20e9dbe07a32aa8d5b1ebe24c872c41dc1438"
+    },
+    {
+      "modulePath": "src/tool-input-validation.ts",
+      "file": "module-0026.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "e34116932a55a3d7cc7d52235aa143d689e38c6c161a40934fd6b18ba6a09ca1"
+    },
+    {
+      "modulePath": "src/ide-tool-definitions.ts",
+      "file": "module-0027.mjs",
+      "exportedBindings": [
+        "MANAGED_SHELL_DESCRIPTION",
+        "GENERIC_OUTPUT_SCHEMA",
+        "LIST_DIRECTORY_OUTPUT_SCHEMA",
+        "RUN_COMMAND_OUTPUT_SCHEMA",
+        "IDE_TOOL_DEFINITIONS",
+        "IDE_TOOL_NAMES"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "managedBashDescription",
+            "BASH_COMMAND_INPUT_DESCRIPTION"
+          ]
+        }
+      ],
+      "sha256": "16f25cf977982f75dce4a26a58cdb577788205e73b53bfb2dd6d46910a732856"
+    },
+    {
+      "modulePath": "src/bridge-agent-instructions.ts",
+      "file": "module-0028.mjs",
+      "exportedBindings": [
+        "managedBashDescription",
+        "BRIDGE_BASH_TERMINAL_CONTRACT",
+        "BASH_COMMAND_INPUT_DESCRIPTION"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "86908654be5776c9a861dad875bd4e4d06400cad0d79d6ac01929536b253fd96"
+    },
+    {
+      "modulePath": "src/openai-agent.ts",
+      "file": "module-0029.mjs",
+      "exportedBindings": [
+        "chatFileToolInputSchema",
+        "normalizeChatCompletionsUrl",
+        "isUnsupportedRouteError",
+        "normalizeResponsesUrl",
+        "normalizeAnthropicMessagesUrl",
+        "textContent",
+        "codexInstructions",
+        "toCodexResponsesInput",
+        "anthropicSystemPrompt",
+        "anthropicImageSource",
+        "parseToolCallArguments",
+        "toAnthropicMessages",
+        "userMessageContent",
+        "estimatedTokens",
+        "selectHistoryWithinTokenBudget",
+        "boundedInteger",
+        "retryableHttpStatus",
+        "retryDelay",
+        "modelTimeoutSettings",
+        "readResponseText",
+        "looksLikeEventStream",
+        "createChatEventStreamProcessor",
+        "parseChatCompletionResponse",
+        "requestChatCompletion",
+        "codexOutputSnapshot",
+        "createCodexEventStreamProcessor",
+        "parseCodexResponse",
+        "anthropicStopReason",
+        "anthropicMessageSnapshot",
+        "createAnthropicEventStreamProcessor",
+        "parseAnthropicResponse",
+        "requestModelStream",
+        "mapWithConcurrency",
+        "toolFailureText",
+        "createMcpClient",
+        "cloneMessages",
+        "usableCheckpoint",
+        "createAgentCheckpoint",
+        "runOpenAICompatibleAgent",
+        "import_node_crypto",
+        "import_node_url",
+        "unsupportedResponsesRoutes",
+        "CHAT_FILE_INPUT_SCHEMAS",
+        "ANTHROPIC_API_VERSION",
+        "ANTHROPIC_DEFAULT_MAX_OUTPUT_TOKENS",
+        "ANTHROPIC_MIN_THINKING_BUDGET_TOKENS",
+        "ANTHROPIC_EFFORT_THINKING_BUDGETS",
+        "MAX_PARALLEL_TOOL_CALLS",
+        "MAX_GENERIC_HISTORY_ITEMS",
+        "MAX_UNAVAILABLE_TOOL_ATTEMPTS",
+        "DEFAULT_MODEL_FIRST_TOKEN_TIMEOUT_MS",
+        "DEFAULT_MODEL_IDLE_TIMEOUT_MS",
+        "DEFAULT_MODEL_TOTAL_TIMEOUT_MS",
+        "MAX_MODEL_TIMEOUT_MS",
+        "MAX_MODEL_REQUEST_RETRIES",
+        "DEFAULT_FILE_TOOL_REQUEST_TIMEOUT_MS",
+        "OPENCODE_CHAT_BEHAVIOR_CONTRACT",
+        "ModelStreamTimeoutError",
+        "ModelRequestTimeoutController"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO",
+            "__opencodeImportMetaUrl"
+          ]
+        },
+        {
+          "module": "module-0015",
+          "bindings": [
+            "FILE_TOOL_DEFINITIONS"
+          ]
+        },
+        {
+          "module": "module-0030",
+          "bindings": [
+            "normalizeOpenAIBaseUrl",
+            "redactModelEndpointForLog"
+          ]
+        },
+        {
+          "module": "module-0031",
+          "bindings": [
+            "Client"
+          ]
+        },
+        {
+          "module": "module-0066",
+          "bindings": [
+            "OPENCODE_BEHAVIOR_VERSION"
+          ]
+        },
+        {
+          "module": "module-0063",
+          "bindings": [
+            "StdioClientTransport"
+          ]
+        },
+        {
+          "module": "module-0064",
+          "bindings": [
+            "isOfficialDeepSeekApiBaseUrl",
+            "normalizeOfficialDeepSeekApiBaseUrl",
+            "DEEPSEEK_DEFAULT_REASONING_EFFORT",
+            "DEEPSEEK_CONTEXT_WINDOW_TOKENS",
+            "DEEPSEEK_MAX_OUTPUT_TOKENS"
+          ]
+        },
+        {
+          "module": "module-0065",
+          "bindings": [
+            "agentToolResultContent"
+          ]
+        }
+      ],
+      "sha256": "527469e7607846905d87b17d1d997721212f39f536e64877c5590e274a1738e6"
+    },
+    {
+      "modulePath": "extensions/opencode/src/model-endpoint-url.mts",
+      "file": "module-0030.mjs",
+      "exportedBindings": [
+        "normalizeOpenAIBaseUrl",
+        "redactModelEndpointForLog"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "d8a7e1d6a73b2a95b2adbd67c61d71a962ce3efa1f0057e7c5da2bd960d1d1f0"
+    },
+    {
+      "modulePath": "node_modules/@modelcontextprotocol/client/dist/index.mjs",
+      "file": "module-0031.mjs",
+      "exportedBindings": [
+        "keyOf",
+        "genKey",
+        "encodeCacheValue",
+        "isAuthSeamEscape",
+        "classifyProbeOutcome",
+        "classifyResult",
+        "classifyRpcError",
+        "classifyHttpError",
+        "classifyNetworkError",
+        "isOpaqueFetchTypeError",
+        "describeError",
+        "parseSupportedList",
+        "parseRequested",
+        "parseJsonRpcErrorBody",
+        "resolveVersionNegotiation",
+        "detectProbeEnvironment",
+        "detectProbeTransportKind",
+        "disarmSpentCloseGuard",
+        "buildProbeRequest",
+        "normalizeReply",
+        "negotiateEra",
+        "readStdioServerParams",
+        "negotiateStdioViaSibling",
+        "callerCloseAbortError",
+        "disposeSibling",
+        "serverInfoFromDiscover",
+        "applyElicitationDefaults",
+        "getSupportedElicitationModes",
+        "validatePrior",
+        "OAuthClientFlowError",
+        "IssuerMismatchError",
+        "RegistrationRejectedError",
+        "InsecureTokenEndpointError",
+        "AuthorizationServerMismatchError",
+        "InsufficientScopeError",
+        "UnauthorizedError",
+        "CAP_EXEMPT_METHODS",
+        "InMemoryResponseCacheStore",
+        "MAX_CACHE_TTL_MS",
+        "ClientResponseCache",
+        "AUTH_SEAM",
+        "UNSUPPORTED_PROTOCOL_VERSION",
+        "NOT_PROBE_RECOGNIZED",
+        "DEFAULT_VERSION_NEGOTIATION_MODE",
+        "ProbeWindow",
+        "pendingSpentCloseGuards",
+        "LIST_CHANGED_EVICTIONS",
+        "DEFAULT_LIST_MAX_PAGES",
+        "Client",
+        "SseError"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0032",
+          "bindings": [
+            "brandedHasInstance",
+            "stampErrorBrands",
+            "SdkError",
+            "SdkErrorCode",
+            "codecForVersion",
+            "MODERN_WIRE_REVISION",
+            "UnsupportedProtocolVersionError",
+            "modernProtocolVersions",
+            "SdkHttpError",
+            "isModernProtocolVersion",
+            "SUPPORTED_MODERN_PROTOCOL_VERSIONS",
+            "legacyProtocolVersions",
+            "isJSONRPCResultResponse",
+            "isJSONRPCErrorResponse",
+            "isSpecType",
+            "Protocol",
+            "resolveInputRequiredDriverConfig",
+            "isJSONRPCRequest",
+            "runInputRequiredFlow",
+            "mergeCapabilities",
+            "ProtocolError",
+            "ProtocolErrorCode",
+            "DEFAULT_REQUEST_TIMEOUT_MSEC",
+            "scanXMcpHeaderDeclarations",
+            "buildMcpParamHeaders",
+            "HEADER_MISMATCH_ERROR_CODE",
+            "parseSchema"
+          ]
+        },
+        {
+          "module": "module-0036",
+          "bindings": [
+            "SERVER_INFO_META_KEY",
+            "DiscoverResultSchema",
+            "SUBSCRIPTION_ID_META_KEY",
+            "ListChangedOptionsBaseSchema"
+          ]
+        },
+        {
+          "module": "module-0061",
+          "bindings": [
+            "AjvJsonSchemaValidator"
+          ]
+        }
+      ],
+      "sha256": "e15a15815ac3cfd40c2937794749127c364f095a4fc440b17fe08e0912ae550a"
+    },
+    {
+      "modulePath": "node_modules/@modelcontextprotocol/client/dist/src-D_zzAWoS.mjs",
+      "file": "module-0032.mjs",
+      "exportedBindings": [
+        "stampErrorBrands",
+        "brandedHasInstance",
+        "isModernProtocolVersion",
+        "legacyProtocolVersions",
+        "modernProtocolVersions",
+        "appendTextFallbackForNonObject",
+        "normalizeContentlessToolResult",
+        "build$1",
+        "buildSchemas2025",
+        "isNonObjectJsonSchemaRoot",
+        "establishesNewBase",
+        "wrapOutputSchemaForLegacy",
+        "registryMaps",
+        "hasRequestMethod2025",
+        "hasNotificationMethod2025",
+        "hasResultMethod",
+        "getResultSchema",
+        "getRequestSchema",
+        "getNotificationSchema",
+        "isPlainObject$4",
+        "triState$1",
+        "toolNeedsLegacyWrap",
+        "toNeutralResult",
+        "build",
+        "buildSchemas2026",
+        "isCacheableResultMethod",
+        "cacheHintFallbackOf",
+        "isValidCacheTtlMs",
+        "isValidCacheScope",
+        "stampResultType",
+        "fillCacheFields",
+        "isPlainObject$3",
+        "stampServerInfoMeta",
+        "resolveTtlMs",
+        "resolveCacheScope",
+        "stripCacheHintFallback",
+        "inputSchemaMaps",
+        "isInputRequestMethod2026",
+        "getInputRequestSchema2026",
+        "getInputResponseSchema2026",
+        "hasRequestMethod2026",
+        "hasNotificationMethod2026",
+        "hasResultMethod2026",
+        "getRequestSchema2026",
+        "getResultSchema2026",
+        "getNotificationSchema2026",
+        "isPlainObject$2",
+        "triState",
+        "enforceDeletedFields",
+        "getWireResultSchemas",
+        "codecForVersion",
+        "classifiedWireEra",
+        "isSpecRequestMethod",
+        "isSpecNotificationMethod",
+        "scanXMcpHeaderDeclarations",
+        "pathName",
+        "mcpParamPrimitiveToString",
+        "needsBase64",
+        "utf8ToBase64",
+        "encodeMcpParamValue",
+        "valueAtPath",
+        "buildMcpParamHeaders",
+        "parseSchema",
+        "shapeKeys",
+        "isStandardSchema",
+        "standardSchemaToJsonSchema",
+        "isProvablyObjectShapedRoot",
+        "formatIssue",
+        "validateStandardSchema",
+        "zodEmittedPattern",
+        "datetimeReferenceSchemas",
+        "referencePatternsForFormat",
+        "isLibraryFormatPattern",
+        "isJsonObject",
+        "convertStandardElicitationSchema",
+        "isAnnotationOnlyJsonSchemaKeyword",
+        "walkProperty",
+        "walkRequestedSchema",
+        "describeUnsupportedProperties",
+        "findDroppedConstraintPaths",
+        "normalizeElicitInputParams",
+        "buildInputRequired",
+        "resolveInputRequiredDriverConfig",
+        "buildInputRequiredRetryParams",
+        "inputRequiredRoundsExceededMessage",
+        "sleep",
+        "linkedRoundAbort",
+        "runInputRequiredDriver",
+        "register",
+        "bootstrapOutboundCodec",
+        "liftWireOnlyMaterial",
+        "codecResultValidator",
+        "requestStateAccessor",
+        "isPlainObject$1",
+        "mergeCapabilities",
+        "isPlainObject2",
+        "partitionInputResponses",
+        "relatedMessagingUnavailable",
+        "synthesizeInputRequestContext",
+        "dispatchInputRequest",
+        "buildRetryLegRequestOptions",
+        "runInputRequiredFlow",
+        "manualInputRequiredValue",
+        "deserializeMessage",
+        "serializeMessage",
+        "BRANDS",
+        "OAuthError",
+        "SdkErrorCode",
+        "SdkError",
+        "SdkHttpError",
+        "FIRST_MODERN_PROTOCOL_VERSION",
+        "SUPPORTED_MODERN_PROTOCOL_VERSIONS",
+        "TOOL_RESULT_FOREIGN_FAMILY_KEYS",
+        "memo$1",
+        "REF_REWRITE_DATA_POSITION_KEYS",
+        "REF_REWRITE_NAME_MAP_KEYS",
+        "requestMethodKeys$1",
+        "notificationMethodKeys$1",
+        "resultMethodKeys",
+        "maps$1",
+        "rev2025RequestMethods",
+        "rev2025NotificationMethods",
+        "NOT_IN_ERA$1",
+        "rev2025Codec",
+        "memo",
+        "CACHEABLE_RESULT_METHODS",
+        "RESULT_CACHE_HINT_FALLBACK",
+        "ProtocolErrorCode",
+        "ProtocolError",
+        "ResourceNotFoundError",
+        "UrlElicitationRequiredError",
+        "UnsupportedProtocolVersionError",
+        "MissingRequiredClientCapabilityError",
+        "DEFAULT_CACHE_TTL_MS",
+        "DEFAULT_CACHE_SCOPE",
+        "EXTENDED_RESULT_TYPE_METHODS",
+        "INPUT_REQUEST_METHODS_2026",
+        "maps",
+        "requestMethodKeys",
+        "notificationMethodKeys",
+        "rev2026RequestMethods",
+        "rev2026NotificationMethods",
+        "NOT_IN_ERA",
+        "REQUIRED_ENVELOPE_KEYS",
+        "rev2026Codec",
+        "wireResultSchemasMemo",
+        "MODERN_WIRE_REVISION",
+        "ALL_CODECS",
+        "schemas_exports2",
+        "isJSONRPCRequest",
+        "isJSONRPCNotification",
+        "isJSONRPCResultResponse",
+        "isJSONRPCErrorResponse",
+        "isInputRequiredResult",
+        "MCP_PARAM_HEADER_PREFIX",
+        "X_MCP_HEADER_KEY",
+        "RFC9110_TOKEN",
+        "PERMITTED_X_MCP_HEADER_TYPES",
+        "NON_REACHABLE_SUBSCHEMA_KEYWORDS",
+        "OBJECT_VALUED_SUBSCHEMA_KEYWORDS",
+        "BASE64_SENTINEL_PREFIX",
+        "BASE64_SENTINEL_SUFFIX",
+        "HEADER_MISMATCH_ERROR_CODE",
+        "INBOUND_VALIDATION_LADDER",
+        "LADDER_ERROR_HTTP_STATUS",
+        "warnedZodFallback",
+        "JSON_SCHEMA_CONVERSION_TARGET",
+        "DATETIME_FRACTION_DIGITS",
+        "ANNOTATION_ONLY_JSON_SCHEMA_KEYWORDS",
+        "ROOT_KEYS",
+        "PROPERTY_KEYS_BY_TYPE",
+        "SUPPORTED_STRING_FORMATS",
+        "inputRequired",
+        "DEFAULT_INPUT_REQUIRED_AUTO_FULFILL",
+        "DEFAULT_INPUT_REQUIRED_MAX_ROUNDS",
+        "REQUEST_STATE_ONLY_LEG_PACING_MS",
+        "SPEC_SCHEMA_KEYS",
+        "authSchemas",
+        "_specTypeSchemas",
+        "_isSpecType",
+        "specTypeSchemas",
+        "isSpecType",
+        "DEFAULT_REQUEST_TIMEOUT_MSEC",
+        "RESERVED_ENVELOPE_META_KEYS",
+        "RETRY_PARAMS_KEYS",
+        "NO_REQUEST_STATE",
+        "writeNegotiatedProtocolVersion",
+        "Protocol",
+        "require_content_type",
+        "import_content_type",
+        "STDIO_DEFAULT_MAX_BUFFER_SIZE",
+        "ReadBuffer"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0053",
+          "bindings": [
+            "lazy",
+            "union",
+            "string2",
+            "number2",
+            "boolean2",
+            "_null3",
+            "record",
+            "array",
+            "object",
+            "looseObject",
+            "literal",
+            "_enum",
+            "intersection",
+            "preprocess",
+            "optional",
+            "unknown",
+            "discriminatedUnion",
+            "email2",
+            "url"
+          ]
+        },
+        {
+          "module": "module-0055",
+          "bindings": [
+            "iso_exports"
+          ]
+        },
+        {
+          "module": "module-0034",
+          "bindings": [
+            "declares2019Dialect"
+          ]
+        },
+        {
+          "module": "module-0036",
+          "bindings": [
+            "PROTOCOL_VERSION_META_KEY",
+            "CLIENT_INFO_META_KEY",
+            "CLIENT_CAPABILITIES_META_KEY",
+            "LOG_LEVEL_META_KEY",
+            "SERVER_INFO_META_KEY",
+            "AnnotationsSchema",
+            "AudioContentSchema",
+            "BaseMetadataSchema",
+            "BaseRequestParamsSchema",
+            "BlobResourceContentsSchema",
+            "BooleanSchemaSchema",
+            "CallToolRequestParamsSchema",
+            "CallToolRequestSchema",
+            "CallToolResultSchema",
+            "CancelTaskRequestSchema",
+            "CancelTaskResultSchema",
+            "CancelledNotificationParamsSchema",
+            "CancelledNotificationSchema",
+            "ClientCapabilitiesSchema",
+            "ClientNotificationSchema",
+            "ClientRequestSchema",
+            "ClientResultSchema",
+            "ClientTasksCapabilitySchema",
+            "CompatibilityCallToolResultSchema",
+            "CompleteRequestParamsSchema",
+            "CompleteRequestSchema",
+            "CompleteResultSchema",
+            "ContentBlockSchema",
+            "CreateMessageRequestParamsSchema",
+            "CreateMessageRequestSchema",
+            "CreateMessageResultSchema",
+            "CreateMessageResultWithToolsSchema",
+            "CreateTaskResultSchema",
+            "CursorSchema",
+            "DiscoverRequestSchema",
+            "DiscoverResultSchema",
+            "ElicitRequestFormParamsSchema",
+            "ElicitRequestParamsSchema",
+            "ElicitRequestSchema",
+            "ElicitRequestURLParamsSchema",
+            "ElicitResultSchema",
+            "ElicitationCompleteNotificationParamsSchema",
+            "ElicitationCompleteNotificationSchema",
+            "EmbeddedResourceSchema",
+            "EmptyResultSchema",
+            "EnumSchemaSchema",
+            "GetPromptRequestParamsSchema",
+            "GetPromptRequestSchema",
+            "GetPromptResultSchema",
+            "GetTaskPayloadRequestSchema",
+            "GetTaskPayloadResultSchema",
+            "GetTaskRequestSchema",
+            "GetTaskResultSchema",
+            "IconSchema",
+            "IconsSchema",
+            "ImageContentSchema",
+            "ImplementationSchema",
+            "InitializeRequestParamsSchema",
+            "InitializeRequestSchema",
+            "InitializeResultSchema",
+            "InitializedNotificationSchema",
+            "JSONArraySchema",
+            "JSONObjectSchema",
+            "JSONRPCErrorResponseSchema",
+            "JSONRPCMessageSchema",
+            "JSONRPCNotificationSchema",
+            "JSONRPCRequestSchema",
+            "JSONRPCResponseSchema",
+            "JSONRPCResultResponseSchema",
+            "JSONValueSchema",
+            "LegacyTitledEnumSchemaSchema",
+            "ListChangedOptionsBaseSchema",
+            "ListPromptsRequestSchema",
+            "ListPromptsResultSchema",
+            "ListResourceTemplatesRequestSchema",
+            "ListResourceTemplatesResultSchema",
+            "ListResourcesRequestSchema",
+            "ListResourcesResultSchema",
+            "ListRootsRequestSchema",
+            "ListRootsResultSchema",
+            "ListTasksRequestSchema",
+            "ListTasksResultSchema",
+            "ListToolsRequestSchema",
+            "ListToolsResultSchema",
+            "LoggingLevelSchema",
+            "LoggingMessageNotificationParamsSchema",
+            "LoggingMessageNotificationSchema",
+            "ModelHintSchema",
+            "ModelPreferencesSchema",
+            "MultiSelectEnumSchemaSchema",
+            "NotificationSchema",
+            "NotificationsParamsSchema",
+            "NumberSchemaSchema",
+            "PaginatedRequestParamsSchema",
+            "PaginatedRequestSchema",
+            "PaginatedResultSchema",
+            "PingRequestSchema",
+            "PrimitiveSchemaDefinitionSchema",
+            "ProgressNotificationParamsSchema",
+            "ProgressNotificationSchema",
+            "ProgressSchema",
+            "ProgressTokenSchema",
+            "PromptArgumentSchema",
+            "PromptListChangedNotificationSchema",
+            "PromptMessageSchema",
+            "PromptReferenceSchema",
+            "PromptSchema",
+            "ReadResourceRequestParamsSchema",
+            "ReadResourceRequestSchema",
+            "ReadResourceResultSchema",
+            "RelatedTaskMetadataSchema",
+            "RequestIdSchema",
+            "RequestMetaSchema",
+            "RequestSchema",
+            "ResourceContentsSchema",
+            "ResourceLinkSchema",
+            "ResourceListChangedNotificationSchema",
+            "ResourceRequestParamsSchema",
+            "ResourceSchema",
+            "ResourceTemplateReferenceSchema",
+            "ResourceTemplateSchema",
+            "ResourceUpdatedNotificationParamsSchema",
+            "ResourceUpdatedNotificationSchema",
+            "ResultMetaObjectSchema",
+            "ResultSchema",
+            "RoleSchema",
+            "RootSchema",
+            "RootsListChangedNotificationSchema",
+            "SamplingContentSchema",
+            "SamplingMessageContentBlockSchema",
+            "SamplingMessageSchema",
+            "ServerCapabilitiesSchema",
+            "ServerNotificationSchema",
+            "ServerRequestSchema",
+            "ServerResultSchema",
+            "ServerTasksCapabilitySchema",
+            "SetLevelRequestParamsSchema",
+            "SetLevelRequestSchema",
+            "SingleSelectEnumSchemaSchema",
+            "StringSchemaSchema",
+            "SubscribeRequestParamsSchema",
+            "SubscribeRequestSchema",
+            "SubscriptionFilterSchema",
+            "SubscriptionsAcknowledgedNotificationParamsSchema",
+            "SubscriptionsAcknowledgedNotificationSchema",
+            "SubscriptionsListenRequestParamsSchema",
+            "SubscriptionsListenRequestSchema",
+            "SubscriptionsListenResultMetaSchema",
+            "SubscriptionsListenResultSchema",
+            "TaskAugmentedRequestParamsSchema",
+            "TaskCreationParamsSchema",
+            "TaskMetadataSchema",
+            "TaskSchema",
+            "TaskStatusNotificationParamsSchema",
+            "TaskStatusNotificationSchema",
+            "TaskStatusSchema",
+            "TextContentSchema",
+            "TextResourceContentsSchema",
+            "TitledMultiSelectEnumSchemaSchema",
+            "TitledSingleSelectEnumSchemaSchema",
+            "ToolAnnotationsSchema",
+            "ToolChoiceSchema",
+            "ToolExecutionSchema",
+            "ToolListChangedNotificationSchema",
+            "ToolResultContentSchema",
+            "ToolSchema",
+            "ToolUseContentSchema",
+            "UnsubscribeRequestParamsSchema",
+            "UnsubscribeRequestSchema",
+            "UntitledMultiSelectEnumSchemaSchema",
+            "UntitledSingleSelectEnumSchemaSchema",
+            "IdJagTokenExchangeResponseSchema",
+            "OAuthClientInformationFullSchema",
+            "OAuthClientInformationSchema",
+            "OAuthClientMetadataSchema",
+            "OAuthClientRegistrationErrorSchema",
+            "OAuthErrorResponseSchema",
+            "OAuthMetadataSchema",
+            "OAuthProtectedResourceMetadataSchema",
+            "OAuthTokenRevocationRequestSchema",
+            "OAuthTokensSchema",
+            "OpenIdProviderDiscoveryMetadataSchema",
+            "OpenIdProviderMetadataSchema",
+            "SUPPORTED_PROTOCOL_VERSIONS"
+          ]
+        },
+        {
+          "module": "module-0033",
+          "bindings": [
+            "__exportAll",
+            "__commonJSMin",
+            "__toESM2"
+          ]
+        },
+        {
+          "module": "module-0056",
+          "bindings": [
+            "safeParse2"
+          ]
+        },
+        {
+          "module": "module-0052",
+          "bindings": [
+            "toJSONSchema"
+          ]
+        }
+      ],
+      "sha256": "48a68a83eaeb57cbeb0c4d7c95e29d056acaf2abfe3b1fa8c8e6b628eb2b92a6"
+    },
+    {
+      "modulePath": "node_modules/@modelcontextprotocol/client/dist/chunk-Br0eD_fh.mjs",
+      "file": "module-0033.mjs",
+      "exportedBindings": [
+        "__create2",
+        "__defProp2",
+        "__getOwnPropDesc2",
+        "__getOwnPropNames2",
+        "__getProtoOf2",
+        "__hasOwnProp2",
+        "__commonJSMin",
+        "__exportAll",
+        "__copyProps2",
+        "__toESM2"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "c0d63097d549b642645868003d0ef708f49349b998e63aa2827312980c42b487"
+    },
+    {
+      "modulePath": "node_modules/@modelcontextprotocol/client/dist/dialects-BOhdv1Fc.mjs",
+      "file": "module-0034.mjs",
+      "exportedBindings": [
+        "declares2019Dialect",
+        "declaredDialect",
+        "DRAFT_2020_12_URIS",
+        "DRAFT_2019_09_URIS",
+        "DRAFT_07_URIS",
+        "DRAFT_06_URIS"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "2c43006ba2e7f634b84869c1d07c4471ae85c4a46b40c0ad16d7bb5739b42a3e"
+    },
+    {
+      "modulePath": "node_modules/@modelcontextprotocol/core/dist/internal.mjs",
+      "file": "module-0035.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "8b150414341b9e8637937fcc1ded4da5f16e1d241c79e4046d39c9748cc9105b"
+    },
+    {
+      "modulePath": "node_modules/@modelcontextprotocol/core/dist/auth-CUe6YdwF.mjs",
+      "file": "module-0036.mjs",
+      "exportedBindings": [
+        "LATEST_PROTOCOL_VERSION",
+        "SUPPORTED_PROTOCOL_VERSIONS",
+        "RELATED_TASK_META_KEY",
+        "PROTOCOL_VERSION_META_KEY",
+        "CLIENT_INFO_META_KEY",
+        "SERVER_INFO_META_KEY",
+        "CLIENT_CAPABILITIES_META_KEY",
+        "SUBSCRIPTION_ID_META_KEY",
+        "LOG_LEVEL_META_KEY",
+        "JSONRPC_VERSION",
+        "JSONValueSchema",
+        "JSONObjectSchema",
+        "JSONArraySchema",
+        "ProgressTokenSchema",
+        "CursorSchema",
+        "TaskMetadataSchema",
+        "RelatedTaskMetadataSchema",
+        "RequestMetaSchema",
+        "BaseRequestParamsSchema",
+        "TaskAugmentedRequestParamsSchema",
+        "RequestSchema",
+        "NotificationsParamsSchema",
+        "NotificationSchema",
+        "ResultMetaObjectSchema",
+        "ResultSchema",
+        "RequestIdSchema",
+        "JSONRPCRequestSchema",
+        "JSONRPCNotificationSchema",
+        "JSONRPCResultResponseSchema",
+        "JSONRPCErrorResponseSchema",
+        "JSONRPCMessageSchema",
+        "JSONRPCResponseSchema",
+        "EmptyResultSchema",
+        "CancelledNotificationParamsSchema",
+        "CancelledNotificationSchema",
+        "IconSchema",
+        "IconsSchema",
+        "BaseMetadataSchema",
+        "ImplementationSchema",
+        "FormElicitationCapabilitySchema",
+        "ElicitationCapabilitySchema",
+        "ClientTasksCapabilitySchema",
+        "ServerTasksCapabilitySchema",
+        "ClientCapabilitiesSchema",
+        "InitializeRequestParamsSchema",
+        "InitializeRequestSchema",
+        "ServerCapabilitiesSchema",
+        "InitializeResultSchema",
+        "InitializedNotificationSchema",
+        "DiscoverRequestSchema",
+        "DiscoverResultSchema",
+        "PingRequestSchema",
+        "ProgressSchema",
+        "ProgressNotificationParamsSchema",
+        "ProgressNotificationSchema",
+        "PaginatedRequestParamsSchema",
+        "PaginatedRequestSchema",
+        "PaginatedResultSchema",
+        "ResourceContentsSchema",
+        "TextResourceContentsSchema",
+        "Base64Schema",
+        "BlobResourceContentsSchema",
+        "RoleSchema",
+        "AnnotationsSchema",
+        "ResourceSchema",
+        "ResourceTemplateSchema",
+        "ListResourcesRequestSchema",
+        "ListResourcesResultSchema",
+        "ListResourceTemplatesRequestSchema",
+        "ListResourceTemplatesResultSchema",
+        "ResourceRequestParamsSchema",
+        "ReadResourceRequestParamsSchema",
+        "ReadResourceRequestSchema",
+        "ReadResourceResultSchema",
+        "ResourceListChangedNotificationSchema",
+        "SubscribeRequestParamsSchema",
+        "SubscribeRequestSchema",
+        "UnsubscribeRequestParamsSchema",
+        "UnsubscribeRequestSchema",
+        "SubscriptionFilterSchema",
+        "SubscriptionsListenRequestParamsSchema",
+        "SubscriptionsListenRequestSchema",
+        "SubscriptionsAcknowledgedNotificationParamsSchema",
+        "SubscriptionsAcknowledgedNotificationSchema",
+        "SubscriptionsListenResultMetaSchema",
+        "SubscriptionsListenResultSchema",
+        "ResourceUpdatedNotificationParamsSchema",
+        "ResourceUpdatedNotificationSchema",
+        "PromptArgumentSchema",
+        "PromptSchema",
+        "ListPromptsRequestSchema",
+        "ListPromptsResultSchema",
+        "GetPromptRequestParamsSchema",
+        "GetPromptRequestSchema",
+        "TextContentSchema",
+        "ImageContentSchema",
+        "AudioContentSchema",
+        "ToolUseContentSchema",
+        "EmbeddedResourceSchema",
+        "ResourceLinkSchema",
+        "ContentBlockSchema",
+        "PromptMessageSchema",
+        "GetPromptResultSchema",
+        "PromptListChangedNotificationSchema",
+        "ToolAnnotationsSchema",
+        "ToolExecutionSchema",
+        "ToolSchema",
+        "ListToolsRequestSchema",
+        "ListToolsResultSchema",
+        "CallToolResultSchema",
+        "CompatibilityCallToolResultSchema",
+        "CallToolRequestParamsSchema",
+        "CallToolRequestSchema",
+        "ToolListChangedNotificationSchema",
+        "ListChangedOptionsBaseSchema",
+        "LoggingLevelSchema",
+        "SetLevelRequestParamsSchema",
+        "SetLevelRequestSchema",
+        "LoggingMessageNotificationParamsSchema",
+        "LoggingMessageNotificationSchema",
+        "ModelHintSchema",
+        "ModelPreferencesSchema",
+        "ToolChoiceSchema",
+        "ToolResultContentSchema",
+        "SamplingContentSchema",
+        "SamplingMessageContentBlockSchema",
+        "SamplingMessageSchema",
+        "CreateMessageRequestParamsSchema",
+        "CreateMessageRequestSchema",
+        "CreateMessageResultSchema",
+        "CreateMessageResultWithToolsSchema",
+        "BooleanSchemaSchema",
+        "StringSchemaSchema",
+        "NumberSchemaSchema",
+        "UntitledSingleSelectEnumSchemaSchema",
+        "TitledSingleSelectEnumSchemaSchema",
+        "LegacyTitledEnumSchemaSchema",
+        "SingleSelectEnumSchemaSchema",
+        "UntitledMultiSelectEnumSchemaSchema",
+        "TitledMultiSelectEnumSchemaSchema",
+        "MultiSelectEnumSchemaSchema",
+        "EnumSchemaSchema",
+        "PrimitiveSchemaDefinitionSchema",
+        "ElicitRequestFormParamsSchema",
+        "ElicitRequestURLParamsSchema",
+        "ElicitRequestParamsSchema",
+        "ElicitRequestSchema",
+        "ElicitationCompleteNotificationParamsSchema",
+        "ElicitationCompleteNotificationSchema",
+        "ElicitResultSchema",
+        "ResourceTemplateReferenceSchema",
+        "PromptReferenceSchema",
+        "CompleteRequestParamsSchema",
+        "CompleteRequestSchema",
+        "CompleteResultSchema",
+        "RootSchema",
+        "ListRootsRequestSchema",
+        "ListRootsResultSchema",
+        "RootsListChangedNotificationSchema",
+        "TaskCreationParamsSchema",
+        "TaskStatusSchema",
+        "TaskSchema",
+        "CreateTaskResultSchema",
+        "TaskStatusNotificationParamsSchema",
+        "TaskStatusNotificationSchema",
+        "GetTaskRequestSchema",
+        "GetTaskResultSchema",
+        "GetTaskPayloadRequestSchema",
+        "GetTaskPayloadResultSchema",
+        "ListTasksRequestSchema",
+        "ListTasksResultSchema",
+        "CancelTaskRequestSchema",
+        "CancelTaskResultSchema",
+        "ClientRequestSchema",
+        "ClientNotificationSchema",
+        "ClientResultSchema",
+        "ServerRequestSchema",
+        "ServerNotificationSchema",
+        "ServerResultSchema",
+        "SafeUrlSchema",
+        "OAuthProtectedResourceMetadataSchema",
+        "OAuthMetadataSchema",
+        "OpenIdProviderMetadataSchema",
+        "OpenIdProviderDiscoveryMetadataSchema",
+        "OAuthTokensSchema",
+        "IdJagTokenExchangeResponseSchema",
+        "OAuthErrorResponseSchema",
+        "OptionalSafeUrlSchema",
+        "OAuthClientMetadataSchema",
+        "OAuthClientInformationSchema",
+        "OAuthClientInformationFullSchema",
+        "OAuthClientRegistrationErrorSchema",
+        "OAuthTokenRevocationRequestSchema"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0053",
+          "bindings": [
+            "lazy",
+            "union",
+            "string2",
+            "number2",
+            "boolean2",
+            "_null3",
+            "record",
+            "array",
+            "object",
+            "looseObject",
+            "literal",
+            "unknown",
+            "_enum",
+            "intersection",
+            "preprocess",
+            "optional",
+            "discriminatedUnion",
+            "url",
+            "any"
+          ]
+        },
+        {
+          "module": "module-0055",
+          "bindings": [
+            "iso_exports"
+          ]
+        },
+        {
+          "module": "module-0058",
+          "bindings": [
+            "ZodIssueCode"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "NEVER"
+          ]
+        },
+        {
+          "module": "module-0059",
+          "bindings": [
+            "coerce_exports"
+          ]
+        }
+      ],
+      "sha256": "6653dd834f1d8df5739c30654f8bec9b7e77cae61b15ce90249454a5040c57df"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/classic/external.js",
+      "file": "module-0037.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "config"
+          ]
+        },
+        {
+          "module": "module-0048",
+          "bindings": [
+            "en_default"
+          ]
+        }
+      ],
+      "sha256": "90ce842ef201702b0b1da5b14d0f05dee46a3799c30ec400325360b87bebf44b"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/index.js",
+      "file": "module-0038.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "0c18bb155ca11f9019a8c5807d3096619e37bfaa5ebb90c5ba76a3f29bff336b"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/core.js",
+      "file": "module-0039.mjs",
+      "exportedBindings": [
+        "$constructor",
+        "config",
+        "_a",
+        "NEVER",
+        "$ZodAsyncError",
+        "$ZodEncodeError",
+        "globalConfig"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "09650dadbc412f02828d0071ad68343b56347630fd0f7374387dee88022a1103"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/parse.js",
+      "file": "module-0040.mjs",
+      "exportedBindings": [
+        "_parse",
+        "_parseAsync",
+        "_safeParse",
+        "safeParse",
+        "_safeParseAsync",
+        "safeParseAsync",
+        "_encode",
+        "_decode",
+        "_encodeAsync",
+        "_decodeAsync",
+        "_safeEncode",
+        "_safeDecode",
+        "_safeEncodeAsync",
+        "_safeDecodeAsync"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "$ZodAsyncError",
+            "config"
+          ]
+        },
+        {
+          "module": "module-0042",
+          "bindings": [
+            "finalizeIssue",
+            "captureStackTrace"
+          ]
+        },
+        {
+          "module": "module-0041",
+          "bindings": [
+            "$ZodError",
+            "$ZodRealError"
+          ]
+        }
+      ],
+      "sha256": "cafa94aa47e07f232056480f55984c13f94dc2c0dc625e581b7271a63cbffe3a"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/errors.js",
+      "file": "module-0041.mjs",
+      "exportedBindings": [
+        "flattenError",
+        "formatError",
+        "initializer",
+        "$ZodError",
+        "$ZodRealError"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0042",
+          "bindings": [
+            "jsonStringifyReplacer"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "$constructor"
+          ]
+        }
+      ],
+      "sha256": "cb775de5ece28e733d89c912bcc9dae90b5186abfda485fe088ccff841d57f62"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/util.js",
+      "file": "module-0042.mjs",
+      "exportedBindings": [
+        "assertEqual",
+        "assertNotEqual",
+        "assertIs",
+        "assertNever",
+        "assert",
+        "getEnumValues",
+        "joinValues",
+        "jsonStringifyReplacer",
+        "cached",
+        "nullish",
+        "cleanRegex",
+        "floatSafeRemainder",
+        "defineLazy",
+        "objectClone",
+        "assignProp",
+        "mergeDefs",
+        "cloneDef",
+        "getElementAtPath",
+        "promiseAllObject",
+        "randomString",
+        "esc",
+        "slugify",
+        "isObject",
+        "isPlainObject",
+        "shallowClone",
+        "numKeys",
+        "escapeRegex",
+        "clone",
+        "normalizeParams",
+        "createTransparentProxy",
+        "stringifyPrimitive",
+        "optionalKeys",
+        "pick",
+        "omit",
+        "extend",
+        "safeExtend",
+        "merge",
+        "partial",
+        "required",
+        "aborted",
+        "explicitlyAborted",
+        "prefixIssues",
+        "unwrapMessage",
+        "finalizeIssue",
+        "getSizableOrigin",
+        "getLengthableOrigin",
+        "parsedType",
+        "issue",
+        "cleanEnum",
+        "base64ToUint8Array",
+        "uint8ArrayToBase64",
+        "base64urlToUint8Array",
+        "uint8ArrayToBase64url",
+        "hexToUint8Array",
+        "uint8ArrayToHex",
+        "util_exports",
+        "EVALUATING",
+        "captureStackTrace",
+        "allowsEval",
+        "getParsedType",
+        "propertyKeyTypes",
+        "primitiveTypes",
+        "NUMBER_FORMAT_RANGES",
+        "BIGINT_FORMAT_RANGES",
+        "Class"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__export",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "globalConfig"
+          ]
+        }
+      ],
+      "sha256": "c9d34e03ce1341d02d2bed3eb46d5b86c759fa64988426e4a7024cb4fb586633"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/schemas.js",
+      "file": "module-0043.mjs",
+      "exportedBindings": [
+        "isValidBase64",
+        "isValidBase64URL",
+        "isValidJWT",
+        "handleArrayResult",
+        "handlePropertyResult",
+        "normalizeDef",
+        "handleCatchall",
+        "handleUnionResults",
+        "mergeValues",
+        "handleIntersectionResults",
+        "handleOptionalResult",
+        "handleDefaultResult",
+        "handleNonOptionalResult",
+        "handlePipeResult",
+        "handleReadonlyResult",
+        "handleRefineResult",
+        "$ZodType",
+        "$ZodString",
+        "$ZodStringFormat",
+        "$ZodGUID",
+        "$ZodUUID",
+        "$ZodEmail",
+        "$ZodURL",
+        "$ZodEmoji",
+        "$ZodNanoID",
+        "$ZodCUID",
+        "$ZodCUID2",
+        "$ZodULID",
+        "$ZodXID",
+        "$ZodKSUID",
+        "$ZodISODateTime",
+        "$ZodISODate",
+        "$ZodISOTime",
+        "$ZodISODuration",
+        "$ZodIPv4",
+        "$ZodIPv6",
+        "$ZodCIDRv4",
+        "$ZodCIDRv6",
+        "$ZodBase64",
+        "$ZodBase64URL",
+        "$ZodE164",
+        "$ZodJWT",
+        "$ZodNumber",
+        "$ZodNumberFormat",
+        "$ZodBoolean",
+        "$ZodBigInt",
+        "$ZodNull",
+        "$ZodAny",
+        "$ZodUnknown",
+        "$ZodNever",
+        "$ZodDate",
+        "$ZodArray",
+        "$ZodObject",
+        "$ZodObjectJIT",
+        "$ZodUnion",
+        "$ZodDiscriminatedUnion",
+        "$ZodIntersection",
+        "$ZodRecord",
+        "$ZodEnum",
+        "$ZodLiteral",
+        "$ZodTransform",
+        "$ZodOptional",
+        "$ZodExactOptional",
+        "$ZodNullable",
+        "$ZodDefault",
+        "$ZodPrefault",
+        "$ZodNonOptional",
+        "$ZodCatch",
+        "$ZodPipe",
+        "$ZodPreprocess",
+        "$ZodReadonly",
+        "$ZodLazy",
+        "$ZodCustom"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "$constructor",
+            "$ZodAsyncError",
+            "globalConfig",
+            "config",
+            "$ZodEncodeError"
+          ]
+        },
+        {
+          "module": "module-0047",
+          "bindings": [
+            "version"
+          ]
+        },
+        {
+          "module": "module-0042",
+          "bindings": [
+            "aborted",
+            "explicitlyAborted",
+            "defineLazy",
+            "prefixIssues",
+            "optionalKeys",
+            "cached",
+            "isObject",
+            "esc",
+            "allowsEval",
+            "finalizeIssue",
+            "cleanRegex",
+            "isPlainObject",
+            "getEnumValues",
+            "propertyKeyTypes",
+            "escapeRegex",
+            "issue"
+          ]
+        },
+        {
+          "module": "module-0040",
+          "bindings": [
+            "safeParse",
+            "safeParseAsync"
+          ]
+        },
+        {
+          "module": "module-0045",
+          "bindings": [
+            "string",
+            "guid",
+            "uuid",
+            "email",
+            "httpProtocol",
+            "emoji",
+            "nanoid",
+            "cuid",
+            "cuid2",
+            "ulid",
+            "xid",
+            "ksuid",
+            "datetime",
+            "date",
+            "time",
+            "duration",
+            "ipv4",
+            "ipv6",
+            "cidrv4",
+            "cidrv6",
+            "base64",
+            "base64url",
+            "e164",
+            "number",
+            "boolean",
+            "bigint",
+            "_null"
+          ]
+        },
+        {
+          "module": "module-0044",
+          "bindings": [
+            "$ZodCheckStringFormat",
+            "$ZodCheckNumberFormat",
+            "$ZodCheck"
+          ]
+        },
+        {
+          "module": "module-0046",
+          "bindings": [
+            "Doc"
+          ]
+        }
+      ],
+      "sha256": "b5106419a0a2339527dd03dd57005a343078f8163ffb0700004b5caf958313c3"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/checks.js",
+      "file": "module-0044.mjs",
+      "exportedBindings": [
+        "$ZodCheck",
+        "numericOriginMap",
+        "$ZodCheckLessThan",
+        "$ZodCheckGreaterThan",
+        "$ZodCheckMultipleOf",
+        "$ZodCheckNumberFormat",
+        "$ZodCheckMaxLength",
+        "$ZodCheckMinLength",
+        "$ZodCheckLengthEquals",
+        "$ZodCheckStringFormat",
+        "$ZodCheckRegex",
+        "$ZodCheckLowerCase",
+        "$ZodCheckUpperCase",
+        "$ZodCheckIncludes",
+        "$ZodCheckStartsWith",
+        "$ZodCheckEndsWith",
+        "$ZodCheckOverwrite"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "$constructor"
+          ]
+        },
+        {
+          "module": "module-0042",
+          "bindings": [
+            "floatSafeRemainder",
+            "NUMBER_FORMAT_RANGES",
+            "nullish",
+            "getLengthableOrigin",
+            "escapeRegex"
+          ]
+        },
+        {
+          "module": "module-0045",
+          "bindings": [
+            "integer",
+            "lowercase",
+            "uppercase"
+          ]
+        }
+      ],
+      "sha256": "6e0ea4ebc800cf803574c93baf4f319ebf0fd0c3e3c6222924b0a671fa62670e"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/regexes.js",
+      "file": "module-0045.mjs",
+      "exportedBindings": [
+        "emoji",
+        "timeSource",
+        "time",
+        "datetime",
+        "cuid",
+        "cuid2",
+        "ulid",
+        "xid",
+        "ksuid",
+        "nanoid",
+        "duration",
+        "guid",
+        "uuid",
+        "email",
+        "_emoji",
+        "ipv4",
+        "ipv6",
+        "cidrv4",
+        "cidrv6",
+        "base64",
+        "base64url",
+        "httpProtocol",
+        "e164",
+        "dateSource",
+        "date",
+        "string",
+        "bigint",
+        "integer",
+        "number",
+        "boolean",
+        "_null",
+        "lowercase",
+        "uppercase"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "71ee777fccff79b7596efaff1345ac42c7e83a65ad24ac0d73a6b3e37ca1f77b"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/doc.js",
+      "file": "module-0046.mjs",
+      "exportedBindings": [
+        "Doc"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "724735b489856beffbe4cc7df878fc1fb07b0092df86f516192b0ceac8c6059a"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/versions.js",
+      "file": "module-0047.mjs",
+      "exportedBindings": [
+        "version"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "5428edf9b18cdcd0b2b37cff245258052f6d7b7fad3a3a4664898773898b0a99"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/locales/en.js",
+      "file": "module-0048.mjs",
+      "exportedBindings": [
+        "en_default",
+        "error"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0042",
+          "bindings": [
+            "parsedType",
+            "stringifyPrimitive",
+            "joinValues"
+          ]
+        }
+      ],
+      "sha256": "67d014cf3a2c8cc40e8041bc07d9eab7c507c0cb8eca6c48ddfa4f5de0958634"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/registries.js",
+      "file": "module-0049.mjs",
+      "exportedBindings": [
+        "registry",
+        "_a2",
+        "$ZodRegistry",
+        "globalRegistry"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "c3a8641a20446afbd1a42afbf8aa7588264e2bc024335d51b6f175222c06a23e"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/api.js",
+      "file": "module-0050.mjs",
+      "exportedBindings": [
+        "_string",
+        "_coercedString",
+        "_email",
+        "_guid",
+        "_uuid",
+        "_uuidv4",
+        "_uuidv6",
+        "_uuidv7",
+        "_url",
+        "_emoji2",
+        "_nanoid",
+        "_cuid",
+        "_cuid2",
+        "_ulid",
+        "_xid",
+        "_ksuid",
+        "_ipv4",
+        "_ipv6",
+        "_cidrv4",
+        "_cidrv6",
+        "_base64",
+        "_base64url",
+        "_e164",
+        "_jwt",
+        "_isoDateTime",
+        "_isoDate",
+        "_isoTime",
+        "_isoDuration",
+        "_number",
+        "_coercedNumber",
+        "_int",
+        "_boolean",
+        "_coercedBoolean",
+        "_coercedBigint",
+        "_null2",
+        "_any",
+        "_unknown",
+        "_never",
+        "_coercedDate",
+        "_lt",
+        "_lte",
+        "_gt",
+        "_gte",
+        "_multipleOf",
+        "_maxLength",
+        "_minLength",
+        "_length",
+        "_regex",
+        "_lowercase",
+        "_uppercase",
+        "_includes",
+        "_startsWith",
+        "_endsWith",
+        "_overwrite",
+        "_normalize",
+        "_trim",
+        "_toLowerCase",
+        "_toUpperCase",
+        "_slugify",
+        "_array",
+        "_refine",
+        "_superRefine",
+        "_check"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0042",
+          "bindings": [
+            "normalizeParams",
+            "slugify",
+            "issue"
+          ]
+        },
+        {
+          "module": "module-0044",
+          "bindings": [
+            "$ZodCheckLessThan",
+            "$ZodCheckGreaterThan",
+            "$ZodCheckMultipleOf",
+            "$ZodCheckMaxLength",
+            "$ZodCheckMinLength",
+            "$ZodCheckLengthEquals",
+            "$ZodCheckRegex",
+            "$ZodCheckLowerCase",
+            "$ZodCheckUpperCase",
+            "$ZodCheckIncludes",
+            "$ZodCheckStartsWith",
+            "$ZodCheckEndsWith",
+            "$ZodCheckOverwrite",
+            "$ZodCheck"
+          ]
+        }
+      ],
+      "sha256": "c55fe0215b8798aa932080f21a890853057cdde513d92587c6f9c3ea24d21993"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/to-json-schema.js",
+      "file": "module-0051.mjs",
+      "exportedBindings": [
+        "initializeContext",
+        "process2",
+        "extractDefs",
+        "finalize",
+        "isTransforming",
+        "createToJSONSchemaMethod",
+        "createStandardJSONSchemaMethod"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "globalRegistry"
+          ]
+        }
+      ],
+      "sha256": "2f32d056e7c2fb5231af8ad0e287a18a66825ed4eb5141824c6a986e2de18903"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/core/json-schema-processors.js",
+      "file": "module-0052.mjs",
+      "exportedBindings": [
+        "toJSONSchema",
+        "formatMap",
+        "stringProcessor",
+        "numberProcessor",
+        "booleanProcessor",
+        "bigintProcessor",
+        "symbolProcessor",
+        "nullProcessor",
+        "undefinedProcessor",
+        "voidProcessor",
+        "neverProcessor",
+        "anyProcessor",
+        "unknownProcessor",
+        "dateProcessor",
+        "enumProcessor",
+        "literalProcessor",
+        "nanProcessor",
+        "templateLiteralProcessor",
+        "fileProcessor",
+        "successProcessor",
+        "customProcessor",
+        "functionProcessor",
+        "transformProcessor",
+        "mapProcessor",
+        "setProcessor",
+        "arrayProcessor",
+        "objectProcessor",
+        "unionProcessor",
+        "intersectionProcessor",
+        "tupleProcessor",
+        "recordProcessor",
+        "nullableProcessor",
+        "nonoptionalProcessor",
+        "defaultProcessor",
+        "prefaultProcessor",
+        "catchProcessor",
+        "pipeProcessor",
+        "readonlyProcessor",
+        "promiseProcessor",
+        "optionalProcessor",
+        "lazyProcessor",
+        "allProcessors"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0042",
+          "bindings": [
+            "getEnumValues"
+          ]
+        },
+        {
+          "module": "module-0051",
+          "bindings": [
+            "process2",
+            "initializeContext",
+            "extractDefs",
+            "finalize"
+          ]
+        }
+      ],
+      "sha256": "52cae2c697f523c43a9ae9c0976f7fe404d0ef2f4d1d52413fcee117260d552e"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/classic/schemas.js",
+      "file": "module-0053.mjs",
+      "exportedBindings": [
+        "_installLazyMethods",
+        "string2",
+        "email2",
+        "url",
+        "number2",
+        "int",
+        "boolean2",
+        "_null3",
+        "any",
+        "unknown",
+        "never",
+        "array",
+        "object",
+        "looseObject",
+        "union",
+        "discriminatedUnion",
+        "intersection",
+        "record",
+        "_enum",
+        "literal",
+        "transform",
+        "optional",
+        "exactOptional",
+        "nullable",
+        "_default",
+        "prefault",
+        "nonoptional",
+        "_catch",
+        "pipe",
+        "readonly",
+        "lazy",
+        "refine",
+        "superRefine",
+        "preprocess",
+        "_installedGroups",
+        "ZodType",
+        "_ZodString",
+        "ZodString",
+        "ZodStringFormat",
+        "ZodEmail",
+        "ZodGUID",
+        "ZodUUID",
+        "ZodURL",
+        "ZodEmoji",
+        "ZodNanoID",
+        "ZodCUID",
+        "ZodCUID2",
+        "ZodULID",
+        "ZodXID",
+        "ZodKSUID",
+        "ZodIPv4",
+        "ZodIPv6",
+        "ZodCIDRv4",
+        "ZodCIDRv6",
+        "ZodBase64",
+        "ZodBase64URL",
+        "ZodE164",
+        "ZodJWT",
+        "ZodNumber",
+        "ZodNumberFormat",
+        "ZodBoolean",
+        "ZodBigInt",
+        "ZodNull",
+        "ZodAny",
+        "ZodUnknown",
+        "ZodNever",
+        "ZodDate",
+        "ZodArray",
+        "ZodObject",
+        "ZodUnion",
+        "ZodDiscriminatedUnion",
+        "ZodIntersection",
+        "ZodRecord",
+        "ZodEnum",
+        "ZodLiteral",
+        "ZodTransform",
+        "ZodOptional",
+        "ZodExactOptional",
+        "ZodNullable",
+        "ZodDefault",
+        "ZodPrefault",
+        "ZodNonOptional",
+        "ZodCatch",
+        "ZodPipe",
+        "ZodPreprocess",
+        "ZodReadonly",
+        "ZodLazy",
+        "ZodCustom"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "$constructor",
+            "$ZodEncodeError"
+          ]
+        },
+        {
+          "module": "module-0043",
+          "bindings": [
+            "$ZodType",
+            "$ZodString",
+            "$ZodStringFormat",
+            "$ZodEmail",
+            "$ZodGUID",
+            "$ZodUUID",
+            "$ZodURL",
+            "$ZodEmoji",
+            "$ZodNanoID",
+            "$ZodCUID",
+            "$ZodCUID2",
+            "$ZodULID",
+            "$ZodXID",
+            "$ZodKSUID",
+            "$ZodIPv4",
+            "$ZodIPv6",
+            "$ZodCIDRv4",
+            "$ZodCIDRv6",
+            "$ZodBase64",
+            "$ZodBase64URL",
+            "$ZodE164",
+            "$ZodJWT",
+            "$ZodNumber",
+            "$ZodNumberFormat",
+            "$ZodBoolean",
+            "$ZodBigInt",
+            "$ZodNull",
+            "$ZodAny",
+            "$ZodUnknown",
+            "$ZodNever",
+            "$ZodDate",
+            "$ZodArray",
+            "$ZodObjectJIT",
+            "$ZodUnion",
+            "$ZodDiscriminatedUnion",
+            "$ZodIntersection",
+            "$ZodRecord",
+            "$ZodEnum",
+            "$ZodLiteral",
+            "$ZodTransform",
+            "$ZodOptional",
+            "$ZodExactOptional",
+            "$ZodNullable",
+            "$ZodDefault",
+            "$ZodPrefault",
+            "$ZodNonOptional",
+            "$ZodCatch",
+            "$ZodPipe",
+            "$ZodPreprocess",
+            "$ZodReadonly",
+            "$ZodLazy",
+            "$ZodCustom"
+          ]
+        },
+        {
+          "module": "module-0051",
+          "bindings": [
+            "createStandardJSONSchemaMethod",
+            "createToJSONSchemaMethod"
+          ]
+        },
+        {
+          "module": "module-0056",
+          "bindings": [
+            "parse2",
+            "safeParse2",
+            "parseAsync2",
+            "safeParseAsync2",
+            "encode",
+            "decode",
+            "encodeAsync",
+            "decodeAsync",
+            "safeEncode",
+            "safeDecode",
+            "safeEncodeAsync",
+            "safeDecodeAsync"
+          ]
+        },
+        {
+          "module": "module-0042",
+          "bindings": [
+            "util_exports",
+            "clone"
+          ]
+        },
+        {
+          "module": "module-0050",
+          "bindings": [
+            "_overwrite",
+            "_regex",
+            "_includes",
+            "_startsWith",
+            "_endsWith",
+            "_minLength",
+            "_maxLength",
+            "_length",
+            "_lowercase",
+            "_uppercase",
+            "_trim",
+            "_normalize",
+            "_toLowerCase",
+            "_toUpperCase",
+            "_slugify",
+            "_email",
+            "_url",
+            "_jwt",
+            "_emoji2",
+            "_guid",
+            "_uuid",
+            "_uuidv4",
+            "_uuidv6",
+            "_uuidv7",
+            "_nanoid",
+            "_cuid",
+            "_cuid2",
+            "_ulid",
+            "_base64",
+            "_base64url",
+            "_xid",
+            "_ksuid",
+            "_ipv4",
+            "_ipv6",
+            "_cidrv4",
+            "_cidrv6",
+            "_e164",
+            "_string",
+            "_gt",
+            "_gte",
+            "_lt",
+            "_lte",
+            "_multipleOf",
+            "_number",
+            "_int",
+            "_boolean",
+            "_null2",
+            "_any",
+            "_unknown",
+            "_never",
+            "_array",
+            "_refine",
+            "_superRefine"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "globalRegistry"
+          ]
+        },
+        {
+          "module": "module-0052",
+          "bindings": [
+            "stringProcessor",
+            "numberProcessor",
+            "booleanProcessor",
+            "bigintProcessor",
+            "nullProcessor",
+            "anyProcessor",
+            "unknownProcessor",
+            "neverProcessor",
+            "dateProcessor",
+            "arrayProcessor",
+            "objectProcessor",
+            "unionProcessor",
+            "intersectionProcessor",
+            "recordProcessor",
+            "enumProcessor",
+            "literalProcessor",
+            "transformProcessor",
+            "optionalProcessor",
+            "nullableProcessor",
+            "defaultProcessor",
+            "prefaultProcessor",
+            "nonoptionalProcessor",
+            "catchProcessor",
+            "pipeProcessor",
+            "readonlyProcessor",
+            "lazyProcessor",
+            "customProcessor"
+          ]
+        },
+        {
+          "module": "module-0055",
+          "bindings": [
+            "datetime2",
+            "date2",
+            "time2",
+            "duration2"
+          ]
+        }
+      ],
+      "sha256": "76261f9617b5e458fbf3fc96f33e8140ebdcb2af803cb469723d33adec81d48a"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/classic/checks.js",
+      "file": "module-0054.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "963506035371c66d44e37f3f9b4854f50ae8d0c8f39be04f2c991629cf13eb6f"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/classic/iso.js",
+      "file": "module-0055.mjs",
+      "exportedBindings": [
+        "datetime2",
+        "date2",
+        "time2",
+        "duration2",
+        "iso_exports",
+        "ZodISODateTime",
+        "ZodISODate",
+        "ZodISOTime",
+        "ZodISODuration"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__export",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "$constructor"
+          ]
+        },
+        {
+          "module": "module-0043",
+          "bindings": [
+            "$ZodISODateTime",
+            "$ZodISODate",
+            "$ZodISOTime",
+            "$ZodISODuration"
+          ]
+        },
+        {
+          "module": "module-0053",
+          "bindings": [
+            "ZodStringFormat"
+          ]
+        },
+        {
+          "module": "module-0050",
+          "bindings": [
+            "_isoDateTime",
+            "_isoDate",
+            "_isoTime",
+            "_isoDuration"
+          ]
+        }
+      ],
+      "sha256": "6d574f5f86e2d2a6252a01d2c81eb2f4133834ea6ada2056cec13f0db6156124"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/classic/parse.js",
+      "file": "module-0056.mjs",
+      "exportedBindings": [
+        "parse2",
+        "parseAsync2",
+        "safeParse2",
+        "safeParseAsync2",
+        "encode",
+        "decode",
+        "encodeAsync",
+        "decodeAsync",
+        "safeEncode",
+        "safeDecode",
+        "safeEncodeAsync",
+        "safeDecodeAsync"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0040",
+          "bindings": [
+            "_parse",
+            "_parseAsync",
+            "_safeParse",
+            "_safeParseAsync",
+            "_encode",
+            "_decode",
+            "_encodeAsync",
+            "_decodeAsync",
+            "_safeEncode",
+            "_safeDecode",
+            "_safeEncodeAsync",
+            "_safeDecodeAsync"
+          ]
+        },
+        {
+          "module": "module-0057",
+          "bindings": [
+            "ZodRealError"
+          ]
+        }
+      ],
+      "sha256": "bdd46256eb5f29bd36f91cf6bfd6c096a7e9297539c1dd8075f14bb9f6e17d26"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/classic/errors.js",
+      "file": "module-0057.mjs",
+      "exportedBindings": [
+        "initializer2",
+        "ZodRealError"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0041",
+          "bindings": [
+            "$ZodError",
+            "formatError",
+            "flattenError"
+          ]
+        },
+        {
+          "module": "module-0042",
+          "bindings": [
+            "jsonStringifyReplacer"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "$constructor"
+          ]
+        }
+      ],
+      "sha256": "1d109fa42278a5dd1c1f70572ca01b13d38c7e67a32155ac3d870da78d4e9dbb"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/classic/compat.js",
+      "file": "module-0058.mjs",
+      "exportedBindings": [
+        "ZodIssueCode",
+        "ZodFirstPartyTypeKind"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "8e4283fad121d8dca88911b3f1e14ee663714fb6c1de34e67e1b06df2defd704"
+    },
+    {
+      "modulePath": "node_modules/zod/v4/classic/coerce.js",
+      "file": "module-0059.mjs",
+      "exportedBindings": [
+        "string3",
+        "number3",
+        "boolean3",
+        "bigint2",
+        "date3",
+        "coerce_exports"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__export",
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0050",
+          "bindings": [
+            "_coercedString",
+            "_coercedNumber",
+            "_coercedBoolean",
+            "_coercedBigint",
+            "_coercedDate"
+          ]
+        },
+        {
+          "module": "module-0053",
+          "bindings": [
+            "ZodString",
+            "ZodNumber",
+            "ZodBoolean",
+            "ZodBigInt",
+            "ZodDate"
+          ]
+        }
+      ],
+      "sha256": "2df7c3757bea9de678ea3d6d3de733f768d5820901569f38340a002acbfa356a"
+    },
+    {
+      "modulePath": "node_modules/@modelcontextprotocol/client/dist/shimsNode.mjs",
+      "file": "module-0060.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "e975dd85213a3aec152fdf080a51b1a95372b780c9c2405dabc09501383d9895"
+    },
+    {
+      "modulePath": "node_modules/@modelcontextprotocol/client/dist/ajvProvider-97rDpkRx.mjs",
+      "file": "module-0061.mjs",
+      "exportedBindings": [
+        "createDefaultAjvInstance",
+        "require_code$1",
+        "require_scope",
+        "require_codegen",
+        "require_util",
+        "require_names",
+        "require_errors",
+        "require_boolSchema",
+        "require_rules",
+        "require_applicability",
+        "require_dataType",
+        "require_defaults",
+        "require_code",
+        "require_keyword",
+        "require_subschema",
+        "require_fast_deep_equal",
+        "require_json_schema_traverse",
+        "require_resolve",
+        "require_validate",
+        "require_validation_error",
+        "require_ref_error",
+        "require_compile",
+        "require_data",
+        "require_utils",
+        "require_schemes",
+        "require_fast_uri",
+        "require_uri",
+        "require_core$3",
+        "require_id",
+        "require_ref",
+        "require_core$2",
+        "require_limitNumber",
+        "require_multipleOf",
+        "require_ucs2length",
+        "require_limitLength",
+        "require_pattern",
+        "require_limitProperties",
+        "require_required",
+        "require_limitItems",
+        "require_equal",
+        "require_uniqueItems",
+        "require_const",
+        "require_enum",
+        "require_validation$2",
+        "require_additionalItems",
+        "require_items",
+        "require_prefixItems",
+        "require_items2020",
+        "require_contains",
+        "require_dependencies",
+        "require_propertyNames",
+        "require_additionalProperties",
+        "require_properties",
+        "require_patternProperties",
+        "require_not",
+        "require_anyOf",
+        "require_oneOf",
+        "require_allOf",
+        "require_if",
+        "require_thenElse",
+        "require_applicator$2",
+        "require_format$2",
+        "require_format$1",
+        "require_metadata",
+        "require_draft7",
+        "require_types",
+        "require_discriminator",
+        "require_json_schema_draft_07",
+        "require_ajv",
+        "require_dynamicAnchor",
+        "require_dynamicRef",
+        "require_recursiveAnchor",
+        "require_recursiveRef",
+        "require_dynamic",
+        "require_dependentRequired",
+        "require_dependentSchemas",
+        "require_limitContains",
+        "require_next",
+        "require_unevaluatedProperties",
+        "require_unevaluatedItems",
+        "require_unevaluated$1",
+        "require_schema$1",
+        "require_applicator$1",
+        "require_content$1",
+        "require_core$1",
+        "require_format",
+        "require_meta_data$1",
+        "require_validation$1",
+        "require_json_schema_2019_09",
+        "require__2019",
+        "require_draft2020",
+        "require_schema",
+        "require_applicator",
+        "require_unevaluated",
+        "require_content",
+        "require_core",
+        "require_format_annotation",
+        "require_meta_data",
+        "require_validation",
+        "require_json_schema_2020_12",
+        "require__2020",
+        "require_formats",
+        "require_limit",
+        "require_dist",
+        "import_ajv",
+        "import__2019",
+        "import__2020",
+        "import_dist",
+        "addFormats",
+        "AjvJsonSchemaValidator",
+        "Ajv"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        },
+        {
+          "module": "module-0033",
+          "bindings": [
+            "__commonJSMin",
+            "__toESM2"
+          ]
+        },
+        {
+          "module": "module-0034",
+          "bindings": [
+            "declaredDialect"
+          ]
+        }
+      ],
+      "sha256": "135ea5cafd1b0124d127c8a3e8d31590717742a5059f168b96111ef34b8ab080"
+    },
+    {
+      "modulePath": "node_modules/pkce-challenge/dist/index.node.js",
+      "file": "module-0062.mjs",
+      "exportedBindings": [
+        "crypto"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "8a448a47bfa3676646139be5955f5472a92996ac702ac3b68f05a82e5def27b3"
+    },
+    {
+      "modulePath": "node_modules/@modelcontextprotocol/client/dist/stdio.mjs",
+      "file": "module-0063.mjs",
+      "exportedBindings": [
+        "getDefaultEnvironment",
+        "import_node_process",
+        "import_node_stream",
+        "import_cross_spawn",
+        "DEFAULT_INHERITED_ENV_VARS",
+        "StdioClientTransport"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO",
+            "__toESM"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "require_cross_spawn"
+          ]
+        },
+        {
+          "module": "module-0032",
+          "bindings": [
+            "ReadBuffer",
+            "SdkError",
+            "SdkErrorCode",
+            "serializeMessage"
+          ]
+        }
+      ],
+      "sha256": "f16f85db6398e418ea687432005784d14dfdd2d24f8ecc483f4eeb229d3ddeee"
+    },
+    {
+      "modulePath": "src/deepseek-compat.ts",
+      "file": "module-0064.mjs",
+      "exportedBindings": [
+        "isOfficialDeepSeekApiBaseUrl",
+        "normalizeOfficialDeepSeekApiBaseUrl",
+        "DEEPSEEK_CONTEXT_WINDOW_TOKENS",
+        "DEEPSEEK_MAX_OUTPUT_TOKENS",
+        "DEEPSEEK_DEFAULT_REASONING_EFFORT"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "1ec434d90547f152a2d8e7e5964750ac67cab7376ccb94690c23dce0665900e1"
+    },
+    {
+      "modulePath": "src/agent-tool-content.ts",
+      "file": "module-0065.mjs",
+      "exportedBindings": [
+        "isBase64",
+        "agentToolResultContent",
+        "NATIVE_VISION_MIME_TYPES"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "345afc0887b22fe92f8916786c9d62c1899542b914a62b080621c878745ed71c"
+    },
+    {
+      "modulePath": "src/version.ts",
+      "file": "module-0066.mjs",
+      "exportedBindings": [
+        "OPENCODE_BEHAVIOR_VERSION"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "init_define_OPENCODE_BUILD_INFO"
+          ]
+        }
+      ],
+      "sha256": "17716c9c360ed3578aca9b635c48db9fd3a796734b02859bbbdab459f3348529"
+    }
+  ],
+  "publicExports": [],
+  "topLevelBindings": 1166,
+  "crossModuleWriteCount": 0,
+  "typescriptVersion": "6.0.3"
+}

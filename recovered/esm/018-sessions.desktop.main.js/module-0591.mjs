@@ -1,0 +1,305 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/sessions/sessions.desktop.main.js
+// Original module marker: src/vs/editor/contrib/find/browser/findDecorations.ts
+import { Range2 } from "./module-0106.mjs";
+import { ModelDecorationOptions } from "./module-0423.mjs";
+import { themeColorFromId2 } from "./module-0287.mjs";
+import { overviewRulerFindMatchForeground } from "./module-0229.mjs";
+import { minimapFindMatch } from "./module-0230.mjs";
+
+
+// src/vs/editor/contrib/find/browser/findDecorations.ts
+var FindDecorations = class _FindDecorations {
+  constructor(editor) {
+    this._editor = editor;
+    this._decorations = [];
+    this._overviewRulerApproximateDecorations = [];
+    this._findScopeDecorationIds = [];
+    this._rangeHighlightDecorationId = null;
+    this._highlightedDecorationId = null;
+    this._startPosition = this._editor.getPosition();
+  }
+  dispose() {
+    this._editor.removeDecorations(this._allDecorations());
+    this._decorations = [];
+    this._overviewRulerApproximateDecorations = [];
+    this._findScopeDecorationIds = [];
+    this._rangeHighlightDecorationId = null;
+    this._highlightedDecorationId = null;
+  }
+  reset() {
+    this._decorations = [];
+    this._overviewRulerApproximateDecorations = [];
+    this._findScopeDecorationIds = [];
+    this._rangeHighlightDecorationId = null;
+    this._highlightedDecorationId = null;
+  }
+  getCount() {
+    return this._decorations.length;
+  }
+  /** @deprecated use getFindScopes to support multiple selections */
+  getFindScope() {
+    if (this._findScopeDecorationIds[0]) {
+      return this._editor.getModel().getDecorationRange(this._findScopeDecorationIds[0]);
+    }
+    return null;
+  }
+  getFindScopes() {
+    if (this._findScopeDecorationIds.length) {
+      const scopes = this._findScopeDecorationIds.map(
+        (findScopeDecorationId) => this._editor.getModel().getDecorationRange(findScopeDecorationId)
+      ).filter((element) => !!element);
+      if (scopes.length) {
+        return scopes;
+      }
+    }
+    return null;
+  }
+  getStartPosition() {
+    return this._startPosition;
+  }
+  setStartPosition(newStartPosition) {
+    this._startPosition = newStartPosition;
+    this.setCurrentFindMatch(null);
+  }
+  _getDecorationIndex(decorationId) {
+    const index2 = this._decorations.indexOf(decorationId);
+    if (index2 >= 0) {
+      return index2 + 1;
+    }
+    return 1;
+  }
+  getDecorationRangeAt(index2) {
+    const decorationId = index2 < this._decorations.length ? this._decorations[index2] : null;
+    if (decorationId) {
+      return this._editor.getModel().getDecorationRange(decorationId);
+    }
+    return null;
+  }
+  getCurrentMatchesPosition(desiredRange) {
+    const candidates = this._editor.getModel().getDecorationsInRange(desiredRange);
+    for (const candidate of candidates) {
+      const candidateOpts = candidate.options;
+      if (candidateOpts === _FindDecorations._FIND_MATCH_DECORATION || candidateOpts === _FindDecorations._FIND_MATCH_NO_OVERVIEW_DECORATION || candidateOpts === _FindDecorations._CURRENT_FIND_MATCH_DECORATION) {
+        return this._getDecorationIndex(candidate.id);
+      }
+    }
+    return 0;
+  }
+  setCurrentFindMatch(nextMatch) {
+    let newCurrentDecorationId = null;
+    let matchPosition = 0;
+    if (nextMatch) {
+      for (let i2 = 0, len = this._decorations.length; i2 < len; i2++) {
+        const range2 = this._editor.getModel().getDecorationRange(this._decorations[i2]);
+        if (nextMatch.equalsRange(range2)) {
+          newCurrentDecorationId = this._decorations[i2];
+          matchPosition = i2 + 1;
+          break;
+        }
+      }
+    }
+    if (this._highlightedDecorationId !== null || newCurrentDecorationId !== null) {
+      this._editor.changeDecorations((changeAccessor) => {
+        if (this._highlightedDecorationId !== null) {
+          changeAccessor.changeDecorationOptions(this._highlightedDecorationId, _FindDecorations._FIND_MATCH_DECORATION);
+          this._highlightedDecorationId = null;
+        }
+        if (newCurrentDecorationId !== null) {
+          this._highlightedDecorationId = newCurrentDecorationId;
+          changeAccessor.changeDecorationOptions(this._highlightedDecorationId, _FindDecorations._CURRENT_FIND_MATCH_DECORATION);
+        }
+        if (this._rangeHighlightDecorationId !== null) {
+          changeAccessor.removeDecoration(this._rangeHighlightDecorationId);
+          this._rangeHighlightDecorationId = null;
+        }
+        if (newCurrentDecorationId !== null) {
+          let rng = this._editor.getModel().getDecorationRange(newCurrentDecorationId);
+          if (rng.startLineNumber !== rng.endLineNumber && rng.endColumn === 1) {
+            const lineBeforeEnd = rng.endLineNumber - 1;
+            const lineBeforeEndMaxColumn = this._editor.getModel().getLineMaxColumn(lineBeforeEnd);
+            rng = new Range2(rng.startLineNumber, rng.startColumn, lineBeforeEnd, lineBeforeEndMaxColumn);
+          }
+          this._rangeHighlightDecorationId = changeAccessor.addDecoration(rng, _FindDecorations._RANGE_HIGHLIGHT_DECORATION);
+        }
+      });
+    }
+    return matchPosition;
+  }
+  set(findMatches, findScopes) {
+    this._editor.changeDecorations((accessor) => {
+      let findMatchesOptions = _FindDecorations._FIND_MATCH_DECORATION;
+      const newOverviewRulerApproximateDecorations = [];
+      if (findMatches.length > 1e3) {
+        findMatchesOptions = _FindDecorations._FIND_MATCH_NO_OVERVIEW_DECORATION;
+        const lineCount = this._editor.getModel().getLineCount();
+        const height = this._editor.getLayoutInfo().height;
+        const approxPixelsPerLine = height / lineCount;
+        const mergeLinesDelta = Math.max(2, Math.ceil(3 / approxPixelsPerLine));
+        let prevStartLineNumber = findMatches[0].range.startLineNumber;
+        let prevEndLineNumber = findMatches[0].range.endLineNumber;
+        for (let i2 = 1, len = findMatches.length; i2 < len; i2++) {
+          const range2 = findMatches[i2].range;
+          if (prevEndLineNumber + mergeLinesDelta >= range2.startLineNumber) {
+            if (range2.endLineNumber > prevEndLineNumber) {
+              prevEndLineNumber = range2.endLineNumber;
+            }
+          } else {
+            newOverviewRulerApproximateDecorations.push({
+              range: new Range2(prevStartLineNumber, 1, prevEndLineNumber, 1),
+              options: _FindDecorations._FIND_MATCH_ONLY_OVERVIEW_DECORATION
+            });
+            prevStartLineNumber = range2.startLineNumber;
+            prevEndLineNumber = range2.endLineNumber;
+          }
+        }
+        newOverviewRulerApproximateDecorations.push({
+          range: new Range2(prevStartLineNumber, 1, prevEndLineNumber, 1),
+          options: _FindDecorations._FIND_MATCH_ONLY_OVERVIEW_DECORATION
+        });
+      }
+      const newFindMatchesDecorations = new Array(findMatches.length);
+      for (let i2 = 0, len = findMatches.length; i2 < len; i2++) {
+        newFindMatchesDecorations[i2] = {
+          range: findMatches[i2].range,
+          options: findMatchesOptions
+        };
+      }
+      this._decorations = accessor.deltaDecorations(this._decorations, newFindMatchesDecorations);
+      this._overviewRulerApproximateDecorations = accessor.deltaDecorations(this._overviewRulerApproximateDecorations, newOverviewRulerApproximateDecorations);
+      if (this._rangeHighlightDecorationId) {
+        accessor.removeDecoration(this._rangeHighlightDecorationId);
+        this._rangeHighlightDecorationId = null;
+      }
+      if (this._findScopeDecorationIds.length) {
+        this._findScopeDecorationIds.forEach((findScopeDecorationId) => accessor.removeDecoration(findScopeDecorationId));
+        this._findScopeDecorationIds = [];
+      }
+      if (findScopes?.length) {
+        this._findScopeDecorationIds = findScopes.map((findScope) => accessor.addDecoration(findScope, _FindDecorations._FIND_SCOPE_DECORATION));
+      }
+    });
+  }
+  matchBeforePosition(position2) {
+    if (this._decorations.length === 0) {
+      return null;
+    }
+    for (let i2 = this._decorations.length - 1; i2 >= 0; i2--) {
+      const decorationId = this._decorations[i2];
+      const r2 = this._editor.getModel().getDecorationRange(decorationId);
+      if (!r2 || r2.endLineNumber > position2.lineNumber) {
+        continue;
+      }
+      if (r2.endLineNumber < position2.lineNumber) {
+        return r2;
+      }
+      if (r2.endColumn > position2.column) {
+        continue;
+      }
+      return r2;
+    }
+    return this._editor.getModel().getDecorationRange(this._decorations[this._decorations.length - 1]);
+  }
+  matchAfterPosition(position2) {
+    if (this._decorations.length === 0) {
+      return null;
+    }
+    for (let i2 = 0, len = this._decorations.length; i2 < len; i2++) {
+      const decorationId = this._decorations[i2];
+      const r2 = this._editor.getModel().getDecorationRange(decorationId);
+      if (!r2 || r2.startLineNumber < position2.lineNumber) {
+        continue;
+      }
+      if (r2.startLineNumber > position2.lineNumber) {
+        return r2;
+      }
+      if (r2.startColumn < position2.column) {
+        continue;
+      }
+      return r2;
+    }
+    return this._editor.getModel().getDecorationRange(this._decorations[0]);
+  }
+  _allDecorations() {
+    let result = [];
+    result = result.concat(this._decorations);
+    result = result.concat(this._overviewRulerApproximateDecorations);
+    if (this._findScopeDecorationIds.length) {
+      result.push(...this._findScopeDecorationIds);
+    }
+    if (this._rangeHighlightDecorationId) {
+      result.push(this._rangeHighlightDecorationId);
+    }
+    return result;
+  }
+  static {
+    this._CURRENT_FIND_MATCH_DECORATION = ModelDecorationOptions.register({
+      description: "current-find-match",
+      stickiness: 1 /* NeverGrowsWhenTypingAtEdges */,
+      zIndex: 13,
+      className: "currentFindMatch",
+      inlineClassName: "currentFindMatchInline",
+      showIfCollapsed: true,
+      overviewRuler: {
+        color: themeColorFromId2(overviewRulerFindMatchForeground),
+        position: 2 /* Center */
+      },
+      minimap: {
+        color: themeColorFromId2(minimapFindMatch),
+        position: 1 /* Inline */
+      }
+    });
+  }
+  static {
+    this._FIND_MATCH_DECORATION = ModelDecorationOptions.register({
+      description: "find-match",
+      stickiness: 1 /* NeverGrowsWhenTypingAtEdges */,
+      zIndex: 10,
+      className: "findMatch",
+      inlineClassName: "findMatchInline",
+      showIfCollapsed: true,
+      overviewRuler: {
+        color: themeColorFromId2(overviewRulerFindMatchForeground),
+        position: 2 /* Center */
+      },
+      minimap: {
+        color: themeColorFromId2(minimapFindMatch),
+        position: 1 /* Inline */
+      }
+    });
+  }
+  static {
+    this._FIND_MATCH_NO_OVERVIEW_DECORATION = ModelDecorationOptions.register({
+      description: "find-match-no-overview",
+      stickiness: 1 /* NeverGrowsWhenTypingAtEdges */,
+      className: "findMatch",
+      showIfCollapsed: true
+    });
+  }
+  static {
+    this._FIND_MATCH_ONLY_OVERVIEW_DECORATION = ModelDecorationOptions.register({
+      description: "find-match-only-overview",
+      stickiness: 1 /* NeverGrowsWhenTypingAtEdges */,
+      overviewRuler: {
+        color: themeColorFromId2(overviewRulerFindMatchForeground),
+        position: 2 /* Center */
+      }
+    });
+  }
+  static {
+    this._RANGE_HIGHLIGHT_DECORATION = ModelDecorationOptions.register({
+      description: "find-range-highlight",
+      stickiness: 1 /* NeverGrowsWhenTypingAtEdges */,
+      className: "rangeHighlight",
+      isWholeLine: true
+    });
+  }
+  static {
+    this._FIND_SCOPE_DECORATION = ModelDecorationOptions.register({
+      description: "find-scope",
+      className: "findScope",
+      isWholeLine: true
+    });
+  }
+};
+export { FindDecorations };

@@ -1,0 +1,1254 @@
+{
+  "generatorVersion": 2,
+  "bundle": "012-diffWorkerMain.js",
+  "artifactPath": "resources/app/out/vs/platform/agentHost/node/diffWorkerMain.js",
+  "status": "generated-not-validated",
+  "modules": [
+    {
+      "modulePath": "<bundle-preamble>",
+      "file": "module-0000.mjs",
+      "exportedBindings": [
+        "__extends",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension",
+        "extendStatics",
+        "__assign",
+        "__createBinding",
+        "__setModuleDefault",
+        "ownKeys",
+        "_SuppressedError"
+      ],
+      "imports": [],
+      "sha256": "19cfeb7fbf3ade393d2adfc770ad24bdc0b541efb85c1e287bf3c1eaaed3e0b6",
+      "directExportFix": [
+        "__extends",
+        "__assign",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__createBinding",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension"
+      ]
+    },
+    {
+      "modulePath": "src/vs/platform/agentHost/node/diffWorkerMain.ts",
+      "file": "module-0001.mjs",
+      "exportedBindings": [
+        "computeDiffCounts",
+        "getLineStarts",
+        "getOffset",
+        "computeDetailedDiff",
+        "toReplacement",
+        "applyReplacements",
+        "main",
+        "parentPort",
+        "LineOffsetConverter"
+      ],
+      "imports": [
+        {
+          "module": "module-0039",
+          "bindings": [
+            "DefaultLinesDiffComputer"
+          ]
+        }
+      ],
+      "sha256": "16f22e896b22f896e2f4f29cf1168744900196c2c058183291230b8802a18aa3"
+    },
+    {
+      "modulePath": "src/vs/base/common/arraysFind.ts",
+      "file": "module-0002.mjs",
+      "exportedBindings": [
+        "findLastMonotonous",
+        "findLastIdxMonotonous",
+        "findFirstMonotonous",
+        "findFirstIdxMonotonousOrArrLen",
+        "MonotonousArray"
+      ],
+      "imports": [],
+      "sha256": "7c77472c05c8fb6a2833262a54b84593252790281d4da6d3852d83f50b228cfa"
+    },
+    {
+      "modulePath": "src/vs/base/common/errors.ts",
+      "file": "module-0003.mjs",
+      "exportedBindings": [
+        "onUnexpectedError",
+        "isCancellationError",
+        "ErrorHandler",
+        "errorHandler",
+        "canceledName",
+        "CancellationError",
+        "PendingMigrationError",
+        "ErrorNoTelemetry",
+        "BugIndicatingError"
+      ],
+      "imports": [],
+      "sha256": "f2861df6a910791bc79f80b19dc165810f391f5c6626af8cd295cea37c1b3271"
+    },
+    {
+      "modulePath": "src/vs/base/common/arrays.ts",
+      "file": "module-0004.mjs",
+      "exportedBindings": [
+        "equals",
+        "groupAdjacentBy",
+        "forEachAdjacent",
+        "forEachWithNeighbors",
+        "pushMany",
+        "compareBy",
+        "reverseOrder",
+        "CompareResult",
+        "numberComparator",
+        "CallbackIterable"
+      ],
+      "imports": [],
+      "sha256": "118b3416757e5da06aa58be180fd5972137cef7c0a597b614427c92c59d1423a"
+    },
+    {
+      "modulePath": "src/vs/base/common/assert.ts",
+      "file": "module-0005.mjs",
+      "exportedBindings": [
+        "assert",
+        "assertFn",
+        "checkAdjacentItems"
+      ],
+      "imports": [
+        {
+          "module": "module-0003",
+          "bindings": [
+            "BugIndicatingError",
+            "onUnexpectedError"
+          ]
+        }
+      ],
+      "sha256": "dd9fafa3d50edcfb7c694173b536c38ce9b64f86351253905975357387c86ec8"
+    },
+    {
+      "modulePath": "src/vs/editor/common/core/ranges/offsetRange.ts",
+      "file": "module-0006.mjs",
+      "exportedBindings": [
+        "OffsetRange"
+      ],
+      "imports": [
+        {
+          "module": "module-0003",
+          "bindings": [
+            "BugIndicatingError"
+          ]
+        }
+      ],
+      "sha256": "cb91aee1a287e230ffae84e03a7a7239d69abbe196abd02ab3019dedeb6dc235"
+    },
+    {
+      "modulePath": "src/vs/editor/common/core/position.ts",
+      "file": "module-0007.mjs",
+      "exportedBindings": [
+        "Position"
+      ],
+      "imports": [],
+      "sha256": "37016880e0322765a73dea444b441b0119662fdd1177b0eed44beee398b797cf"
+    },
+    {
+      "modulePath": "src/vs/editor/common/core/range.ts",
+      "file": "module-0008.mjs",
+      "exportedBindings": [
+        "Range"
+      ],
+      "imports": [
+        {
+          "module": "module-0007",
+          "bindings": [
+            "Position"
+          ]
+        }
+      ],
+      "sha256": "07716f4c650404d1a83e7a571023d3a903846312741eee957d9c7e040e6bc06a"
+    },
+    {
+      "modulePath": "src/vs/editor/common/core/ranges/lineRange.ts",
+      "file": "module-0009.mjs",
+      "exportedBindings": [
+        "LineRange",
+        "LineRangeSet"
+      ],
+      "imports": [
+        {
+          "module": "module-0004",
+          "bindings": [
+            "compareBy",
+            "numberComparator"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "BugIndicatingError"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "Range"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "OffsetRange"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "findFirstIdxMonotonousOrArrLen",
+            "findLastIdxMonotonous",
+            "findLastMonotonous"
+          ]
+        }
+      ],
+      "sha256": "3fe11508db208771c08ee1ee333ce67e9d046775a5e870937e60e443e2cac67f"
+    },
+    {
+      "modulePath": "src/vs/base/common/collections.ts",
+      "file": "module-0010.mjs",
+      "exportedBindings": [
+        "groupBy",
+        "_a",
+        "_b",
+        "SetWithKey"
+      ],
+      "imports": [],
+      "sha256": "e41d12b5091bddc5c58cb018960021b347a0bef88d448edafcd783672683f813"
+    },
+    {
+      "modulePath": "src/vs/base/common/map.ts",
+      "file": "module-0011.mjs",
+      "exportedBindings": [
+        "isEntries",
+        "ResourceMapEntry",
+        "_a2",
+        "ResourceMap",
+        "_a3",
+        "ResourceSet",
+        "_a4",
+        "LinkedMap",
+        "SetMap"
+      ],
+      "imports": [],
+      "sha256": "cb358ba4d36bb24cb06b8b0d60109944dc3dac160770fe45494c0874069f5a7d"
+    },
+    {
+      "modulePath": "src/vs/base/common/types.ts",
+      "file": "module-0012.mjs",
+      "exportedBindings": [
+        "isIterable"
+      ],
+      "imports": [],
+      "sha256": "4cd24b0d7070e59c3e968e6a0fd6df0a3d66ce63d82973e4e279093c4bcb322e"
+    },
+    {
+      "modulePath": "src/vs/base/common/iterator.ts",
+      "file": "module-0013.mjs",
+      "exportedBindings": [
+        "Iterable"
+      ],
+      "imports": [
+        {
+          "module": "module-0012",
+          "bindings": [
+            "isIterable"
+          ]
+        }
+      ],
+      "sha256": "bda489d5dca8c2467e0288960bf960165a55b291bbd3f02f09ff2e4ea4a31e61"
+    },
+    {
+      "modulePath": "src/vs/base/common/lifecycle.ts",
+      "file": "module-0014.mjs",
+      "exportedBindings": [
+        "setDisposableTracker",
+        "trackDisposable",
+        "markAsDisposed",
+        "setParentOfDisposable",
+        "setParentOfDisposables",
+        "dispose",
+        "combinedDisposable",
+        "toDisposable",
+        "TRACK_DISPOSABLES",
+        "disposableTracker",
+        "DisposableTracker",
+        "FunctionDisposable",
+        "DisposableStore",
+        "Disposable"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "SetMap"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "compareBy",
+            "numberComparator"
+          ]
+        },
+        {
+          "module": "module-0010",
+          "bindings": [
+            "groupBy"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "Iterable"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "onUnexpectedError",
+            "BugIndicatingError"
+          ]
+        }
+      ],
+      "sha256": "d8345dc49ff202b3798b4824e00638ebdbf14a24f0afd0596603e039e529ea70"
+    },
+    {
+      "modulePath": "src/vs/base/common/linkedList.ts",
+      "file": "module-0015.mjs",
+      "exportedBindings": [
+        "Node"
+      ],
+      "imports": [],
+      "sha256": "f9e97f6671a17d349c684c2fd0acb6790c2ff76d08f7a9a138b769ba963be298"
+    },
+    {
+      "modulePath": "src/vs/nls.ts",
+      "file": "module-0016.mjs",
+      "exportedBindings": [
+        "getNLSLanguage",
+        "isPseudo"
+      ],
+      "imports": [],
+      "sha256": "811f6aa55eedd209ffc2f72c72653d81cbc2ceac178b509837e4726d179554c3"
+    },
+    {
+      "modulePath": "src/vs/base/common/platform.ts",
+      "file": "module-0017.mjs",
+      "exportedBindings": [
+        "LANGUAGE_DEFAULT",
+        "_isWindows",
+        "_isMacintosh",
+        "_isLinux",
+        "_isLinuxSnap",
+        "_isNative",
+        "_isWeb",
+        "_isElectron",
+        "_isIOS",
+        "_isCI",
+        "_isMobile",
+        "_locale",
+        "_language",
+        "_platformLocale",
+        "_translationsConfigFile",
+        "_userAgent",
+        "$globalThis",
+        "nodeProcess",
+        "isElectronProcess",
+        "isElectronRenderer",
+        "_platform",
+        "isWindows",
+        "isMacintosh",
+        "isWebWorker",
+        "webWorkerOrigin",
+        "userAgent",
+        "language",
+        "Language",
+        "setTimeout0IsFaster",
+        "setTimeout0",
+        "isChrome",
+        "isFirefox",
+        "isSafari",
+        "isEdge",
+        "isAndroid",
+        "hasElectronUserAgent"
+      ],
+      "imports": [
+        {
+          "module": "module-0016",
+          "bindings": [
+            "getNLSLanguage"
+          ]
+        }
+      ],
+      "sha256": "ccdda4bb4dd6734ecb5bd740ca0f2b1808785a5dd79518ba58e8e5bfbc4c7f14"
+    },
+    {
+      "modulePath": "src/vs/base/common/process.ts",
+      "file": "module-0018.mjs",
+      "exportedBindings": [
+        "safeProcess",
+        "vscodeGlobal",
+        "cwd",
+        "env",
+        "platform",
+        "arch"
+      ],
+      "imports": [
+        {
+          "module": "module-0017",
+          "bindings": [
+            "isWindows",
+            "isMacintosh"
+          ]
+        }
+      ],
+      "sha256": "3a40a50662dded2a7b53c985d0d1af9f5c9966d3332d751b44921c8621e106f3"
+    },
+    {
+      "modulePath": "src/vs/base/common/stopwatch.ts",
+      "file": "module-0019.mjs",
+      "exportedBindings": [
+        "performanceNow",
+        "StopWatch"
+      ],
+      "imports": [],
+      "sha256": "20ec5e3b8610f71f526d302666dc70f318b2fd3fb0216c22e13c7198fca23a00"
+    },
+    {
+      "modulePath": "src/vs/base/common/event.ts",
+      "file": "module-0020.mjs",
+      "exportedBindings": [
+        "_isBufferLeakWarningEnabled",
+        "nextLeakageMonitorName",
+        "addToDisposables",
+        "disposeAndRemove",
+        "_enableDisposeWithListenerWarning",
+        "_enableSnapshotPotentialLeakWarning",
+        "_bufferLeakWarnCountThreshold",
+        "_bufferLeakWarnTimeThreshold",
+        "Event",
+        "EventProfiling",
+        "_globalLeakWarningThreshold",
+        "leakageMonitorId",
+        "LeakageMonitor",
+        "Stacktrace",
+        "ListenerLeakError",
+        "ListenerRefusalError",
+        "id",
+        "UniqueContainer",
+        "compactionThreshold",
+        "forEachListener",
+        "Emitter",
+        "EventDeliveryQueuePrivate"
+      ],
+      "imports": [
+        {
+          "module": "module-0018",
+          "bindings": [
+            "env"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "Disposable",
+            "combinedDisposable",
+            "toDisposable",
+            "DisposableStore"
+          ]
+        },
+        {
+          "module": "module-0019",
+          "bindings": [
+            "StopWatch"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "onUnexpectedError"
+          ]
+        }
+      ],
+      "sha256": "045c47230047fe88112037878f0afc119e3682185e898a2586abbbe6b398d55d"
+    },
+    {
+      "modulePath": "src/vs/base/common/cancellation.ts",
+      "file": "module-0021.mjs",
+      "exportedBindings": [
+        "shortcutEvent",
+        "CancellationToken",
+        "MutableToken"
+      ],
+      "imports": [
+        {
+          "module": "module-0020",
+          "bindings": [
+            "Event",
+            "Emitter"
+          ]
+        }
+      ],
+      "sha256": "424cbb7a97289072bcba9d70238736962b03c21d08188ef08588cdaeec936e10"
+    },
+    {
+      "modulePath": "src/vs/base/common/cache.ts",
+      "file": "module-0022.mjs",
+      "exportedBindings": [
+        "identity",
+        "LRUCachedFunction"
+      ],
+      "imports": [],
+      "sha256": "5d5f03c4839c51c1798a90cbe7e8bad72e63ecf57eeef09ac4b73b802568231e"
+    },
+    {
+      "modulePath": "src/vs/base/common/lazy.ts",
+      "file": "module-0023.mjs",
+      "exportedBindings": [
+        "Lazy"
+      ],
+      "imports": [],
+      "sha256": "fa67a4e2206bd7037f624be2d11a2271492f3e18f8039acaa46a670615b86883"
+    },
+    {
+      "modulePath": "src/vs/base/common/strings.ts",
+      "file": "module-0024.mjs",
+      "exportedBindings": [
+        "splitLines",
+        "commonPrefixLength",
+        "commonSuffixLength",
+        "getGraphemeBreakRawData",
+        "CSI_SEQUENCE",
+        "OSC_SEQUENCE",
+        "ESC_SEQUENCE",
+        "CONTROL_SEQUENCES",
+        "UTF8_BOM_CHARACTER",
+        "GraphemeBreakTree",
+        "AmbiguousCharacters",
+        "InvisibleCharacters"
+      ],
+      "imports": [
+        {
+          "module": "module-0023",
+          "bindings": [
+            "Lazy"
+          ]
+        },
+        {
+          "module": "module-0022",
+          "bindings": [
+            "LRUCachedFunction"
+          ]
+        }
+      ],
+      "sha256": "6977368f2e3ddf4fd789b0e091f5460af2e5d353cb6c04f6421e9a1cb0944933"
+    },
+    {
+      "modulePath": "src/vs/editor/common/core/text/textLength.ts",
+      "file": "module-0025.mjs",
+      "exportedBindings": [
+        "TextLength"
+      ],
+      "imports": [
+        {
+          "module": "module-0008",
+          "bindings": [
+            "Range"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "LineRange"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "Position"
+          ]
+        }
+      ],
+      "sha256": "0eb3979532a04c706ac39acdef9234ef078d3f25d88c9e45e5a7a70184646f85"
+    },
+    {
+      "modulePath": "src/vs/editor/common/core/text/positionToOffsetImpl.ts",
+      "file": "module-0026.mjs",
+      "exportedBindings": [
+        "PositionOffsetTransformerBase",
+        "Deps",
+        "PositionOffsetTransformer"
+      ],
+      "imports": [
+        {
+          "module": "module-0006",
+          "bindings": [
+            "OffsetRange"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "Range"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "Position"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "findLastIdxMonotonous"
+          ]
+        }
+      ],
+      "sha256": "2f399e14f06968670f065bc28507060aa2b5e13c7ec79e9160013426e480f87e"
+    },
+    {
+      "modulePath": "src/vs/editor/common/core/text/abstractText.ts",
+      "file": "module-0027.mjs",
+      "exportedBindings": [
+        "AbstractText",
+        "LineBasedText",
+        "ArrayText",
+        "StringText"
+      ],
+      "imports": [
+        {
+          "module": "module-0007",
+          "bindings": [
+            "Position"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "Range"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "PositionOffsetTransformer"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "splitLines"
+          ]
+        },
+        {
+          "module": "module-0005",
+          "bindings": [
+            "assert"
+          ]
+        },
+        {
+          "module": "module-0025",
+          "bindings": [
+            "TextLength"
+          ]
+        }
+      ],
+      "sha256": "c124d6049302c5a7cbbf11e5bb942733d2d89feda4f110bf755f767ef04f8b88"
+    },
+    {
+      "modulePath": "src/vs/editor/common/diff/linesDiffComputer.ts",
+      "file": "module-0028.mjs",
+      "exportedBindings": [
+        "LinesDiff",
+        "MovedText"
+      ],
+      "imports": [],
+      "sha256": "50c96042394e9f18a3ad0f206b670d0713a4c1ff3af61975226df089fa831436"
+    },
+    {
+      "modulePath": "src/vs/editor/common/core/edits/textEdit.ts",
+      "file": "module-0029.mjs",
+      "exportedBindings": [
+        "rangeFromPositions",
+        "TextEdit",
+        "TextReplacement"
+      ],
+      "imports": [
+        {
+          "module": "module-0005",
+          "bindings": [
+            "assertFn",
+            "checkAdjacentItems"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "Range"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "compareBy",
+            "equals"
+          ]
+        },
+        {
+          "module": "module-0025",
+          "bindings": [
+            "TextLength"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "Position"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "StringText"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "BugIndicatingError"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "commonPrefixLength",
+            "commonSuffixLength"
+          ]
+        }
+      ],
+      "sha256": "bec297bd2874e0b9757c7000e32c334b1f7f1f65df8a8374bc968798fe0dbc6d"
+    },
+    {
+      "modulePath": "src/vs/editor/common/diff/rangeMapping.ts",
+      "file": "module-0030.mjs",
+      "exportedBindings": [
+        "normalizePosition",
+        "isValidLineNumber",
+        "lineRangeMappingFromRangeMappings",
+        "getLineRangeMapping",
+        "LineRangeMapping",
+        "DetailedLineRangeMapping",
+        "RangeMapping"
+      ],
+      "imports": [
+        {
+          "module": "module-0009",
+          "bindings": [
+            "LineRange"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "BugIndicatingError"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "Range"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "Position"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "TextEdit",
+            "TextReplacement"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "groupAdjacentBy"
+          ]
+        },
+        {
+          "module": "module-0005",
+          "bindings": [
+            "assertFn",
+            "checkAdjacentItems"
+          ]
+        }
+      ],
+      "sha256": "ebe1f5799789e80d7b1abb06c901c8ea7705ae045732b288ac798b07163e0fc5"
+    },
+    {
+      "modulePath": "src/vs/editor/common/diff/defaultLinesDiffComputer/algorithms/diffAlgorithm.ts",
+      "file": "module-0031.mjs",
+      "exportedBindings": [
+        "DiffAlgorithmResult",
+        "SequenceDiff",
+        "OffsetPair",
+        "InfiniteTimeout",
+        "DateTimeout"
+      ],
+      "imports": [
+        {
+          "module": "module-0006",
+          "bindings": [
+            "OffsetRange"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "forEachAdjacent"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "BugIndicatingError"
+          ]
+        }
+      ],
+      "sha256": "b924e92db3ff4394fafb63845ef3666fe2c86b0570f557d64f8f2200e29565dc"
+    },
+    {
+      "modulePath": "src/vs/editor/common/diff/defaultLinesDiffComputer/utils.ts",
+      "file": "module-0032.mjs",
+      "exportedBindings": [
+        "isSpace",
+        "Array2D",
+        "LineRangeFragment"
+      ],
+      "imports": [],
+      "sha256": "9a6c03c18647c5213f53e5ea62143c6c3ffe3fb98cbb1cfafa5d422d78b86b23"
+    },
+    {
+      "modulePath": "src/vs/editor/common/diff/defaultLinesDiffComputer/algorithms/dynamicProgrammingDiffing.ts",
+      "file": "module-0033.mjs",
+      "exportedBindings": [
+        "DynamicProgrammingDiffing"
+      ],
+      "imports": [
+        {
+          "module": "module-0031",
+          "bindings": [
+            "InfiniteTimeout",
+            "DiffAlgorithmResult",
+            "SequenceDiff"
+          ]
+        },
+        {
+          "module": "module-0032",
+          "bindings": [
+            "Array2D"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "OffsetRange"
+          ]
+        }
+      ],
+      "sha256": "d4fa4416a166e3523af21928bf621d55a6e60d5160bd9bb18bf80595376973b1"
+    },
+    {
+      "modulePath": "src/vs/editor/common/diff/defaultLinesDiffComputer/algorithms/myersDiffAlgorithm.ts",
+      "file": "module-0034.mjs",
+      "exportedBindings": [
+        "MyersDiffAlgorithm",
+        "SnakePath",
+        "FastInt32Array",
+        "FastArrayNegativeIndices"
+      ],
+      "imports": [
+        {
+          "module": "module-0031",
+          "bindings": [
+            "InfiniteTimeout",
+            "DiffAlgorithmResult",
+            "SequenceDiff"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "OffsetRange"
+          ]
+        }
+      ],
+      "sha256": "ccca6c0bff60fee252dede678cc1edb18ed3a893ef452b2536a64d32b1ae35d4"
+    },
+    {
+      "modulePath": "src/vs/editor/common/diff/defaultLinesDiffComputer/linesSliceCharSequence.ts",
+      "file": "module-0035.mjs",
+      "exportedBindings": [
+        "isWordChar",
+        "isUpperCase",
+        "getCategoryBoundaryScore",
+        "getCategory",
+        "LinesSliceCharSequence",
+        "score"
+      ],
+      "imports": [
+        {
+          "module": "module-0006",
+          "bindings": [
+            "OffsetRange"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "findLastIdxMonotonous",
+            "findLastMonotonous",
+            "findFirstMonotonous"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "Position"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "Range"
+          ]
+        },
+        {
+          "module": "module-0032",
+          "bindings": [
+            "isSpace"
+          ]
+        }
+      ],
+      "sha256": "cf2193e0d37a9c85cbb4dd27261847c0de4989bf0aaa9c695639572d66bc0573"
+    },
+    {
+      "modulePath": "src/vs/editor/common/diff/defaultLinesDiffComputer/computeMovedLines.ts",
+      "file": "module-0036.mjs",
+      "exportedBindings": [
+        "computeMovedLines",
+        "countWhere",
+        "computeMovesFromSimpleDeletionsToSimpleInsertions",
+        "computeUnchangedMoves",
+        "areLinesSimilar",
+        "joinCloseConsecutiveMoves",
+        "removeMovesInSameDiff"
+      ],
+      "imports": [
+        {
+          "module": "module-0004",
+          "bindings": [
+            "pushMany",
+            "compareBy",
+            "numberComparator",
+            "reverseOrder"
+          ]
+        },
+        {
+          "module": "module-0032",
+          "bindings": [
+            "LineRangeFragment",
+            "isSpace"
+          ]
+        },
+        {
+          "module": "module-0030",
+          "bindings": [
+            "LineRangeMapping"
+          ]
+        },
+        {
+          "module": "module-0011",
+          "bindings": [
+            "SetMap"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "LineRange",
+            "LineRangeSet"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "MonotonousArray",
+            "findLastMonotonous"
+          ]
+        },
+        {
+          "module": "module-0034",
+          "bindings": [
+            "MyersDiffAlgorithm"
+          ]
+        },
+        {
+          "module": "module-0035",
+          "bindings": [
+            "LinesSliceCharSequence"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "Range"
+          ]
+        },
+        {
+          "module": "module-0031",
+          "bindings": [
+            "SequenceDiff"
+          ]
+        }
+      ],
+      "sha256": "904cc58e55ade21015f6508ac74a0336ba5f1bcdc966cf1c14ea77589e799463"
+    },
+    {
+      "modulePath": "src/vs/editor/common/diff/defaultLinesDiffComputer/heuristicSequenceOptimizations.ts",
+      "file": "module-0037.mjs",
+      "exportedBindings": [
+        "optimizeSequenceDiffs",
+        "joinSequenceDiffsByShifting",
+        "shiftSequenceDiffs",
+        "shiftDiffToBetterPosition",
+        "removeShortMatches",
+        "extendDiffsToEntireWordIfAppropriate",
+        "mergeSequenceDiffs",
+        "removeVeryShortMatchingLinesBetweenDiffs",
+        "removeVeryShortMatchingTextBetweenLongDiffs"
+      ],
+      "imports": [
+        {
+          "module": "module-0031",
+          "bindings": [
+            "SequenceDiff",
+            "OffsetPair"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "OffsetRange"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "forEachWithNeighbors"
+          ]
+        }
+      ],
+      "sha256": "be7c47980694335c047ab9752daafd8820e681c414baf477c7cd01bb71ce37cb"
+    },
+    {
+      "modulePath": "src/vs/editor/common/diff/defaultLinesDiffComputer/lineSequence.ts",
+      "file": "module-0038.mjs",
+      "exportedBindings": [
+        "getIndentation",
+        "LineSequence"
+      ],
+      "imports": [],
+      "sha256": "c43a3a0ced97915a2369afecfa9e00cb59cf2eeaeb7a19c6c64580dba553ab50"
+    },
+    {
+      "modulePath": "src/vs/editor/common/diff/defaultLinesDiffComputer/defaultLinesDiffComputer.ts",
+      "file": "module-0039.mjs",
+      "exportedBindings": [
+        "toLineRangeMapping",
+        "DefaultLinesDiffComputer"
+      ],
+      "imports": [
+        {
+          "module": "module-0033",
+          "bindings": [
+            "DynamicProgrammingDiffing"
+          ]
+        },
+        {
+          "module": "module-0034",
+          "bindings": [
+            "MyersDiffAlgorithm"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "equals"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "LinesDiff",
+            "MovedText"
+          ]
+        },
+        {
+          "module": "module-0030",
+          "bindings": [
+            "DetailedLineRangeMapping",
+            "RangeMapping",
+            "lineRangeMappingFromRangeMappings",
+            "LineRangeMapping"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "LineRange"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "Range"
+          ]
+        },
+        {
+          "module": "module-0031",
+          "bindings": [
+            "InfiniteTimeout",
+            "DateTimeout",
+            "SequenceDiff"
+          ]
+        },
+        {
+          "module": "module-0038",
+          "bindings": [
+            "LineSequence"
+          ]
+        },
+        {
+          "module": "module-0037",
+          "bindings": [
+            "optimizeSequenceDiffs",
+            "removeVeryShortMatchingLinesBetweenDiffs",
+            "extendDiffsToEntireWordIfAppropriate",
+            "removeShortMatches",
+            "removeVeryShortMatchingTextBetweenLongDiffs"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "OffsetRange"
+          ]
+        },
+        {
+          "module": "module-0005",
+          "bindings": [
+            "assertFn"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "ArrayText"
+          ]
+        },
+        {
+          "module": "module-0036",
+          "bindings": [
+            "computeMovedLines"
+          ]
+        },
+        {
+          "module": "module-0035",
+          "bindings": [
+            "LinesSliceCharSequence"
+          ]
+        }
+      ],
+      "sha256": "a7ebe95bb02c671d556ab749482a85b32ed1f1b4b9787d94db3ee235eb398a5c"
+    }
+  ],
+  "publicExports": [
+    {
+      "text": "export {\n  computeDetailedDiff,\n  computeDiffCounts\n};",
+      "specifier": [
+        {
+          "local": "computeDetailedDiff",
+          "exported": "computeDetailedDiff"
+        },
+        {
+          "local": "computeDiffCounts",
+          "exported": "computeDiffCounts"
+        }
+      ]
+    }
+  ],
+  "topLevelBindings": 252,
+  "crossModuleWriteCount": 0,
+  "typescriptVersion": "6.0.3",
+  "directExportFix": true
+}

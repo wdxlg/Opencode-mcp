@@ -1,0 +1,262 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/workbench/workbench.desktop.main.js
+// Original module marker: src/vs/workbench/contrib/chat/common/tools/chatArtifactsService.ts
+import { createDecorator } from "./module-0077.mjs";
+import { Memento } from "./module-1041.mjs";
+import { __decorateClass, __decorateParam } from "./module-0000.mjs";
+import { IStorageService } from "./module-0512.mjs";
+import { Disposable, DisposableMap } from "./module-0012.mjs";
+import { observableValueOpts } from "./module-0050.mjs";
+import { observableFromEvent } from "./module-0057.mjs";
+import { derived } from "./module-0054.mjs";
+import { observableSignalFromEvent } from "./module-0062.mjs";
+import { IChatService, IChatToolInvocation } from "./module-0972.mjs";
+import { extractArtifactsFromResponse } from "./module-1479.mjs";
+import { chatSessionResourceToId } from "./module-0961.mjs";
+import { IConfigurationService } from "./module-0132.mjs";
+
+
+// src/vs/workbench/contrib/chat/common/tools/chatArtifactsService.ts
+var IChatArtifactsService = createDecorator("chatArtifactsService");
+
+var ChatArtifactsStorage = class {
+  constructor(storageService) {
+    this._memento = new Memento("chat-artifacts", storageService);
+  }
+  get(key3) {
+    const storage = this._memento.getMemento(1 /* WORKSPACE */, 1 /* MACHINE */);
+    return storage[key3] || [];
+  }
+  set(key3, artifacts) {
+    const storage = this._memento.getMemento(1 /* WORKSPACE */, 1 /* MACHINE */);
+    storage[key3] = artifacts;
+    this._memento.saveMemento();
+  }
+  delete(key3) {
+    const storage = this._memento.getMemento(1 /* WORKSPACE */, 1 /* MACHINE */);
+    delete storage[key3];
+    this._memento.saveMemento();
+  }
+};
+
+ChatArtifactsStorage = __decorateClass([
+  __decorateParam(0, IStorageService)
+], ChatArtifactsStorage);
+
+var UnifiedChatArtifacts = class extends Disposable {
+  constructor(sessionResource, _storageKey, _storage, chatService, configurationService) {
+    super();
+    this._storageKey = _storageKey;
+    this._storage = _storage;
+    this._responseCache = /* @__PURE__ */ new Map();
+    this._ruleOverrides = observableValueOpts(
+      { owner: this, equalsFn: () => false },
+      void 0
+    );
+    this._agentArtifacts = observableValueOpts(
+      { owner: this, equalsFn: () => false },
+      []
+    );
+    this._subagentArtifacts = observableValueOpts(
+      { owner: this, equalsFn: () => false },
+      /* @__PURE__ */ new Map()
+    );
+    /** Sequence counter for ordering sources by first-set time. */
+    this._nextSequence = 1;
+    // 0 is reserved for rules
+    this._sourceSequences = /* @__PURE__ */ new Map();
+    const restored = this._storage.get(this._storageKey);
+    this._agentArtifacts.set(restored, void 0);
+    this._sourceSequences.set("rules", 0);
+    if (restored.length > 0) {
+      this._sourceSequences.set("agent", this._nextSequence++);
+    }
+    const configByMimeType = observableFromEvent(
+      this,
+      configurationService.onDidChangeConfiguration,
+      () => configurationService.getValue("chat.artifacts.rules.byMimeType" /* ArtifactsRulesByMimeType */) ?? {}
+    );
+    const configByFilePath = observableFromEvent(
+      this,
+      configurationService.onDidChangeConfiguration,
+      () => configurationService.getValue("chat.artifacts.rules.byFilePath" /* ArtifactsRulesByFilePath */) ?? {}
+    );
+    const configByMemoryFilePath = observableFromEvent(
+      this,
+      configurationService.onDidChangeConfiguration,
+      () => configurationService.getValue("chat.artifacts.rules.byMemoryFilePath" /* ArtifactsRulesByMemoryFilePath */) ?? {}
+    );
+    const modelSignal = observableFromEvent(
+      this,
+      chatService.onDidCreateModel,
+      () => chatService.getSession(sessionResource)
+    );
+    const rulesArtifacts = derived((reader) => {
+      const overrides = this._ruleOverrides.read(reader);
+      const byMimeType = overrides?.byMimeType ?? configByMimeType.read(reader);
+      const byFilePath = overrides?.byFilePath ?? configByFilePath.read(reader);
+      const byMemoryFilePath = overrides?.byMemoryFilePath ?? configByMemoryFilePath.read(reader);
+      const model = modelSignal.read(reader);
+      if (!model) {
+        return [];
+      }
+      const requestsSignal = observableSignalFromEvent(this, model.onDidChange);
+      requestsSignal.read(reader);
+      const requests = model.getRequests();
+      const allArtifacts = [];
+      const activeResponseIds = /* @__PURE__ */ new Set();
+      const seenKeys = /* @__PURE__ */ new Set();
+      for (const request2 of requests) {
+        const response = request2.response;
+        if (!response) {
+          continue;
+        }
+        activeResponseIds.add(response.id);
+        const responseValue = response.response;
+        const partsLength = responseValue.value.length;
+        let completedToolCount = 0;
+        for (const part of responseValue.value) {
+          if ((part.kind === "toolInvocation" || part.kind === "toolInvocationSerialized") && IChatToolInvocation.resultDetails(part) !== void 0) {
+            completedToolCount++;
+          }
+        }
+        const cached = this._responseCache.get(response.id);
+        let extracted;
+        if (cached && cached.partsLength === partsLength && cached.completedToolCount === completedToolCount && cached.byMimeType === byMimeType && cached.byFilePath === byFilePath && cached.byMemoryFilePath === byMemoryFilePath) {
+          extracted = cached.artifacts;
+        } else {
+          extracted = extractArtifactsFromResponse(responseValue, sessionResource, byMimeType, byFilePath, byMemoryFilePath);
+          this._responseCache.set(response.id, { partsLength, completedToolCount, byMimeType, byFilePath, byMemoryFilePath, artifacts: extracted });
+        }
+        for (const artifact of extracted) {
+          const key3 = artifact.toolCallId ? `${artifact.toolCallId}:${artifact.dataPartIndex}` : artifact.uri;
+          if (seenKeys.has(key3)) {
+            const idx = allArtifacts.findIndex(
+              (a) => a.toolCallId ? `${a.toolCallId}:${a.dataPartIndex}` === key3 : a.uri === key3
+            );
+            if (idx !== -1) {
+              allArtifacts.splice(idx, 1);
+            }
+          }
+          seenKeys.add(key3);
+          allArtifacts.push(artifact);
+        }
+      }
+      for (const key3 of this._responseCache.keys()) {
+        if (!activeResponseIds.has(key3)) {
+          this._responseCache.delete(key3);
+        }
+      }
+      return allArtifacts;
+    });
+    this.artifactGroups = derived((reader) => {
+      const entries2 = [];
+      const rules = rulesArtifacts.read(reader);
+      if (rules.length > 0) {
+        entries2.push({ key: "rules", seq: this._sourceSequences.get("rules") ?? 0, group: { source: { kind: "rules" }, artifacts: rules } });
+      }
+      const agent = this._agentArtifacts.read(reader);
+      if (agent.length > 0) {
+        entries2.push({ key: "agent", seq: this._sourceSequences.get("agent") ?? Infinity, group: { source: { kind: "agent" }, artifacts: agent } });
+      }
+      const subagents = this._subagentArtifacts.read(reader);
+      for (const [invocationId, entry] of subagents) {
+        if (entry.artifacts.length > 0) {
+          const key3 = `subagent:${invocationId}`;
+          entries2.push({
+            key: key3,
+            seq: this._sourceSequences.get(key3) ?? Infinity,
+            group: { source: { kind: "subagent", invocationId, name: entry.name }, artifacts: entry.artifacts }
+          });
+        }
+      }
+      entries2.sort((a, b) => a.seq - b.seq);
+      const seenKeys = /* @__PURE__ */ new Set();
+      const groups = [];
+      for (const entry of entries2) {
+        const filtered = entry.group.artifacts.filter((a) => {
+          const k = a.toolCallId ? `${a.toolCallId}:${a.dataPartIndex}` : a.uri;
+          if (!k) {
+            return false;
+          }
+          const normalized = k.toLowerCase();
+          if (seenKeys.has(normalized)) {
+            return false;
+          }
+          seenKeys.add(normalized);
+          return true;
+        });
+        if (filtered.length > 0) {
+          groups.push({ source: entry.group.source, artifacts: filtered });
+        }
+      }
+      return groups;
+    });
+  }
+  setAgentArtifacts(artifacts) {
+    if (!this._sourceSequences.has("agent")) {
+      this._sourceSequences.set("agent", this._nextSequence++);
+    }
+    this._agentArtifacts.set(artifacts, void 0);
+    this._storage.set(this._storageKey, artifacts);
+  }
+  setSubagentArtifacts(invocationId, name, artifacts) {
+    const key3 = `subagent:${invocationId}`;
+    if (!this._sourceSequences.has(key3)) {
+      this._sourceSequences.set(key3, this._nextSequence++);
+    }
+    const map = new Map(this._subagentArtifacts.get());
+    if (artifacts.length === 0) {
+      map.delete(invocationId);
+    } else {
+      map.set(invocationId, { name, artifacts });
+    }
+    this._subagentArtifacts.set(map, void 0);
+  }
+  setRuleOverrides(rules) {
+    this._ruleOverrides.set(rules, void 0);
+  }
+  clearAgentArtifacts() {
+    this._agentArtifacts.set([], void 0);
+    this._storage.set(this._storageKey, []);
+  }
+  clearSubagentArtifacts(invocationId) {
+    const map = new Map(this._subagentArtifacts.get());
+    map.delete(invocationId);
+    this._subagentArtifacts.set(map, void 0);
+  }
+  migrate(target) {
+    const current = this._agentArtifacts.get();
+    if (current.length > 0) {
+      target.setAgentArtifacts([...current]);
+    }
+    this._agentArtifacts.set([], void 0);
+    this._storage.delete(this._storageKey);
+  }
+};
+
+var ChatArtifactsService = class extends Disposable {
+  constructor(storageService, _chatService, _configurationService) {
+    super();
+    this._chatService = _chatService;
+    this._configurationService = _configurationService;
+    this._instances = this._register(new DisposableMap());
+    this._storage = new ChatArtifactsStorage(storageService);
+  }
+  getArtifacts(sessionResource) {
+    const key3 = chatSessionResourceToId(sessionResource);
+    let instance2 = this._instances.get(key3);
+    if (!instance2) {
+      instance2 = new UnifiedChatArtifacts(sessionResource, key3, this._storage, this._chatService, this._configurationService);
+      this._instances.set(key3, instance2);
+    }
+    return instance2;
+  }
+};
+
+ChatArtifactsService = __decorateClass([
+  __decorateParam(0, IStorageService),
+  __decorateParam(1, IChatService),
+  __decorateParam(2, IConfigurationService)
+], ChatArtifactsService);
+export { IChatArtifactsService, ChatArtifactsStorage, UnifiedChatArtifacts, ChatArtifactsService };

@@ -1,0 +1,2627 @@
+{
+  "generatorVersion": 2,
+  "bundle": "005-cli.js",
+  "artifactPath": "resources/app/out/cli.js",
+  "status": "generated-not-validated",
+  "modules": [
+    {
+      "modulePath": "<bundle-preamble>",
+      "file": "module-0000.mjs",
+      "exportedBindings": [
+        "__extends",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension",
+        "extendStatics",
+        "__assign",
+        "__createBinding",
+        "__setModuleDefault",
+        "ownKeys",
+        "_SuppressedError",
+        "__create",
+        "__defProp",
+        "__getOwnPropDesc",
+        "__getOwnPropNames",
+        "__getProtoOf",
+        "__hasOwnProp",
+        "__esm",
+        "__commonJS",
+        "__export",
+        "__copyProps",
+        "__toESM"
+      ],
+      "imports": [],
+      "sha256": "d2a706cc5ae53e6de801a0a03e6d5753b9c22aac41ca94afcec41b7f6af93589",
+      "directExportFix": [
+        "__extends",
+        "__assign",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__createBinding",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension"
+      ]
+    },
+    {
+      "modulePath": "src/vs/nls.ts",
+      "file": "module-0001.mjs",
+      "exportedBindings": [
+        "getNLSMessages",
+        "getNLSLanguage",
+        "_format",
+        "localize",
+        "lookupMessage",
+        "isPseudo",
+        "init_nls"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "0f33e46caab91dc4dffb5f98ef574f9d5770c529e08beb1b3b5f52bd53537003"
+    },
+    {
+      "modulePath": "src/vs/base/common/platform.ts",
+      "file": "module-0002.mjs",
+      "exportedBindings": [
+        "LANGUAGE_DEFAULT",
+        "_isWindows",
+        "_isMacintosh",
+        "_isLinux",
+        "_isLinuxSnap",
+        "_isNative",
+        "_isWeb",
+        "_isElectron",
+        "_isIOS",
+        "_isCI",
+        "_isMobile",
+        "_locale",
+        "_language",
+        "_platformLocale",
+        "_translationsConfigFile",
+        "_userAgent",
+        "$globalThis",
+        "nodeProcess",
+        "isElectronProcess",
+        "isElectronRenderer",
+        "_platform",
+        "isWindows2",
+        "isMacintosh",
+        "isLinux",
+        "isNative",
+        "isWeb",
+        "isWebWorker",
+        "webWorkerOrigin",
+        "userAgent",
+        "language",
+        "Language",
+        "setTimeout0IsFaster",
+        "setTimeout0",
+        "isChrome",
+        "isFirefox",
+        "isSafari",
+        "isEdge",
+        "isAndroid",
+        "hasElectronUserAgent",
+        "init_platform"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0001",
+          "bindings": [
+            "init_nls",
+            "getNLSLanguage"
+          ]
+        }
+      ],
+      "sha256": "39bb791053b95c8559a44cde8966283d4eac84261c0fb623854543e64fa85eb3"
+    },
+    {
+      "modulePath": "src/vs/base/common/process.ts",
+      "file": "module-0003.mjs",
+      "exportedBindings": [
+        "safeProcess",
+        "vscodeGlobal",
+        "cwd",
+        "env",
+        "platform",
+        "arch",
+        "init_process"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "init_platform",
+            "isWindows2",
+            "isMacintosh"
+          ]
+        }
+      ],
+      "sha256": "72d1be3c2b93314af9a04472b5e25f0298c08eca98bb0a4497f6eec8f16f12ba"
+    },
+    {
+      "modulePath": "src/vs/base/common/path.ts",
+      "file": "module-0004.mjs",
+      "exportedBindings": [
+        "validateObject",
+        "validateString",
+        "isPathSeparator",
+        "isPosixPathSeparator",
+        "isWindowsDeviceRoot",
+        "normalizeString",
+        "formatExt",
+        "_format2",
+        "CHAR_UPPERCASE_A",
+        "CHAR_LOWERCASE_A",
+        "CHAR_UPPERCASE_Z",
+        "CHAR_LOWERCASE_Z",
+        "CHAR_DOT",
+        "CHAR_FORWARD_SLASH",
+        "CHAR_BACKWARD_SLASH",
+        "CHAR_COLON",
+        "CHAR_QUESTION_MARK",
+        "ErrorInvalidArgType",
+        "platformIsWin32",
+        "win32",
+        "posixCwd",
+        "posix",
+        "normalize",
+        "isAbsolute",
+        "join3",
+        "resolve",
+        "relative2",
+        "dirname3",
+        "basename",
+        "extname",
+        "format",
+        "parse",
+        "toNamespacedPath",
+        "sep",
+        "delimiter",
+        "init_path"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "init_process",
+            "platform",
+            "cwd",
+            "env"
+          ]
+        }
+      ],
+      "sha256": "0f2fb2c1df35e0ec7020b7500f074da47d6e9832325b7edf36ff8d26813acb8b"
+    },
+    {
+      "modulePath": "src/vs/base/common/collections.ts",
+      "file": "module-0005.mjs",
+      "exportedBindings": [
+        "groupBy",
+        "_a",
+        "_b",
+        "SetWithKey",
+        "init_collections"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "e85d43c8577cbd4195568fc89386b2d465902108de1f1fad050db087b2611ce4"
+    },
+    {
+      "modulePath": "src/vs/base/common/errors.ts",
+      "file": "module-0006.mjs",
+      "exportedBindings": [
+        "onUnexpectedError",
+        "onUnexpectedExternalError",
+        "isCancellationError",
+        "ErrorHandler",
+        "errorHandler",
+        "canceledName",
+        "CancellationError",
+        "PendingMigrationError",
+        "ErrorNoTelemetry",
+        "BugIndicatingError",
+        "init_errors"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "d28f027e2474a3b217c08693a60893005c7db74bf340dfb8a4efe76efa8e4580"
+    },
+    {
+      "modulePath": "src/vs/base/common/functional.ts",
+      "file": "module-0007.mjs",
+      "exportedBindings": [
+        "init_functional"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "42810f1fb0a2e7105fa812d856fa2e7841da57713c98e48bd375b4f87832dfbf"
+    },
+    {
+      "modulePath": "src/vs/base/common/arraysFind.ts",
+      "file": "module-0008.mjs",
+      "exportedBindings": [
+        "findLastIdxMonotonous",
+        "MonotonousArray",
+        "init_arraysFind"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "ecf6300944b182fbde65bf6e090e6a72483da118490f198a52909e96fae0d89d"
+    },
+    {
+      "modulePath": "src/vs/base/common/arrays.ts",
+      "file": "module-0009.mjs",
+      "exportedBindings": [
+        "shuffle",
+        "compareBy",
+        "CompareResult",
+        "numberComparator",
+        "CallbackIterable",
+        "init_arrays"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "init_arraysFind"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "init_errors"
+          ]
+        }
+      ],
+      "sha256": "ceb3bdc01fe5b326aa41b9f0512dd17ac289f6937063ee42f69f3fe541c28846"
+    },
+    {
+      "modulePath": "src/vs/base/common/map.ts",
+      "file": "module-0010.mjs",
+      "exportedBindings": [
+        "isEntries",
+        "ResourceMapEntry",
+        "_a2",
+        "ResourceMap",
+        "_a3",
+        "ResourceSet",
+        "_a4",
+        "LinkedMap",
+        "Cache",
+        "LRUCache",
+        "SetMap",
+        "init_map"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "17d52dd043487b01110739de13356c63dc3f734e1576849f9fd8876f40036cc1"
+    },
+    {
+      "modulePath": "src/vs/base/common/assert.ts",
+      "file": "module-0011.mjs",
+      "exportedBindings": [
+        "assert",
+        "init_assert"
+      ],
+      "imports": [
+        {
+          "module": "module-0006",
+          "bindings": [
+            "BugIndicatingError",
+            "init_errors"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "e9a81c442c49bce74702c683c4ee4edbef9fa8cbd5e3b4ac0b48859f7a9b3a0e"
+    },
+    {
+      "modulePath": "src/vs/base/common/types.ts",
+      "file": "module-0012.mjs",
+      "exportedBindings": [
+        "isNumber",
+        "isIterable",
+        "init_types"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0011",
+          "bindings": [
+            "init_assert"
+          ]
+        }
+      ],
+      "sha256": "b944cc276e4b17d71f268059b635184d346842c11619b662f0b6b20f871415db"
+    },
+    {
+      "modulePath": "src/vs/base/common/iterator.ts",
+      "file": "module-0013.mjs",
+      "exportedBindings": [
+        "Iterable",
+        "init_iterator"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0012",
+          "bindings": [
+            "init_types",
+            "isIterable"
+          ]
+        }
+      ],
+      "sha256": "e444103f300269e8e5fb3accce5dadc747000d75c9549112b16a76999d788c3e"
+    },
+    {
+      "modulePath": "src/vs/base/common/lifecycle.ts",
+      "file": "module-0014.mjs",
+      "exportedBindings": [
+        "setDisposableTracker",
+        "trackDisposable",
+        "markAsDisposed",
+        "setParentOfDisposable",
+        "setParentOfDisposables",
+        "isDisposable",
+        "dispose",
+        "combinedDisposable",
+        "toDisposable",
+        "thenRegisterOrDispose",
+        "TRACK_DISPOSABLES",
+        "disposableTracker",
+        "DisposableTracker",
+        "FunctionDisposable",
+        "DisposableStore",
+        "Disposable",
+        "MutableDisposable",
+        "DisposableMap",
+        "init_lifecycle"
+      ],
+      "imports": [
+        {
+          "module": "module-0013",
+          "bindings": [
+            "Iterable",
+            "init_iterator"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "init_arrays",
+            "compareBy",
+            "numberComparator"
+          ]
+        },
+        {
+          "module": "module-0005",
+          "bindings": [
+            "init_collections",
+            "groupBy"
+          ]
+        },
+        {
+          "module": "module-0010",
+          "bindings": [
+            "init_map",
+            "SetMap"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "init_functional"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "init_errors",
+            "onUnexpectedError",
+            "BugIndicatingError"
+          ]
+        }
+      ],
+      "sha256": "03d84c296452529300a73db7b4c1d8fd2eeb998ad728a3d53682834066c6a2ef"
+    },
+    {
+      "modulePath": "src/vs/base/common/linkedList.ts",
+      "file": "module-0015.mjs",
+      "exportedBindings": [
+        "Node",
+        "init_linkedList"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "c3b367c01708dbd9cec08ac2ea73fa015a1ae805ba4b93c05b0d7fe1387136b4"
+    },
+    {
+      "modulePath": "src/vs/base/common/stopwatch.ts",
+      "file": "module-0016.mjs",
+      "exportedBindings": [
+        "performanceNow",
+        "StopWatch",
+        "init_stopwatch"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "e55777607287756ed89a23f03fbfc8e276cf30f50a564c4374f77ca5b4bd6438"
+    },
+    {
+      "modulePath": "src/vs/base/common/event.ts",
+      "file": "module-0017.mjs",
+      "exportedBindings": [
+        "_isBufferLeakWarningEnabled",
+        "nextLeakageMonitorName",
+        "addToDisposables",
+        "disposeAndRemove",
+        "_enableDisposeWithListenerWarning",
+        "_enableSnapshotPotentialLeakWarning",
+        "_bufferLeakWarnCountThreshold",
+        "_bufferLeakWarnTimeThreshold",
+        "Event",
+        "EventProfiling",
+        "_globalLeakWarningThreshold",
+        "leakageMonitorId",
+        "LeakageMonitor",
+        "Stacktrace",
+        "ListenerLeakError",
+        "ListenerRefusalError",
+        "id",
+        "UniqueContainer",
+        "compactionThreshold",
+        "forEachListener",
+        "Emitter",
+        "EventDeliveryQueuePrivate",
+        "init_event"
+      ],
+      "imports": [
+        {
+          "module": "module-0003",
+          "bindings": [
+            "env",
+            "init_process"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "DisposableStore",
+            "init_lifecycle",
+            "Disposable",
+            "combinedDisposable",
+            "toDisposable"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0005",
+          "bindings": [
+            "init_collections"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "init_errors",
+            "onUnexpectedError"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "init_functional"
+          ]
+        },
+        {
+          "module": "module-0015",
+          "bindings": [
+            "init_linkedList"
+          ]
+        },
+        {
+          "module": "module-0016",
+          "bindings": [
+            "init_stopwatch",
+            "StopWatch"
+          ]
+        }
+      ],
+      "sha256": "7f2a04401f7107ce0ff62e73b612556b783c4bb56f2bc6fca371ae00e00c6512"
+    },
+    {
+      "modulePath": "src/vs/base/common/cancellation.ts",
+      "file": "module-0018.mjs",
+      "exportedBindings": [
+        "shortcutEvent",
+        "CancellationToken",
+        "MutableToken",
+        "CancellationTokenSource",
+        "init_cancellation"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "init_event",
+            "Event",
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "init_lifecycle"
+          ]
+        }
+      ],
+      "sha256": "73585b4c6c98717fa83ffcdf02afaa5a87a3ecdaa6187955087b8f047a40417e"
+    },
+    {
+      "modulePath": "src/vs/base/common/charCode.ts",
+      "file": "module-0019.mjs",
+      "exportedBindings": [
+        "init_charCode"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "2ddf511b8fc4b06f99b1be6584a760b6c2a9d882df3eadd3e6a73caa63fedf40"
+    },
+    {
+      "modulePath": "src/vs/base/common/cache.ts",
+      "file": "module-0020.mjs",
+      "exportedBindings": [
+        "identity",
+        "LRUCachedFunction",
+        "init_cache"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0018",
+          "bindings": [
+            "init_cancellation"
+          ]
+        }
+      ],
+      "sha256": "f905523b66e7fae95ca5156a420f3e6e00bb5e22f90656bb3b46928718e1ed0f"
+    },
+    {
+      "modulePath": "src/vs/base/common/lazy.ts",
+      "file": "module-0021.mjs",
+      "exportedBindings": [
+        "Lazy",
+        "init_lazy"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "94cc79bdda5343f66e50576240f80e21ec30422b7e9dc59b67f0744e5fe635c8"
+    },
+    {
+      "modulePath": "src/vs/base/common/uint.ts",
+      "file": "module-0022.mjs",
+      "exportedBindings": [
+        "init_uint"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "1d957595b1b385da0659084c4c66b700db2a323786cf2ce3d16cb4117632bf74"
+    },
+    {
+      "modulePath": "src/vs/base/common/strings.ts",
+      "file": "module-0023.mjs",
+      "exportedBindings": [
+        "escapeRegExpCharacters",
+        "ltrim",
+        "rtrim",
+        "compare",
+        "compareSubstring",
+        "compareIgnoreCase",
+        "compareSubstringIgnoreCase",
+        "isLowerAsciiLetter",
+        "equalsIgnoreCase",
+        "startsWithIgnoreCase",
+        "endsWithIgnoreCase",
+        "getGraphemeBreakRawData",
+        "CSI_SEQUENCE",
+        "OSC_SEQUENCE",
+        "ESC_SEQUENCE",
+        "CONTROL_SEQUENCES",
+        "UTF8_BOM_CHARACTER",
+        "GraphemeBreakTree",
+        "AmbiguousCharacters",
+        "InvisibleCharacters",
+        "init_strings"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0020",
+          "bindings": [
+            "init_cache",
+            "LRUCachedFunction"
+          ]
+        },
+        {
+          "module": "module-0019",
+          "bindings": [
+            "init_charCode"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "init_lazy",
+            "Lazy"
+          ]
+        },
+        {
+          "module": "module-0022",
+          "bindings": [
+            "init_uint"
+          ]
+        }
+      ],
+      "sha256": "1e31ad05e4fe665b6e5f8447a7dff4b3c931c031144a8bfe373462539c81496d"
+    },
+    {
+      "modulePath": "src/vs/base/common/extpath.ts",
+      "file": "module-0024.mjs",
+      "exportedBindings": [
+        "isPathSeparator2",
+        "toSlashes",
+        "toPosixPath",
+        "getRoot",
+        "isUNC",
+        "isEqual",
+        "isEqualOrParent",
+        "isWindowsDriveLetter",
+        "isRootOrDriveLetter",
+        "hasDriveLetter",
+        "randomPath",
+        "pathChars",
+        "windowsSafePathFirstChars",
+        "init_extpath"
+      ],
+      "imports": [
+        {
+          "module": "module-0004",
+          "bindings": [
+            "posix",
+            "sep",
+            "normalize",
+            "join3",
+            "init_path"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isWindows2",
+            "init_platform"
+          ]
+        },
+        {
+          "module": "module-0023",
+          "bindings": [
+            "equalsIgnoreCase",
+            "startsWithIgnoreCase",
+            "init_strings"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0019",
+          "bindings": [
+            "init_charCode"
+          ]
+        },
+        {
+          "module": "module-0012",
+          "bindings": [
+            "init_types"
+          ]
+        }
+      ],
+      "sha256": "a04021c5cc8e54472df84be7fa2efcb7c3319f36cdd1b09cd5c019243e54a38a"
+    },
+    {
+      "modulePath": "src/vs/base/common/marshallingIds.ts",
+      "file": "module-0025.mjs",
+      "exportedBindings": [
+        "init_marshallingIds"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "a71faf41750dba4c651c181dc9fbc83ef42d8a9c92eb168707f3c9eeb6e24a53"
+    },
+    {
+      "modulePath": "src/vs/base/common/uri.ts",
+      "file": "module-0026.mjs",
+      "exportedBindings": [
+        "_validateUri",
+        "_schemeFix",
+        "_referenceResolution",
+        "encodeURIComponentFast",
+        "encodeURIComponentMinimal",
+        "uriToFsPath",
+        "_asFormatted",
+        "decodeURIComponentGraceful",
+        "percentDecode",
+        "_schemePattern",
+        "_singleSlashStart",
+        "_doubleSlashStart",
+        "_empty",
+        "_slash",
+        "_regexp",
+        "URI",
+        "_pathSepMarker",
+        "Uri",
+        "encodeTable",
+        "_rEncodedAsHex",
+        "init_uri"
+      ],
+      "imports": [
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isWindows2",
+            "init_platform"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0019",
+          "bindings": [
+            "init_charCode"
+          ]
+        },
+        {
+          "module": "module-0025",
+          "bindings": [
+            "init_marshallingIds"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "init_path",
+            "win32",
+            "posix"
+          ]
+        }
+      ],
+      "sha256": "b45736d78c1223fc724df26c7ac5093748458aedba07b7e19e0d28cbfc4dffa0"
+    },
+    {
+      "modulePath": "src/vs/base/common/network.ts",
+      "file": "module-0027.mjs",
+      "exportedBindings": [
+        "getServerProductSegment",
+        "Schemas",
+        "connectionTokenQueryName",
+        "RemoteAuthoritiesImpl",
+        "RemoteAuthorities",
+        "VSCODE_AUTHORITY",
+        "FileAccessImpl",
+        "FileAccess",
+        "CacheControlheaders",
+        "DocumentPolicyheaders",
+        "COI",
+        "init_network"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "init_errors",
+            "onUnexpectedExternalError"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "init_platform",
+            "isWeb",
+            "isNative",
+            "webWorkerOrigin"
+          ]
+        },
+        {
+          "module": "module-0023",
+          "bindings": [
+            "init_strings"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "init_uri",
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "init_path",
+            "posix",
+            "join3"
+          ]
+        }
+      ],
+      "sha256": "5f6c2302d2e05e599ea0f21355193b08f756726c3c738e60d81c1022ab85751d"
+    },
+    {
+      "modulePath": "src/vs/base/common/resources.ts",
+      "file": "module-0028.mjs",
+      "exportedBindings": [
+        "originalFSPath",
+        "ExtUri",
+        "extUri",
+        "extUriBiasedIgnorePathCase",
+        "extUriIgnorePathCase",
+        "isEqual2",
+        "isEqualOrParent2",
+        "getComparisonKey",
+        "basenameOrAuthority",
+        "basename2",
+        "extname2",
+        "dirname4",
+        "joinPath",
+        "normalizePath",
+        "relativePath",
+        "resolvePath",
+        "isAbsolutePath",
+        "isEqualAuthority",
+        "hasTrailingPathSeparator",
+        "removeTrailingPathSeparator",
+        "addTrailingPathSeparator",
+        "DataUri",
+        "init_resources"
+      ],
+      "imports": [
+        {
+          "module": "module-0026",
+          "bindings": [
+            "uriToFsPath",
+            "init_uri",
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0019",
+          "bindings": [
+            "init_charCode"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "init_extpath",
+            "isEqualOrParent",
+            "toSlashes",
+            "toPosixPath",
+            "getRoot"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "init_network",
+            "Schemas"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "init_path",
+            "posix",
+            "dirname3",
+            "normalize",
+            "relative2",
+            "resolve",
+            "sep"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "init_platform",
+            "isWindows2",
+            "isLinux"
+          ]
+        },
+        {
+          "module": "module-0023",
+          "bindings": [
+            "init_strings",
+            "compare",
+            "equalsIgnoreCase"
+          ]
+        }
+      ],
+      "sha256": "8532be1edc31f0c5b347822b618d30416884b58a141dc0e322bd2c7c2f80cd19"
+    },
+    {
+      "modulePath": "src/vs/base/common/symbols.ts",
+      "file": "module-0029.mjs",
+      "exportedBindings": [
+        "init_symbols"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "20faf5f9244f7356cf00ea3c20673ab70af0abd84ef2ff8c8ba978085d7808c7"
+    },
+    {
+      "modulePath": "src/vs/base/common/async.ts",
+      "file": "module-0030.mjs",
+      "exportedBindings": [
+        "isThenable",
+        "createCancelablePromise",
+        "timeout",
+        "MAX_TIMEOUT_DELAY",
+        "Limiter",
+        "Queue",
+        "ResourceQueue",
+        "RunOnceScheduler",
+        "RunOnceWorker",
+        "ThrottledWorker",
+        "runWhenGlobalIdle",
+        "_runWhenIdle",
+        "DeferredPromise",
+        "Promises",
+        "AsyncIterableObject",
+        "ProducerConsumer",
+        "AsyncIterableProducer",
+        "init_async"
+      ],
+      "imports": [
+        {
+          "module": "module-0018",
+          "bindings": [
+            "CancellationTokenSource",
+            "init_cancellation"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "CancellationError",
+            "init_errors",
+            "BugIndicatingError"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isDisposable",
+            "init_lifecycle",
+            "DisposableMap",
+            "Disposable",
+            "MutableDisposable"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "init_event",
+            "Emitter",
+            "Event"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "init_resources",
+            "extUri"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "init_platform",
+            "setTimeout0"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "init_symbols"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "init_lazy"
+          ]
+        }
+      ],
+      "sha256": "6ccf76ef9f92d1a9d7b48bd5e80281a10605f78f9fc0f3dc3439f4793d73d04c"
+    },
+    {
+      "modulePath": "src/vs/base/common/normalization.ts",
+      "file": "module-0031.mjs",
+      "exportedBindings": [
+        "normalizeNFC",
+        "normalizeNFD",
+        "normalize2",
+        "nfcCache",
+        "nfdCache",
+        "nonAsciiCharactersPattern",
+        "tryNormalizeToBase",
+        "init_normalization"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0010",
+          "bindings": [
+            "init_map",
+            "LRUCache"
+          ]
+        }
+      ],
+      "sha256": "94869cd6da2e39530d28911ff36f4d51b278f2539a5302ab18e17c6dbf230594"
+    },
+    {
+      "modulePath": "src/vs/base/node/pfs.ts",
+      "file": "module-0032.mjs",
+      "exportedBindings": [
+        "rimraf",
+        "rimrafMove",
+        "rimrafUnlink",
+        "readdir",
+        "doReaddir",
+        "safeReaddirWithFileTypes",
+        "handleDirectoryChildren",
+        "readDirsInDir",
+        "whenDeleted",
+        "writeFile2",
+        "configureFlushOnWrite",
+        "doWriteFileAndFlush",
+        "writeFileSync2",
+        "ensureWriteOptions",
+        "rename",
+        "renameWithRetry",
+        "copy",
+        "doCopy",
+        "doCopyDirectory",
+        "doCopyFile",
+        "doCopySymlink",
+        "realpath2",
+        "normalizePath2",
+        "fs3",
+        "tmpdir",
+        "promisify",
+        "SymlinkSupport",
+        "writeQueues",
+        "canFlush",
+        "COPY_MODE_MASK",
+        "Promises2",
+        "init_pfs"
+      ],
+      "imports": [
+        {
+          "module": "module-0024",
+          "bindings": [
+            "isRootOrDriveLetter",
+            "randomPath",
+            "isEqualOrParent",
+            "init_extpath"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isWindows2",
+            "isMacintosh",
+            "isLinux",
+            "init_platform"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "join3",
+            "normalize",
+            "sep",
+            "init_path"
+          ]
+        },
+        {
+          "module": "module-0031",
+          "bindings": [
+            "normalizeNFC",
+            "init_normalization"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "URI",
+            "init_uri"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "extUriBiasedIgnorePathCase",
+            "init_resources"
+          ]
+        },
+        {
+          "module": "module-0030",
+          "bindings": [
+            "timeout",
+            "init_async",
+            "ResourceQueue"
+          ]
+        },
+        {
+          "module": "module-0023",
+          "bindings": [
+            "rtrim",
+            "init_strings"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "1dcd2fd7190cceb3b5dc2cd16764688b33746cbb5cdee14ebbb5f8c5bac06ef9"
+    },
+    {
+      "modulePath": "src/vs/base/node/profiling.ts",
+      "file": "module-0033.mjs",
+      "exportedBindings": [
+        "connectWithRetry",
+        "startProfiling",
+        "init_profiling"
+      ],
+      "imports": [
+        {
+          "module": "module-0030",
+          "bindings": [
+            "timeout",
+            "init_async"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "ce44daacf68486c42a7fce0fc7770bf735002e8a2eca75085d93dd05894c8077"
+    },
+    {
+      "modulePath": "src/vs/base/common/ports.ts",
+      "file": "module-0034.mjs",
+      "exportedBindings": [
+        "randomPort",
+        "init_ports"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "cd5e52d22b8191b52f102e6248bc35b2a4a6cbcaa7c1980264f953fb44ab450b"
+    },
+    {
+      "modulePath": "src/vs/base/node/ports.ts",
+      "file": "module-0035.mjs",
+      "exportedBindings": [
+        "findFreePort",
+        "doFindFreePort",
+        "dispose2",
+        "net",
+        "init_ports2"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "3e037ace2675b4c3562468e11d11f2ec5c856ff5be379f714d2e5c43f2b1faae"
+    },
+    {
+      "modulePath": "src/vs/base/common/ternarySearchTree.ts",
+      "file": "module-0036.mjs",
+      "exportedBindings": [
+        "StringIterator",
+        "ConfigKeysIterator",
+        "PathIterator",
+        "UriIterator",
+        "Undef",
+        "TernarySearchTreeNode",
+        "TernarySearchTree",
+        "init_ternarySearchTree"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "init_arrays",
+            "shuffle"
+          ]
+        },
+        {
+          "module": "module-0011",
+          "bindings": [
+            "init_assert",
+            "assert"
+          ]
+        },
+        {
+          "module": "module-0019",
+          "bindings": [
+            "init_charCode"
+          ]
+        },
+        {
+          "module": "module-0023",
+          "bindings": [
+            "init_strings",
+            "compareSubstring",
+            "compareSubstringIgnoreCase",
+            "compareIgnoreCase",
+            "compare"
+          ]
+        }
+      ],
+      "sha256": "52a75d9ac449e23ffb6b0b8c419c1522168224cac91710f678bb5e3cda776d5c"
+    },
+    {
+      "modulePath": "src/vs/platform/instantiation/common/instantiation.ts",
+      "file": "module-0037.mjs",
+      "exportedBindings": [
+        "storeServiceDependency",
+        "createDecorator",
+        "_util",
+        "IInstantiationService",
+        "init_instantiation"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "ff6e4f3ff4469787684499913cf8a1fb31f45faca8f9b797f9afc5dbeed46e2b"
+    },
+    {
+      "modulePath": "src/vs/platform/files/common/files.ts",
+      "file": "module-0038.mjs",
+      "exportedBindings": [
+        "isParent",
+        "IFileService",
+        "FileChangesEvent",
+        "ByteSize",
+        "init_files"
+      ],
+      "imports": [
+        {
+          "module": "module-0004",
+          "bindings": [
+            "sep",
+            "init_path"
+          ]
+        },
+        {
+          "module": "module-0023",
+          "bindings": [
+            "startsWithIgnoreCase",
+            "init_strings"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0036",
+          "bindings": [
+            "init_ternarySearchTree",
+            "TernarySearchTree"
+          ]
+        },
+        {
+          "module": "module-0012",
+          "bindings": [
+            "init_types",
+            "isNumber"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "init_uri"
+          ]
+        },
+        {
+          "module": "module-0001",
+          "bindings": [
+            "init_nls",
+            "localize"
+          ]
+        },
+        {
+          "module": "module-0037",
+          "bindings": [
+            "init_instantiation",
+            "createDecorator"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "init_platform"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "init_network"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "init_lazy",
+            "Lazy"
+          ]
+        }
+      ],
+      "sha256": "b98dc0ece13946aa15f2864ba3ade9482442f14c44a841c21c58a0cd3801633c"
+    },
+    {
+      "modulePath": "src/vs/base/common/glob.ts",
+      "file": "module-0039.mjs",
+      "exportedBindings": [
+        "starsToRegExp",
+        "splitGlobAware",
+        "parseRegExp",
+        "parsePattern",
+        "wrapRelativePattern",
+        "trimForExclusions",
+        "trivia1",
+        "trivia2",
+        "trivia3",
+        "trivia4and5",
+        "toRegExp",
+        "parse2",
+        "isRelativePattern",
+        "parsedExpression",
+        "parseExpressionPattern",
+        "aggregateBasenameMatches",
+        "GLOBSTAR",
+        "GLOB_SPLIT",
+        "PATH_REGEX",
+        "NO_PATH_REGEX",
+        "ALL_FORWARD_SLASHES",
+        "T1",
+        "T2",
+        "T3",
+        "T3_2",
+        "T4",
+        "T5",
+        "CACHE",
+        "FALSE",
+        "NULL",
+        "init_glob"
+      ],
+      "imports": [
+        {
+          "module": "module-0023",
+          "bindings": [
+            "escapeRegExpCharacters",
+            "equalsIgnoreCase",
+            "endsWithIgnoreCase",
+            "ltrim",
+            "init_strings"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "isEqualOrParent",
+            "init_extpath"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isLinux",
+            "init_platform"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "sep",
+            "posix",
+            "basename",
+            "extname",
+            "init_path"
+          ]
+        },
+        {
+          "module": "module-0030",
+          "bindings": [
+            "isThenable",
+            "init_async"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "init_arrays"
+          ]
+        },
+        {
+          "module": "module-0019",
+          "bindings": [
+            "init_charCode"
+          ]
+        },
+        {
+          "module": "module-0010",
+          "bindings": [
+            "init_map",
+            "LRUCache"
+          ]
+        }
+      ],
+      "sha256": "c54551cfee85055d36c2b9c680678a1df1be6bc4f7c3bd740afa67dfcf2bd0cd"
+    },
+    {
+      "modulePath": "src/vs/platform/files/common/watcher.ts",
+      "file": "module-0040.mjs",
+      "exportedBindings": [
+        "isWatchRequestWithCorrelation",
+        "coalesceEvents",
+        "normalizeWatcherPattern",
+        "parseWatcherPatterns",
+        "isFiltered",
+        "AbstractWatcherClient",
+        "EventCoalescer",
+        "init_watcher"
+      ],
+      "imports": [
+        {
+          "module": "module-0039",
+          "bindings": [
+            "GLOBSTAR",
+            "parse2",
+            "init_glob"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "isAbsolute",
+            "init_path"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "init_lifecycle",
+            "Disposable",
+            "MutableDisposable",
+            "DisposableStore"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "init_platform",
+            "isLinux"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "init_uri"
+          ]
+        },
+        {
+          "module": "module-0038",
+          "bindings": [
+            "init_files",
+            "isParent"
+          ]
+        }
+      ],
+      "sha256": "edf5304d0a1c7b374f6d6a7194e40cad7aac20291f4546de59cab31359370a80"
+    },
+    {
+      "modulePath": "src/vs/platform/files/node/watcher/nodejs/nodejsWatcherLib.ts",
+      "file": "module-0041.mjs",
+      "exportedBindings": [
+        "watchFileContents",
+        "watch",
+        "promises4",
+        "NodeJSFileWatcherLibrary",
+        "init_nodejsWatcherLib"
+      ],
+      "imports": [
+        {
+          "module": "module-0032",
+          "bindings": [
+            "Promises2",
+            "init_pfs"
+          ]
+        },
+        {
+          "module": "module-0018",
+          "bindings": [
+            "CancellationTokenSource",
+            "init_cancellation"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0030",
+          "bindings": [
+            "init_async",
+            "ThrottledWorker",
+            "RunOnceWorker"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "init_extpath",
+            "isEqualOrParent",
+            "isEqual"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "init_lifecycle",
+            "Disposable",
+            "thenRegisterOrDispose",
+            "MutableDisposable",
+            "DisposableStore",
+            "toDisposable"
+          ]
+        },
+        {
+          "module": "module-0031",
+          "bindings": [
+            "init_normalization",
+            "normalizeNFC"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "init_path",
+            "basename",
+            "isAbsolute",
+            "join3",
+            "dirname3"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "init_platform",
+            "isLinux",
+            "isMacintosh"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "init_resources",
+            "joinPath"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "init_uri",
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0038",
+          "bindings": [
+            "init_files"
+          ]
+        },
+        {
+          "module": "module-0040",
+          "bindings": [
+            "init_watcher",
+            "parseWatcherPatterns",
+            "isWatchRequestWithCorrelation",
+            "coalesceEvents",
+            "isFiltered"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "init_lazy",
+            "Lazy"
+          ]
+        }
+      ],
+      "sha256": "973d16605db2448c675d82bea654396967c9ba438624e05316754ecbca26f23d"
+    },
+    {
+      "modulePath": "node_modules/minimist/index.js",
+      "file": "module-0042.mjs",
+      "exportedBindings": [
+        "require_minimist"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__commonJS"
+          ]
+        }
+      ],
+      "sha256": "a8324a8f93c1b470f12c445f92b3d22679521ddcd5880c50fc0c78039b0d24f8"
+    },
+    {
+      "modulePath": "src/vs/platform/environment/node/argv.ts",
+      "file": "module-0043.mjs",
+      "exportedBindings": [
+        "parseArgs",
+        "formatUsage",
+        "formatOptions",
+        "formatUsageTexts",
+        "indent",
+        "wrapText",
+        "buildHelpMessage",
+        "buildStdinMessage",
+        "buildVersionMessage",
+        "import_minimist",
+        "helpCategories",
+        "NATIVE_CLI_COMMANDS",
+        "OPTIONS",
+        "ignoringReporter",
+        "init_argv"
+      ],
+      "imports": [
+        {
+          "module": "module-0001",
+          "bindings": [
+            "localize",
+            "init_nls"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isWindows2",
+            "init_platform"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm",
+            "__toESM"
+          ]
+        },
+        {
+          "module": "module-0042",
+          "bindings": [
+            "require_minimist"
+          ]
+        }
+      ],
+      "sha256": "d711fc6df1fd5b170f0386f6a9e464c65cbc741ec4bd4a8f6a9d742c1de3a57d"
+    },
+    {
+      "modulePath": "src/vs/platform/environment/node/argvHelper.ts",
+      "file": "module-0044.mjs",
+      "exportedBindings": [
+        "parseAndValidate",
+        "stripAppPath",
+        "parseCLIProcessArgv",
+        "addArg",
+        "assert2",
+        "init_argvHelper"
+      ],
+      "imports": [
+        {
+          "module": "module-0001",
+          "bindings": [
+            "localize",
+            "init_nls"
+          ]
+        },
+        {
+          "module": "module-0043",
+          "bindings": [
+            "NATIVE_CLI_COMMANDS",
+            "parseArgs",
+            "OPTIONS",
+            "init_argv"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "init_path"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "init_platform"
+          ]
+        }
+      ],
+      "sha256": "32612e1377740fae0fea8ac66c3da0850fb403ec31291db2085ef0097cf640e4"
+    },
+    {
+      "modulePath": "src/vs/code/node/cliArgs.ts",
+      "file": "module-0045.mjs",
+      "exportedBindings": [
+        "combineUriFlags",
+        "init_cliArgs"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "db60e7a155779f4219843453afec54c3ba9ba0c4e91fa6b1e503d85cd882775f"
+    },
+    {
+      "modulePath": "src/vs/base/node/terminalEncoding.ts",
+      "file": "module-0046.mjs",
+      "exportedBindings": [
+        "toIconvLiteEncoding",
+        "resolveTerminalEncoding",
+        "exec",
+        "windowsTerminalEncodings",
+        "JSCHARDET_TO_ICONV_ENCODINGS",
+        "UTF8",
+        "init_terminalEncoding"
+      ],
+      "imports": [
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isWindows2",
+            "init_platform"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "77be47b3838535325b3bc0ecb41d694ab4e7c48e0f33c633d7c33cc94b05d93f"
+    },
+    {
+      "modulePath": "src/vs/platform/environment/node/stdin.ts",
+      "file": "module-0047.mjs",
+      "exportedBindings": [
+        "hasStdinWithoutTty",
+        "stdinDataListener",
+        "getStdinFilePath",
+        "createStdInFile",
+        "readFromStdin",
+        "fs5",
+        "tmpdir2",
+        "init_stdin"
+      ],
+      "imports": [
+        {
+          "module": "module-0024",
+          "bindings": [
+            "randomPath",
+            "init_extpath"
+          ]
+        },
+        {
+          "module": "module-0046",
+          "bindings": [
+            "resolveTerminalEncoding",
+            "init_terminalEncoding"
+          ]
+        },
+        {
+          "module": "module-0030",
+          "bindings": [
+            "Queue",
+            "init_async"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "5ff6988af0b6c1e97e08d0e7d44a75ed6287e75ae2b9e29c223b475b1a974d9e"
+    },
+    {
+      "modulePath": "src/vs/platform/environment/node/wait.ts",
+      "file": "module-0048.mjs",
+      "exportedBindings": [
+        "createWaitMarkerFileSync",
+        "writeFileSync3",
+        "tmpdir3",
+        "init_wait"
+      ],
+      "imports": [
+        {
+          "module": "module-0024",
+          "bindings": [
+            "randomPath",
+            "init_extpath"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "f2d3bb023bd501937667cd5ef11a62a6ad94f3239dd15c4f00fb2986a67a990d"
+    },
+    {
+      "modulePath": "src/vs/platform/product/common/product.ts",
+      "file": "module-0049.mjs",
+      "exportedBindings": [
+        "getDependencyVersion",
+        "product2",
+        "vscodeGlobal2",
+        "product_default",
+        "init_product"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "init_process",
+            "env"
+          ]
+        }
+      ],
+      "sha256": "898eb838f8f6dce9cd7c232d5d021fec7063e2cf45712c215846707936a80bf0"
+    },
+    {
+      "modulePath": "src/vs/platform/profiling/common/profiling.ts",
+      "file": "module-0050.mjs",
+      "exportedBindings": [
+        "IV8InspectProfilingService",
+        "Utils",
+        "init_profiling2"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "init_path",
+            "isAbsolute",
+            "join3",
+            "basename"
+          ]
+        },
+        {
+          "module": "module-0037",
+          "bindings": [
+            "init_instantiation",
+            "createDecorator"
+          ]
+        }
+      ],
+      "sha256": "ef3068006beb89491c94dc1cc5183a9a1952b1e979f0a7cd67023b8332db8baa"
+    },
+    {
+      "modulePath": "src/vs/base/node/unc.ts",
+      "file": "module-0051.mjs",
+      "exportedBindings": [
+        "processUNCHostAllowlist",
+        "addUNCHostToAllowlist",
+        "toSafeStringArray",
+        "init_unc"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__esm"
+          ]
+        }
+      ],
+      "sha256": "0e64e444bff2faacb54f6b765f132568b16ee43604f8cfebd6f7be69a33bb8ee"
+    },
+    {
+      "modulePath": "src/vs/code/node/cli.ts",
+      "file": "module-0052.mjs",
+      "exportedBindings": [
+        "shouldSpawnCliProcess",
+        "main",
+        "getAppRoot",
+        "eventuallyExit",
+        "cli_exports",
+        "spawn",
+        "chmodSync",
+        "existsSync2",
+        "readFileSync",
+        "statSync",
+        "truncateSync",
+        "unlinkSync",
+        "homedir",
+        "tmpdir4",
+        "init_cli"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__export",
+            "__esm"
+          ]
+        },
+        {
+          "module": "module-0044",
+          "bindings": [
+            "parseCLIProcessArgv",
+            "addArg",
+            "init_argvHelper"
+          ]
+        },
+        {
+          "module": "module-0043",
+          "bindings": [
+            "NATIVE_CLI_COMMANDS",
+            "buildHelpMessage",
+            "OPTIONS",
+            "buildVersionMessage",
+            "buildStdinMessage",
+            "init_argv"
+          ]
+        },
+        {
+          "module": "module-0049",
+          "bindings": [
+            "product_default",
+            "init_product"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "join3",
+            "dirname3",
+            "isAbsolute",
+            "resolve",
+            "init_path"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isWindows2",
+            "isMacintosh",
+            "init_platform"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "cwd",
+            "init_process"
+          ]
+        },
+        {
+          "module": "module-0024",
+          "bindings": [
+            "isUNC",
+            "randomPath",
+            "init_extpath"
+          ]
+        },
+        {
+          "module": "module-0051",
+          "bindings": [
+            "addUNCHostToAllowlist",
+            "init_unc"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "URI",
+            "init_uri"
+          ]
+        },
+        {
+          "module": "module-0032",
+          "bindings": [
+            "writeFileSync2",
+            "whenDeleted",
+            "init_pfs"
+          ]
+        },
+        {
+          "module": "module-0017",
+          "bindings": [
+            "Event",
+            "init_event"
+          ]
+        },
+        {
+          "module": "module-0047",
+          "bindings": [
+            "hasStdinWithoutTty",
+            "getStdinFilePath",
+            "readFromStdin",
+            "stdinDataListener",
+            "init_stdin"
+          ]
+        },
+        {
+          "module": "module-0030",
+          "bindings": [
+            "DeferredPromise",
+            "init_async"
+          ]
+        },
+        {
+          "module": "module-0048",
+          "bindings": [
+            "createWaitMarkerFileSync",
+            "init_wait"
+          ]
+        },
+        {
+          "module": "module-0035",
+          "bindings": [
+            "findFreePort",
+            "init_ports2"
+          ]
+        },
+        {
+          "module": "module-0034",
+          "bindings": [
+            "randomPort",
+            "init_ports"
+          ]
+        },
+        {
+          "module": "module-0033",
+          "bindings": [
+            "startProfiling",
+            "init_profiling"
+          ]
+        },
+        {
+          "module": "module-0050",
+          "bindings": [
+            "Utils",
+            "init_profiling2"
+          ]
+        },
+        {
+          "module": "module-0045",
+          "bindings": [
+            "combineUriFlags",
+            "init_cliArgs"
+          ]
+        },
+        {
+          "module": "module-0018",
+          "bindings": [
+            "CancellationTokenSource",
+            "init_cancellation"
+          ]
+        },
+        {
+          "module": "module-0041",
+          "bindings": [
+            "watchFileContents",
+            "init_nodejsWatcherLib"
+          ]
+        },
+        {
+          "module": "module-0027",
+          "bindings": [
+            "FileAccess",
+            "init_network"
+          ]
+        }
+      ],
+      "sha256": "d3bf3ad4392eb52cc1ac680822034a4cb34eab231822c877497f6e4375fa52f9"
+    },
+    {
+      "modulePath": "src/bootstrap-cli.ts",
+      "file": "module-0053.mjs",
+      "exportedBindings": [],
+      "imports": [],
+      "sha256": "377af97f0d7b236bbcac6d40076110fdaf8676fe1ad6b7be1fea96a3a36d7c83"
+    },
+    {
+      "modulePath": "src/bootstrap-node.ts",
+      "file": "module-0054.mjs",
+      "exportedBindings": [
+        "setupCurrentWorkingDirectory",
+        "enableASARSupport",
+        "configurePortable",
+        "path",
+        "fs",
+        "Buffer2",
+        "createRequire",
+        "require2",
+        "isWindows"
+      ],
+      "imports": [],
+      "sha256": "d3285d1d03149a6259158f10e87223d5d59befcf4aeb88fa51789d50947d5ac4"
+    },
+    {
+      "modulePath": "src/bootstrap-esm.ts",
+      "file": "module-0055.mjs",
+      "exportedBindings": [
+        "enableASARSupport2",
+        "setupNLS",
+        "doSetupNLS",
+        "bootstrapESM",
+        "fs2",
+        "createRequire3",
+        "isBuiltin",
+        "registerHooks",
+        "dirname2",
+        "join2",
+        "fileURLToPath",
+        "pathToFileURL",
+        "setupNLSResult"
+      ],
+      "imports": [
+        {
+          "module": "module-0056",
+          "bindings": [
+            "product",
+            "pkg"
+          ]
+        },
+        {
+          "module": "module-0057",
+          "bindings": [
+            "mark"
+          ]
+        }
+      ],
+      "sha256": "92ea1d3797c7609c5bbe9800f49300019a77b21b44f548fcf5919ba45d4c72a0"
+    },
+    {
+      "modulePath": "src/bootstrap-meta.ts",
+      "file": "module-0056.mjs",
+      "exportedBindings": [
+        "createRequire2",
+        "require3",
+        "productObj",
+        "pkgObj",
+        "productOverridesObj",
+        "product",
+        "pkg"
+      ],
+      "imports": [],
+      "sha256": "2da6a01f7c4fef9ac139ba93ff4801577ccb97cfb355a0fd6a663b81e6a38c8c"
+    },
+    {
+      "modulePath": "src/vs/base/common/performance.ts",
+      "file": "module-0057.mjs",
+      "exportedBindings": [
+        "_definePolyfillMarks",
+        "_define",
+        "_factory",
+        "perf",
+        "mark",
+        "clearMarks",
+        "getMarks"
+      ],
+      "imports": [],
+      "sha256": "197b72c0a1231ac28fc4d99ce437e46bfab320b92242e5306d4479e0d4b5ba92"
+    },
+    {
+      "modulePath": "src/vs/base/node/nls.ts",
+      "file": "module-0058.mjs",
+      "exportedBindings": [
+        "resolveNLSConfiguration",
+        "getLanguagePackConfigurations",
+        "resolveLanguagePackLanguage",
+        "defaultNLSConfiguration",
+        "touch",
+        "promises3"
+      ],
+      "imports": [
+        {
+          "module": "module-0004",
+          "bindings": [
+            "init_path",
+            "join3"
+          ]
+        },
+        {
+          "module": "module-0032",
+          "bindings": [
+            "init_pfs",
+            "Promises2"
+          ]
+        },
+        {
+          "module": "module-0057",
+          "bindings": [
+            "mark"
+          ]
+        },
+        {
+          "module": "module-0059",
+          "bindings": [
+            "syncBuiltInLanguagePacks"
+          ]
+        }
+      ],
+      "sha256": "fb1d4995e4bfe178a4f4b4917a4eb35e202fbfc72cd863e97f2c7c9e067862ed"
+    },
+    {
+      "modulePath": "src/vs/base/node/openCodeLanguagePackBootstrap.ts",
+      "file": "module-0059.mjs",
+      "exportedBindings": [
+        "syncBuiltInLanguagePacks",
+        "findExtensionsRoot",
+        "readBuiltInLanguagePacks",
+        "isValidLocalization",
+        "fileExists",
+        "createHash",
+        "fs4",
+        "path2",
+        "BUILT_IN_LANGUAGE_PACK_PREFIX"
+      ],
+      "imports": [],
+      "sha256": "9278c7da5679b2cb6ccb15a625476c7cd457f3b4f4a12e0703d50d816f864095"
+    },
+    {
+      "modulePath": "src/cli.ts",
+      "file": "module-0060.mjs",
+      "exportedBindings": [
+        "nlsConfiguration"
+      ],
+      "imports": [
+        {
+          "module": "module-0058",
+          "bindings": [
+            "resolveNLSConfiguration"
+          ]
+        },
+        {
+          "module": "module-0056",
+          "bindings": [
+            "product"
+          ]
+        },
+        {
+          "module": "module-0054",
+          "bindings": [
+            "configurePortable"
+          ]
+        },
+        {
+          "module": "module-0055",
+          "bindings": [
+            "bootstrapESM"
+          ]
+        },
+        {
+          "module": "module-0052",
+          "bindings": [
+            "init_cli",
+            "cli_exports"
+          ]
+        }
+      ],
+      "sha256": "50bd7e5a4ef22800db530ded0401d6922c777004c169299bd5d38e592a1a4cdd"
+    }
+  ],
+  "publicExports": [],
+  "topLevelBindings": 586,
+  "crossModuleWriteCount": 0,
+  "typescriptVersion": "6.0.3",
+  "directExportFix": true
+}

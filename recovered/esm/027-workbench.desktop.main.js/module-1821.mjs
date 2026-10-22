@@ -1,0 +1,673 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/workbench/workbench.desktop.main.js
+// Original module marker: src/vs/platform/mcp/common/mcpGalleryService.ts
+import { isObject, isString } from "./module-0010.mjs";
+import { Disposable } from "./module-0012.mjs";
+import { CancellationToken } from "./module-0025.mjs";
+import { CancellationError, isCancellationError } from "./module-0004.mjs";
+import { localize } from "./module-0001.mjs";
+import { URI } from "./module-0032.mjs";
+import { Schemas } from "./module-0033.mjs";
+import { MarkdownString } from "./module-0462.mjs";
+import { IRequestService, asJson, asText, isSuccess } from "./module-0946.mjs";
+import { format22, uppercaseFirstLetter } from "./module-0030.mjs";
+import { IMcpGalleryManifestService, getMcpGalleryManifestResourceUri } from "./module-1195.mjs";
+import { __decorateClass, __decorateParam } from "./module-0000.mjs";
+import { IFileService } from "./module-0269.mjs";
+import { ILogService } from "./module-0095.mjs";
+
+
+// src/vs/platform/mcp/common/mcpGalleryService.ts
+var McpServerSchemaVersion_v2025_07_09;
+
+((McpServerSchemaVersion_v2025_07_092) => {
+  McpServerSchemaVersion_v2025_07_092.VERSION = "v0-2025-07-09";
+  McpServerSchemaVersion_v2025_07_092.SCHEMA = `https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json`;
+  class Serializer {
+    toRawGalleryMcpServerResult(input) {
+      if (!input || typeof input !== "object" || !Array.isArray(input.servers)) {
+        return void 0;
+      }
+      const from = input;
+      const servers = [];
+      for (const server of from.servers) {
+        const rawServer = this.toRawGalleryMcpServer(server);
+        if (!rawServer) {
+          return void 0;
+        }
+        servers.push(rawServer);
+      }
+      return {
+        metadata: {
+          count: from.metadata.count ?? 0,
+          nextCursor: from.metadata?.next_cursor
+        },
+        servers
+      };
+    }
+    toRawGalleryMcpServer(input) {
+      if (!input || typeof input !== "object") {
+        return void 0;
+      }
+      const from = input;
+      if (!from.name || !isString(from.name) || (!from.description || !isString(from.description)) || (!from.version || !isString(from.version))) {
+        return void 0;
+      }
+      if (from.$schema && from.$schema !== McpServerSchemaVersion_v2025_07_092.SCHEMA) {
+        return void 0;
+      }
+      const registryInfo = from._meta?.["io.modelcontextprotocol.registry/official"];
+      function convertServerInput(input2) {
+        return {
+          ...input2,
+          isRequired: input2.is_required,
+          isSecret: input2.is_secret
+        };
+      }
+      function convertVariables(variables) {
+        const result = {};
+        for (const [key3, value2] of Object.entries(variables)) {
+          result[key3] = convertServerInput(value2);
+        }
+        return result;
+      }
+      function convertServerArgument(arg) {
+        if (arg.type === "positional") {
+          return {
+            ...arg,
+            valueHint: arg.value_hint,
+            isRepeated: arg.is_repeated,
+            isRequired: arg.is_required,
+            isSecret: arg.is_secret,
+            variables: arg.variables ? convertVariables(arg.variables) : void 0
+          };
+        }
+        return {
+          ...arg,
+          isRepeated: arg.is_repeated,
+          isRequired: arg.is_required,
+          isSecret: arg.is_secret,
+          variables: arg.variables ? convertVariables(arg.variables) : void 0
+        };
+      }
+      function convertKeyValueInput(input2) {
+        return {
+          ...input2,
+          isRequired: input2.is_required,
+          isSecret: input2.is_secret,
+          variables: input2.variables ? convertVariables(input2.variables) : void 0
+        };
+      }
+      function convertTransport(input2) {
+        switch (input2.type) {
+          case "stdio":
+            return {
+              type: "stdio" /* STDIO */
+            };
+          case "streamable-http":
+            return {
+              type: "streamable-http" /* STREAMABLE_HTTP */,
+              url: input2.url,
+              headers: input2.headers?.map(convertKeyValueInput)
+            };
+          case "sse":
+            return {
+              type: "sse" /* SSE */,
+              url: input2.url,
+              headers: input2.headers?.map(convertKeyValueInput)
+            };
+          default:
+            return {
+              type: "stdio" /* STDIO */
+            };
+        }
+      }
+      function convertRegistryType(input2) {
+        switch (input2) {
+          case "npm":
+            return "npm" /* NODE */;
+          case "docker":
+          case "docker-hub":
+          case "oci":
+            return "oci" /* DOCKER */;
+          case "pypi":
+            return "pypi" /* PYTHON */;
+          case "nuget":
+            return "nuget" /* NUGET */;
+          case "mcpb":
+            return "mcpb" /* MCPB */;
+          default:
+            return "npm" /* NODE */;
+        }
+      }
+      const gitHubInfo = from._meta["io.modelcontextprotocol.registry/publisher-provided"]?.github;
+      return {
+        id: registryInfo.id,
+        name: from.name,
+        description: from.description,
+        repository: from.repository ? {
+          url: from.repository.url,
+          source: from.repository.source,
+          id: from.repository.id
+        } : void 0,
+        readme: from.repository?.readme,
+        version: from.version,
+        createdAt: from.created_at,
+        updatedAt: from.updated_at,
+        packages: from.packages?.map((p) => ({
+          identifier: p.identifier ?? p.name,
+          registryType: convertRegistryType(p.registry_type ?? p.registry_name),
+          version: p.version,
+          fileSha256: p.file_sha256,
+          registryBaseUrl: p.registry_base_url,
+          transport: p.transport ? convertTransport(p.transport) : { type: "stdio" /* STDIO */ },
+          packageArguments: p.package_arguments?.map(convertServerArgument),
+          runtimeHint: p.runtime_hint,
+          runtimeArguments: p.runtime_arguments?.map(convertServerArgument),
+          environmentVariables: p.environment_variables?.map(convertKeyValueInput)
+        })),
+        remotes: from.remotes?.map((remote) => {
+          const type = remote.type ?? remote.transport_type ?? remote.transport;
+          return {
+            type: type === "sse" /* SSE */ ? "sse" /* SSE */ : "streamable-http" /* STREAMABLE_HTTP */,
+            url: remote.url,
+            headers: remote.headers?.map(convertKeyValueInput)
+          };
+        }),
+        registryInfo: {
+          isLatest: registryInfo.is_latest,
+          publishedAt: registryInfo.published_at,
+          updatedAt: registryInfo.updated_at
+        },
+        githubInfo: gitHubInfo ? {
+          name: gitHubInfo.name,
+          nameWithOwner: gitHubInfo.name_with_owner,
+          displayName: gitHubInfo.display_name,
+          isInOrganization: gitHubInfo.is_in_organization,
+          license: gitHubInfo.license,
+          opengraphImageUrl: gitHubInfo.opengraph_image_url,
+          ownerAvatarUrl: gitHubInfo.owner_avatar_url,
+          primaryLanguage: gitHubInfo.primary_language,
+          primaryLanguageColor: gitHubInfo.primary_language_color,
+          pushedAt: gitHubInfo.pushed_at,
+          stargazerCount: gitHubInfo.stargazer_count,
+          topics: gitHubInfo.topics,
+          usesCustomOpengraphImage: gitHubInfo.uses_custom_opengraph_image
+        } : void 0
+      };
+    }
+  }
+  McpServerSchemaVersion_v2025_07_092.SERIALIZER = new Serializer();
+})(McpServerSchemaVersion_v2025_07_09 || (McpServerSchemaVersion_v2025_07_09 = {}));
+
+var McpServerSchemaVersion_v0_1;
+
+((McpServerSchemaVersion_v0_12) => {
+  McpServerSchemaVersion_v0_12.VERSION = "v0.1";
+  class Serializer {
+    toRawGalleryMcpServerResult(input) {
+      if (!input || typeof input !== "object" || !Array.isArray(input.servers)) {
+        return void 0;
+      }
+      const from = input;
+      const servers = [];
+      for (const server of from.servers) {
+        const rawServer = this.toRawGalleryMcpServer(server);
+        if (!rawServer) {
+          if (servers.length === 0) {
+            return void 0;
+          } else {
+            continue;
+          }
+        }
+        servers.push(rawServer);
+      }
+      return {
+        metadata: from.metadata,
+        servers
+      };
+    }
+    toRawGalleryMcpServer(input) {
+      if (!input || typeof input !== "object") {
+        return void 0;
+      }
+      const from = input;
+      if (!from.server || !isObject(from.server) || (!from.server.name || !isString(from.server.name)) || (!from.server.description || !isString(from.server.description)) || (!from.server.version || !isString(from.server.version))) {
+        return void 0;
+      }
+      const { "io.modelcontextprotocol.registry/official": registryInfo, ...apicInfo } = from._meta;
+      const githubInfo = from.server._meta?.["io.modelcontextprotocol.registry/publisher-provided"]?.github;
+      return {
+        name: from.server.name,
+        description: from.server.description,
+        version: from.server.version,
+        title: from.server.title,
+        repository: from.server.repository ? {
+          url: from.server.repository.url,
+          source: from.server.repository.source,
+          id: from.server.repository.id
+        } : void 0,
+        readme: githubInfo?.readme,
+        icons: from.server.icons,
+        websiteUrl: from.server.websiteUrl,
+        packages: from.server.packages,
+        remotes: from.server.remotes,
+        status: registryInfo?.status,
+        registryInfo,
+        githubInfo,
+        apicInfo
+      };
+    }
+  }
+  McpServerSchemaVersion_v0_12.SERIALIZER = new Serializer();
+})(McpServerSchemaVersion_v0_1 || (McpServerSchemaVersion_v0_1 = {}));
+
+var McpServerSchemaVersion_v0;
+
+((McpServerSchemaVersion_v02) => {
+  McpServerSchemaVersion_v02.VERSION = "v0";
+  class Serializer {
+    constructor() {
+      this.galleryMcpServerDataSerializers = [];
+      this.galleryMcpServerDataSerializers.push(McpServerSchemaVersion_v0_1.SERIALIZER);
+      this.galleryMcpServerDataSerializers.push(McpServerSchemaVersion_v2025_07_09.SERIALIZER);
+    }
+    toRawGalleryMcpServerResult(input) {
+      for (const serializer of this.galleryMcpServerDataSerializers) {
+        const result = serializer.toRawGalleryMcpServerResult(input);
+        if (result) {
+          return result;
+        }
+      }
+      return void 0;
+    }
+    toRawGalleryMcpServer(input) {
+      for (const serializer of this.galleryMcpServerDataSerializers) {
+        const result = serializer.toRawGalleryMcpServer(input);
+        if (result) {
+          return result;
+        }
+      }
+      return void 0;
+    }
+  }
+  McpServerSchemaVersion_v02.SERIALIZER = new Serializer();
+})(McpServerSchemaVersion_v0 || (McpServerSchemaVersion_v0 = {}));
+
+var DefaultPageSize2 = 50;
+
+var DefaultQueryState2 = {
+  pageSize: DefaultPageSize2
+};
+
+var Query2 = class _Query {
+  constructor(state = DefaultQueryState2) {
+    this.state = state;
+  }
+  get pageSize() {
+    return this.state.pageSize;
+  }
+  get searchText() {
+    return this.state.searchText;
+  }
+  get cursor() {
+    return this.state.cursor;
+  }
+  withPage(cursor, pageSize = this.pageSize) {
+    return new _Query({ ...this.state, pageSize, cursor });
+  }
+  withSearchText(searchText) {
+    return new _Query({ ...this.state, searchText });
+  }
+};
+
+var McpGalleryService = class extends Disposable {
+  constructor(requestService, fileService, logService, mcpGalleryManifestService) {
+    super();
+    this.requestService = requestService;
+    this.fileService = fileService;
+    this.logService = logService;
+    this.mcpGalleryManifestService = mcpGalleryManifestService;
+    this.galleryMcpServerDataSerializers = /* @__PURE__ */ new Map();
+    this.galleryMcpServerDataSerializers.set(McpServerSchemaVersion_v0.VERSION, McpServerSchemaVersion_v0.SERIALIZER);
+    this.galleryMcpServerDataSerializers.set(McpServerSchemaVersion_v0_1.VERSION, McpServerSchemaVersion_v0_1.SERIALIZER);
+  }
+  isEnabled() {
+    return this.mcpGalleryManifestService.mcpGalleryManifestStatus === "available" /* Available */;
+  }
+  async query(options3, token = CancellationToken.None) {
+    const mcpGalleryManifest = await this.mcpGalleryManifestService.getMcpGalleryManifest();
+    if (!mcpGalleryManifest) {
+      return {
+        firstPage: { items: [], hasMore: false },
+        getNextPage: async () => ({ items: [], hasMore: false })
+      };
+    }
+    let query = new Query2();
+    if (options3?.text) {
+      query = query.withSearchText(options3.text.trim());
+    }
+    const { servers, metadata } = await this.queryGalleryMcpServers(query, mcpGalleryManifest, token);
+    let currentCursor = metadata.nextCursor;
+    return {
+      firstPage: { items: servers, hasMore: !!metadata.nextCursor },
+      getNextPage: async (ct) => {
+        if (ct.isCancellationRequested) {
+          throw new CancellationError();
+        }
+        if (!currentCursor) {
+          return { items: [], hasMore: false };
+        }
+        const { servers: servers2, metadata: nextMetadata } = await this.queryGalleryMcpServers(query.withPage(currentCursor).withSearchText(void 0), mcpGalleryManifest, ct);
+        currentCursor = nextMetadata.nextCursor;
+        return { items: servers2, hasMore: !!nextMetadata.nextCursor };
+      }
+    };
+  }
+  async getMcpServersFromGallery(infos) {
+    const resolved = await this.resolveMcpServersFromGallery(infos);
+    const mcpServers = [];
+    for (const result of resolved.values()) {
+      if (result.status === 0 /* Found */) {
+        mcpServers.push(result.server);
+      }
+    }
+    return mcpServers;
+  }
+  async resolveMcpServersFromGallery(infos) {
+    const result = /* @__PURE__ */ new Map();
+    const mcpGalleryManifest = await this.mcpGalleryManifestService.getMcpGalleryManifest();
+    if (!mcpGalleryManifest) {
+      for (const info of infos) {
+        result.set(info.name, { status: 2 /* Failed */ });
+      }
+      return result;
+    }
+    await Promise.all(infos.map(async (info) => {
+      try {
+        const mcpServer = await this.getMcpServerByName(info, mcpGalleryManifest);
+        result.set(info.name, mcpServer ? { status: 0 /* Found */, server: mcpServer } : { status: 1 /* NotFound */ });
+      } catch (error) {
+        this.logService.warn(`Failed to resolve MCP server '${info.name}' from gallery: ${error}`);
+        result.set(info.name, { status: 2 /* Failed */ });
+      }
+    }));
+    return result;
+  }
+  async getMcpServerByName({ name, id: id2 }, mcpGalleryManifest) {
+    const urls = [
+      this.getLatestServerVersionUrl(name, mcpGalleryManifest),
+      this.getNamedServerUrl(name, mcpGalleryManifest),
+      id2 ? this.getServerIdUrl(id2, mcpGalleryManifest) : void 0
+    ];
+    let attempted = false;
+    let lastError;
+    for (const url of urls) {
+      if (!url) {
+        continue;
+      }
+      attempted = true;
+      try {
+        const mcpServer = await this.getMcpServer(url);
+        if (mcpServer) {
+          if (mcpServer.name === name) {
+            return mcpServer;
+          }
+          lastError = new Error(`MCP server lookup for '${name}' returned '${mcpServer.name}'`);
+        }
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (!attempted) {
+      throw new Error(`Cannot resolve MCP server '${name}': registry manifest has no server lookup endpoint`);
+    }
+    if (lastError !== void 0) {
+      throw lastError;
+    }
+    return void 0;
+  }
+  async getReadme(gallery, token) {
+    const readmeUrl = gallery.readmeUrl;
+    if (!readmeUrl) {
+      return Promise.resolve(localize(3116, null));
+    }
+    const uri5 = URI.parse(readmeUrl);
+    if (uri5.scheme === Schemas.file) {
+      try {
+        const content2 = await this.fileService.readFile(uri5);
+        return content2.value.toString();
+      } catch (error) {
+        this.logService.error(`Failed to read file from ${uri5}: ${error}`);
+      }
+    }
+    if (uri5.authority !== "raw.githubusercontent.com") {
+      return new MarkdownString(localize(3117, null, readmeUrl)).value;
+    }
+    const context2 = await this.requestService.request({
+      type: "GET",
+      url: readmeUrl,
+      callSite: "mcpGalleryService.getReadme"
+    }, token);
+    const result = await asText(context2);
+    if (!result) {
+      throw new Error(`Failed to fetch README from ${readmeUrl}`);
+    }
+    return result;
+  }
+  toGalleryMcpServer(server, manifest) {
+    let publisher = "";
+    let displayName = server.title;
+    if (server.githubInfo?.name) {
+      if (!displayName) {
+        displayName = server.githubInfo.name.split("-").map((s) => s.toLowerCase() === "mcp" ? "MCP" : s.toLowerCase() === "github" ? "GitHub" : uppercaseFirstLetter(s)).join(" ");
+      }
+      publisher = server.githubInfo.nameWithOwner.split("/")[0];
+    } else {
+      const nameParts = server.name.split("/");
+      if (nameParts.length > 0) {
+        const domainParts = nameParts[0].split(".");
+        if (domainParts.length > 0) {
+          publisher = domainParts[domainParts.length - 1];
+        }
+      }
+      if (!displayName) {
+        displayName = nameParts[nameParts.length - 1].split("-").map((s) => uppercaseFirstLetter(s)).join(" ");
+      }
+    }
+    if (server.githubInfo?.displayName) {
+      displayName = server.githubInfo.displayName;
+    }
+    let icon2;
+    if (server.githubInfo?.preferredImage) {
+      icon2 = {
+        light: server.githubInfo.preferredImage,
+        dark: server.githubInfo.preferredImage
+      };
+    } else if (server.githubInfo?.ownerAvatarUrl) {
+      icon2 = {
+        light: server.githubInfo.ownerAvatarUrl,
+        dark: server.githubInfo.ownerAvatarUrl
+      };
+    } else if (server.apicInfo?.["x-ms-icon"]) {
+      icon2 = {
+        light: server.apicInfo["x-ms-icon"],
+        dark: server.apicInfo["x-ms-icon"]
+      };
+    } else if (server.icons && server.icons.length > 0) {
+      const lightIcon = server.icons.find((icon3) => icon3.theme === "light") ?? server.icons[0];
+      const darkIcon = server.icons.find((icon3) => icon3.theme === "dark") ?? lightIcon;
+      icon2 = {
+        light: lightIcon.src,
+        dark: darkIcon.src
+      };
+    }
+    const webUrl = manifest ? this.getWebUrl(server.name, manifest) : void 0;
+    const publisherUrl = manifest ? this.getPublisherUrl(publisher, manifest) : void 0;
+    return {
+      id: server.id,
+      name: server.name,
+      displayName,
+      galleryUrl: manifest?.url,
+      webUrl,
+      description: server.description,
+      status: server.status ?? "active" /* Active */,
+      version: server.version,
+      isLatest: server.registryInfo?.isLatest ?? true,
+      publishDate: server.registryInfo?.publishedAt ? Date.parse(server.registryInfo.publishedAt) : void 0,
+      lastUpdated: server.githubInfo?.pushedAt ? Date.parse(server.githubInfo.pushedAt) : server.registryInfo?.updatedAt ? Date.parse(server.registryInfo.updatedAt) : void 0,
+      repositoryUrl: server.repository?.url,
+      readme: server.readme,
+      icon: icon2,
+      publisher,
+      publisherUrl,
+      license: server.githubInfo?.license,
+      starsCount: server.githubInfo?.stargazerCount,
+      topics: server.githubInfo?.topics,
+      configuration: {
+        packages: server.packages,
+        remotes: server.remotes
+      }
+    };
+  }
+  async queryGalleryMcpServers(query, mcpGalleryManifest, token) {
+    const { servers, metadata } = await this.queryRawGalleryMcpServers(query, mcpGalleryManifest, token);
+    return {
+      servers: servers.map((item) => this.toGalleryMcpServer(item, mcpGalleryManifest)),
+      metadata
+    };
+  }
+  async queryRawGalleryMcpServers(query, mcpGalleryManifest, token) {
+    const mcpGalleryUrl = this.getMcpGalleryUrl(mcpGalleryManifest);
+    if (!mcpGalleryUrl) {
+      return { servers: [], metadata: { count: 0 } };
+    }
+    const uri5 = URI.parse(mcpGalleryUrl);
+    if (uri5.scheme === Schemas.file) {
+      try {
+        const content2 = await this.fileService.readFile(uri5);
+        const data2 = content2.value.toString();
+        return JSON.parse(data2);
+      } catch (error) {
+        this.logService.error(`Failed to read file from ${uri5}: ${error}`);
+      }
+    }
+    let url = `${mcpGalleryUrl}?limit=${query.pageSize}&version=latest`;
+    if (query.cursor) {
+      url += `&cursor=${query.cursor}`;
+    }
+    if (query.searchText) {
+      const text2 = encodeURIComponent(query.searchText);
+      url += `&search=${text2}`;
+    }
+    let context2;
+    try {
+      context2 = await this.requestService.request({
+        type: "GET",
+        url,
+        callSite: "mcpGalleryService.queryMcpServers"
+      }, token);
+    } catch (error) {
+      if (isCancellationError(error)) {
+        throw error;
+      }
+      this.logService.error(`Failed to query MCP gallery: ${error}`);
+      return { servers: [], metadata: { count: 0 } };
+    }
+    if (!isSuccess(context2)) {
+      this.logService.error(`Failed to query MCP gallery: Server returned ${context2.res.statusCode}`);
+      return { servers: [], metadata: { count: 0 } };
+    }
+    const data = await asJson(context2);
+    if (!data) {
+      return { servers: [], metadata: { count: 0 } };
+    }
+    const result = this.serializeMcpServersResult(data, mcpGalleryManifest);
+    if (!result) {
+      throw new Error(`Failed to serialize MCP servers result from ${mcpGalleryUrl}`, data);
+    }
+    return result;
+  }
+  async getMcpServer(mcpServerUrl, mcpGalleryManifest) {
+    const context2 = await this.requestService.request({
+      type: "GET",
+      url: mcpServerUrl,
+      callSite: "mcpGalleryService.getMcpServer"
+    }, CancellationToken.None);
+    if (context2.res.statusCode === 404) {
+      return void 0;
+    }
+    if (context2.res.statusCode && context2.res.statusCode >= 400) {
+      throw new Error(`Failed to fetch MCP server from ${mcpServerUrl}: server responded with ${context2.res.statusCode}`);
+    }
+    const data = await asJson(context2);
+    if (!data) {
+      throw new Error(`Failed to fetch MCP server from ${mcpServerUrl}: empty response`);
+    }
+    if (!mcpGalleryManifest) {
+      mcpGalleryManifest = await this.mcpGalleryManifestService.getMcpGalleryManifest();
+    }
+    mcpGalleryManifest = mcpGalleryManifest && mcpServerUrl.startsWith(mcpGalleryManifest.url) ? mcpGalleryManifest : null;
+    const server = this.serializeMcpServer(data, mcpGalleryManifest);
+    if (!server) {
+      throw new Error(`Failed to serialize MCP server from ${mcpServerUrl}`, data);
+    }
+    return this.toGalleryMcpServer(server, mcpGalleryManifest);
+  }
+  serializeMcpServer(data, mcpGalleryManifest) {
+    return this.getSerializer(mcpGalleryManifest)?.toRawGalleryMcpServer(data);
+  }
+  serializeMcpServersResult(data, mcpGalleryManifest) {
+    return this.getSerializer(mcpGalleryManifest)?.toRawGalleryMcpServerResult(data);
+  }
+  getSerializer(mcpGalleryManifest) {
+    const version2 = mcpGalleryManifest?.version ?? "v0";
+    return this.galleryMcpServerDataSerializers.get(version2);
+  }
+  getNamedServerUrl(name, mcpGalleryManifest) {
+    const namedResourceUriTemplate = getMcpGalleryManifestResourceUri(mcpGalleryManifest, "McpServerNamedResourceUriTemplate" /* McpServerNamedResourceUri */);
+    if (!namedResourceUriTemplate) {
+      return void 0;
+    }
+    return format22(namedResourceUriTemplate, { name });
+  }
+  getServerIdUrl(id2, mcpGalleryManifest) {
+    const resourceUriTemplate = getMcpGalleryManifestResourceUri(mcpGalleryManifest, "McpServerIdUriTemplate" /* McpServerIdUri */);
+    if (!resourceUriTemplate) {
+      return void 0;
+    }
+    return format22(resourceUriTemplate, { id: id2 });
+  }
+  getLatestServerVersionUrl(name, mcpGalleryManifest) {
+    const latestVersionResourceUriTemplate = getMcpGalleryManifestResourceUri(mcpGalleryManifest, "McpServerLatestVersionUriTemplate" /* McpServerLatestVersionUri */);
+    if (!latestVersionResourceUriTemplate) {
+      return void 0;
+    }
+    return format22(latestVersionResourceUriTemplate, { name: encodeURIComponent(name) });
+  }
+  getWebUrl(name, mcpGalleryManifest) {
+    const resourceUriTemplate = getMcpGalleryManifestResourceUri(mcpGalleryManifest, "McpServerWebUriTemplate" /* McpServerWebUri */);
+    if (!resourceUriTemplate) {
+      return void 0;
+    }
+    return format22(resourceUriTemplate, { name });
+  }
+  getPublisherUrl(name, mcpGalleryManifest) {
+    const resourceUriTemplate = getMcpGalleryManifestResourceUri(mcpGalleryManifest, "PublisherUriTemplate" /* PublisherUriTemplate */);
+    if (!resourceUriTemplate) {
+      return void 0;
+    }
+    return format22(resourceUriTemplate, { name });
+  }
+  getMcpGalleryUrl(mcpGalleryManifest) {
+    return getMcpGalleryManifestResourceUri(mcpGalleryManifest, "McpServersQueryService" /* McpServersQueryService */);
+  }
+};
+
+McpGalleryService = __decorateClass([
+  __decorateParam(0, IRequestService),
+  __decorateParam(1, IFileService),
+  __decorateParam(2, ILogService),
+  __decorateParam(3, IMcpGalleryManifestService)
+], McpGalleryService);
+export { McpServerSchemaVersion_v2025_07_09, McpServerSchemaVersion_v0_1, McpServerSchemaVersion_v0, DefaultPageSize2, DefaultQueryState2, Query2, McpGalleryService };

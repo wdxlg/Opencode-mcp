@@ -1,0 +1,217 @@
+{
+  "generatorVersion": 2,
+  "bundle": "001-skill-archive-worker.js",
+  "artifactPath": "resources/app/extensions/opencode/dist/skill-archive-worker.js",
+  "status": "generated-not-validated",
+  "modules": [
+    {
+      "modulePath": "<bundle-preamble>",
+      "file": "module-0000.mjs",
+      "exportedBindings": [
+        "__create",
+        "__defProp",
+        "__getOwnPropDesc",
+        "__getOwnPropNames",
+        "__getProtoOf",
+        "__hasOwnProp",
+        "__export",
+        "__copyProps",
+        "__toESM",
+        "__toCommonJS"
+      ],
+      "imports": [],
+      "sha256": "0b0f4c013c64e9a8039ee08b4bddc64570f177f2dd942ec99b7f2bf7b863d0c0"
+    },
+    {
+      "modulePath": "src/skill-archive-worker.ts",
+      "file": "module-0001.mjs",
+      "exportedBindings": [
+        "runSkillArchiveJob",
+        "skill_archive_worker_exports",
+        "import_node_crypto",
+        "import_node_fs3",
+        "import_node_worker_threads"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__export",
+            "__toCommonJS"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "SKILL_ARCHIVE_MAX_BYTES",
+            "SkillArchiveError"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "detectArchive"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "extractSafeSkillZipBuffer"
+          ]
+        },
+        {
+          "module": "module-0005",
+          "bindings": [
+            "extractSafeSkillTarGzBuffer"
+          ]
+        }
+      ],
+      "sha256": "bba9615f5f9a5fb4cad886d92db686100af389fac557e7d80eb7144332fe263f"
+    },
+    {
+      "modulePath": "src/skill-archive-detect.ts",
+      "file": "module-0002.mjs",
+      "exportedBindings": [
+        "archiveKindFromName",
+        "displayExtension",
+        "sniffArchive",
+        "unsupportedArchiveMessage",
+        "detectArchive",
+        "import_node_path2",
+        "SKILL_ARCHIVE_EXTENSIONS",
+        "LABELS"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__toESM"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "REPACK_HINT",
+            "SkillArchiveError"
+          ]
+        }
+      ],
+      "sha256": "d490a50c35fa1d9d218e9f9b5c943e0fd410ae2ce0b0e0d7dc5768a6c3d72e0e"
+    },
+    {
+      "modulePath": "src/skill-archive-limits.ts",
+      "file": "module-0003.mjs",
+      "exportedBindings": [
+        "safeArchiveParts",
+        "isJunkArchiveEntry",
+        "crc32",
+        "import_node_path",
+        "SKILL_ARCHIVE_MAX_BYTES",
+        "SKILL_ARCHIVE_TOO_LARGE_HINT",
+        "SKILL_ARCHIVE_ENTRY_RATIO",
+        "SKILL_ARCHIVE_ENTRY_RATIO_FLOOR",
+        "SKILL_ARCHIVE_TOTAL_RATIO",
+        "SKILL_ARCHIVE_TOTAL_RATIO_FLOOR",
+        "SKILL_ARCHIVE_MAX_NAME_BYTES",
+        "SKILL_ARCHIVE_MAX_PATH_BYTES",
+        "REPACK_HINT",
+        "NON_UTF8_HINT",
+        "SkillArchiveError",
+        "shown",
+        "ArchiveEntryBudget"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__toESM"
+          ]
+        }
+      ],
+      "sha256": "d71d53021de13cfe57d9184473f654ebd7c78e2d4dea53d5ff1c74766c506829"
+    },
+    {
+      "modulePath": "src/skill-safe-zip.ts",
+      "file": "module-0004.mjs",
+      "exportedBindings": [
+        "entryName",
+        "extractSafeSkillZipBuffer",
+        "import_node_fs",
+        "import_node_path3",
+        "import_node_zlib"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__toESM"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "SkillArchiveError",
+            "NON_UTF8_HINT",
+            "crc32",
+            "SKILL_ARCHIVE_MAX_BYTES",
+            "SKILL_ARCHIVE_TOO_LARGE_HINT",
+            "REPACK_HINT",
+            "ArchiveEntryBudget",
+            "safeArchiveParts",
+            "SKILL_ARCHIVE_ENTRY_RATIO_FLOOR",
+            "SKILL_ARCHIVE_ENTRY_RATIO",
+            "SKILL_ARCHIVE_TOTAL_RATIO_FLOOR",
+            "SKILL_ARCHIVE_TOTAL_RATIO",
+            "isJunkArchiveEntry"
+          ]
+        }
+      ],
+      "sha256": "5062baa374c0ea2aa8dc949c83798a7993c73261d89bc4f9beb15c7c0a7117ad"
+    },
+    {
+      "modulePath": "src/skill-safe-targz.ts",
+      "file": "module-0005.mjs",
+      "exportedBindings": [
+        "utf8",
+        "field",
+        "octal",
+        "checksumOk",
+        "paxRecords",
+        "extractSafeSkillTarGzBuffer",
+        "import_node_fs2",
+        "import_node_path4",
+        "import_node_zlib2",
+        "BLOCK",
+        "corrupt",
+        "isZero"
+      ],
+      "imports": [
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__toESM"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "SkillArchiveError",
+            "NON_UTF8_HINT",
+            "SKILL_ARCHIVE_MAX_BYTES",
+            "SKILL_ARCHIVE_TOO_LARGE_HINT",
+            "SKILL_ARCHIVE_TOTAL_RATIO_FLOOR",
+            "SKILL_ARCHIVE_TOTAL_RATIO",
+            "ArchiveEntryBudget",
+            "safeArchiveParts",
+            "isJunkArchiveEntry"
+          ]
+        }
+      ],
+      "sha256": "f028dff2916a1dadfb736a71dd6f3830424a3ff2eaef5f8972baf776ea557404"
+    }
+  ],
+  "publicExports": [],
+  "topLevelBindings": 57,
+  "crossModuleWriteCount": 0,
+  "typescriptVersion": "6.0.3"
+}

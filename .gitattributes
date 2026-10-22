@@ -1,0 +1,11 @@
+* text=auto
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.cmd text eol=crlf
+
+# Preserve exact bytes pinned by static/default manifests across Git checkouts.
+/assets/** -text !eol
+defaults/** -text !eol

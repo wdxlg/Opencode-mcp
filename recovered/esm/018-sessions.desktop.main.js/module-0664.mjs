@@ -1,0 +1,352 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/sessions/sessions.desktop.main.js
+// Original module marker: src/vs/editor/contrib/contextmenu/browser/contextmenu.ts
+import { DisposableStore } from "./module-0012.mjs";
+import { getDomNodePagePosition, getShadowRoot } from "./module-0075.mjs";
+import { IMenuService, SubmenuItemAction } from "./module-0092.mjs";
+import { Separator, SubmenuAction } from "./module-0082.mjs";
+import { isIOS } from "./module-0014.mjs";
+import { ActionViewItem } from "./module-0476.mjs";
+import { IWorkspaceContextService, isStandaloneEditorWorkspace } from "./module-0509.mjs";
+import { localize, localize2 } from "./module-0001.mjs";
+import { __decorateClass, __decorateParam } from "./module-0000.mjs";
+import { IContextMenuService, IContextViewService } from "./module-0488.mjs";
+import { IContextKeyService } from "./module-0089.mjs";
+import { IKeybindingService } from "./module-0352.mjs";
+import { IConfigurationService } from "./module-0132.mjs";
+import { EditorAction, registerEditorAction, registerEditorContribution } from "./module-0097.mjs";
+import { EditorContextKeys } from "./module-0154.mjs";
+
+
+// src/vs/editor/contrib/contextmenu/browser/contextmenu.ts
+var ContextMenuController = class {
+  constructor(editor, _contextMenuService, _contextViewService, _contextKeyService, _keybindingService, _menuService, _configurationService, _workspaceContextService) {
+    this._contextMenuService = _contextMenuService;
+    this._contextViewService = _contextViewService;
+    this._contextKeyService = _contextKeyService;
+    this._keybindingService = _keybindingService;
+    this._menuService = _menuService;
+    this._configurationService = _configurationService;
+    this._workspaceContextService = _workspaceContextService;
+    this._toDispose = new DisposableStore();
+    this._contextMenuIsBeingShownCount = 0;
+    this._editor = editor;
+    this._toDispose.add(this._editor.onContextMenu((e4) => this._onContextMenu(e4)));
+    this._toDispose.add(this._editor.onMouseWheel((e4) => {
+      if (this._contextMenuIsBeingShownCount > 0) {
+        const view = this._contextViewService.getContextViewElement();
+        const target = e4.srcElement;
+        if (!(target.shadowRoot && getShadowRoot(view) === target.shadowRoot)) {
+          this._contextViewService.hideContextView();
+        }
+      }
+    }));
+    this._toDispose.add(this._editor.onKeyDown((e4) => {
+      if (!this._editor.getOption(30 /* contextmenu */)) {
+        return;
+      }
+      if (e4.keyCode === 58 /* ContextMenu */) {
+        e4.preventDefault();
+        e4.stopPropagation();
+        this.showContextMenu();
+      }
+    }));
+  }
+  static {
+    this.ID = "editor.contrib.contextmenu";
+  }
+  static get(editor) {
+    return editor.getContribution(ContextMenuController.ID);
+  }
+  _onContextMenu(e4) {
+    if (!this._editor.hasModel()) {
+      return;
+    }
+    if (!this._editor.getOption(30 /* contextmenu */)) {
+      this._editor.focus();
+      if (e4.target.position && !this._editor.getSelection().containsPosition(e4.target.position)) {
+        this._editor.setPosition(e4.target.position);
+      }
+      return;
+    }
+    if (e4.target.type === 12 /* OVERLAY_WIDGET */) {
+      return;
+    }
+    if (e4.target.type === 6 /* CONTENT_TEXT */ && e4.target.detail.injectedText) {
+      return;
+    }
+    e4.event.preventDefault();
+    e4.event.stopPropagation();
+    if (e4.target.type === 11 /* SCROLLBAR */) {
+      return this._showScrollbarContextMenu(e4.event);
+    }
+    if (e4.target.type !== 6 /* CONTENT_TEXT */ && e4.target.type !== 7 /* CONTENT_EMPTY */ && e4.target.type !== 1 /* TEXTAREA */) {
+      return;
+    }
+    this._editor.focus();
+    if (e4.target.position) {
+      let hasSelectionAtPosition = false;
+      for (const selection of this._editor.getSelections()) {
+        if (selection.containsPosition(e4.target.position)) {
+          hasSelectionAtPosition = true;
+          break;
+        }
+      }
+      if (!hasSelectionAtPosition) {
+        this._editor.setPosition(e4.target.position);
+      }
+    }
+    let anchor = null;
+    if (e4.target.type !== 1 /* TEXTAREA */) {
+      anchor = e4.event;
+    }
+    this.showContextMenu(anchor);
+  }
+  showContextMenu(anchor) {
+    if (!this._editor.getOption(30 /* contextmenu */)) {
+      return;
+    }
+    if (!this._editor.hasModel()) {
+      return;
+    }
+    const menuActions = this._getMenuActions(
+      this._editor.getModel(),
+      this._editor.contextMenuId
+    );
+    if (menuActions.length > 0) {
+      this._doShowContextMenu(menuActions, anchor);
+    }
+  }
+  _getMenuActions(model, menuId) {
+    const result = [];
+    const groups = this._menuService.getMenuActions(menuId, this._contextKeyService, { arg: model.uri });
+    for (const group2 of groups) {
+      const [, actions] = group2;
+      let addedItems = 0;
+      for (const action of actions) {
+        if (action instanceof SubmenuItemAction) {
+          const subActions = this._getMenuActions(model, action.item.submenu);
+          if (subActions.length > 0) {
+            result.push(new SubmenuAction(action.id, action.label, subActions));
+            addedItems++;
+          }
+        } else {
+          result.push(action);
+          addedItems++;
+        }
+      }
+      if (addedItems) {
+        result.push(new Separator());
+      }
+    }
+    if (result.length) {
+      result.pop();
+    }
+    return result;
+  }
+  _doShowContextMenu(actions, event = null) {
+    if (!this._editor.hasModel()) {
+      return;
+    }
+    let anchor = event;
+    if (!anchor) {
+      this._editor.revealPosition(this._editor.getPosition(), 1 /* Immediate */);
+      this._editor.render();
+      const cursorCoords = this._editor.getScrolledVisiblePosition(this._editor.getPosition());
+      const editorCoords = getDomNodePagePosition(this._editor.getDomNode());
+      const posx = editorCoords.left + cursorCoords.left;
+      const posy = editorCoords.top + cursorCoords.top + cursorCoords.height;
+      anchor = { x: posx, y: posy };
+    }
+    const useShadowDOM = this._editor.getOption(144 /* useShadowDOM */) && !isIOS;
+    this._contextMenuIsBeingShownCount++;
+    this._contextMenuService.showContextMenu({
+      domForShadowRoot: useShadowDOM ? this._editor.getOverflowWidgetsDomNode() ?? this._editor.getDomNode() : void 0,
+      useWindowContainerForShadowRoot: useShadowDOM && this._editor.getOption(51 /* fixedOverflowWidgets */),
+      getAnchor: () => anchor,
+      getActions: () => actions,
+      getActionViewItem: (action) => {
+        const keybinding = this._keybindingFor(action);
+        if (keybinding) {
+          return new ActionViewItem(action, action, { label: true, keybinding: keybinding.getLabel(), isMenu: true });
+        }
+        const customAction = action;
+        if (typeof customAction.getActionViewItem === "function") {
+          return customAction.getActionViewItem();
+        }
+        return new ActionViewItem(action, action, { icon: true, label: true, isMenu: true });
+      },
+      getKeyBinding: (action) => {
+        return this._keybindingFor(action);
+      },
+      onHide: (wasCancelled) => {
+        this._contextMenuIsBeingShownCount--;
+      }
+    });
+  }
+  _showScrollbarContextMenu(anchor) {
+    if (!this._editor.hasModel()) {
+      return;
+    }
+    if (isStandaloneEditorWorkspace(this._workspaceContextService.getWorkspace())) {
+      return;
+    }
+    const minimapOptions = this._editor.getOption(81 /* minimap */);
+    let lastId = 0;
+    const createAction = (opts) => {
+      return {
+        id: `menu-action-${++lastId}`,
+        label: opts.label,
+        tooltip: "",
+        class: void 0,
+        enabled: typeof opts.enabled === "undefined" ? true : opts.enabled,
+        checked: opts.checked,
+        run: opts.run
+      };
+    };
+    const createSubmenuAction = (label3, actions2) => {
+      return new SubmenuAction(
+        `menu-action-${++lastId}`,
+        label3,
+        actions2,
+        void 0
+      );
+    };
+    const createEnumAction = (label3, enabled, configName, configuredValue, options3) => {
+      if (!enabled) {
+        return createAction({ label: label3, enabled, run: () => {
+        } });
+      }
+      const createRunner = (value2) => {
+        return () => {
+          this._configurationService.updateValue(configName, value2);
+        };
+      };
+      const actions2 = [];
+      for (const option2 of options3) {
+        actions2.push(createAction({
+          label: option2.label,
+          checked: configuredValue === option2.value,
+          run: createRunner(option2.value)
+        }));
+      }
+      return createSubmenuAction(
+        label3,
+        actions2
+      );
+    };
+    const actions = [];
+    actions.push(createAction({
+      label: localize(1075, null),
+      checked: minimapOptions.enabled,
+      run: () => {
+        this._configurationService.updateValue(`editor.minimap.enabled`, !minimapOptions.enabled);
+      }
+    }));
+    actions.push(new Separator());
+    actions.push(createAction({
+      label: localize(1076, null),
+      enabled: minimapOptions.enabled,
+      checked: minimapOptions.renderCharacters,
+      run: () => {
+        this._configurationService.updateValue(`editor.minimap.renderCharacters`, !minimapOptions.renderCharacters);
+      }
+    }));
+    actions.push(createEnumAction(
+      localize(1080, null),
+      minimapOptions.enabled,
+      "editor.minimap.size",
+      minimapOptions.size,
+      [{
+        label: localize(1083, null),
+        value: "proportional"
+      }, {
+        label: localize(1081, null),
+        value: "fill"
+      }, {
+        label: localize(1082, null),
+        value: "fit"
+      }]
+    ));
+    actions.push(createEnumAction(
+      localize(1084, null),
+      minimapOptions.enabled,
+      "editor.minimap.showSlider",
+      minimapOptions.showSlider,
+      [{
+        label: localize(1086, null),
+        value: "mouseover"
+      }, {
+        label: localize(1085, null),
+        value: "always"
+      }]
+    ));
+    actions.push(createEnumAction(
+      localize(1077, null),
+      minimapOptions.enabled,
+      "editor.minimap.side",
+      minimapOptions.side,
+      [{
+        label: localize(1079, null),
+        value: "right"
+      }, {
+        label: localize(1078, null),
+        value: "left"
+      }]
+    ));
+    const useShadowDOM = this._editor.getOption(144 /* useShadowDOM */) && !isIOS;
+    this._contextMenuIsBeingShownCount++;
+    this._contextMenuService.showContextMenu({
+      domForShadowRoot: useShadowDOM ? this._editor.getDomNode() : void 0,
+      useWindowContainerForShadowRoot: useShadowDOM && this._editor.getOption(51 /* fixedOverflowWidgets */),
+      getAnchor: () => anchor,
+      getActions: () => actions,
+      onHide: (wasCancelled) => {
+        this._contextMenuIsBeingShownCount--;
+        this._editor.focus();
+      }
+    });
+  }
+  _keybindingFor(action) {
+    return this._keybindingService.lookupKeybinding(action.id);
+  }
+  dispose() {
+    if (this._contextMenuIsBeingShownCount > 0) {
+      this._contextViewService.hideContextView();
+    }
+    this._toDispose.dispose();
+  }
+};
+
+ContextMenuController = __decorateClass([
+  __decorateParam(1, IContextMenuService),
+  __decorateParam(2, IContextViewService),
+  __decorateParam(3, IContextKeyService),
+  __decorateParam(4, IKeybindingService),
+  __decorateParam(5, IMenuService),
+  __decorateParam(6, IConfigurationService),
+  __decorateParam(7, IWorkspaceContextService)
+], ContextMenuController);
+
+var ShowContextMenu = class extends EditorAction {
+  constructor() {
+    super({
+      id: "editor.action.showContextMenu",
+      label: localize2(1074, "Show Editor Context Menu"),
+      precondition: void 0,
+      kbOpts: {
+        kbExpr: EditorContextKeys.textInputFocus,
+        primary: 1024 /* Shift */ | 68 /* F10 */,
+        weight: 100 /* EditorContrib */
+      }
+    });
+  }
+  run(accessor, editor) {
+    ContextMenuController.get(editor)?.showContextMenu();
+  }
+};
+
+registerEditorContribution(ContextMenuController.ID, ContextMenuController, 2 /* BeforeFirstInteraction */);
+
+registerEditorAction(ShowContextMenu);
+export { ContextMenuController, ShowContextMenu };

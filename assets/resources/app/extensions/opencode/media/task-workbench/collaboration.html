@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>多任务协作</title>
+<link rel="stylesheet" href="automation.css">
+</head>
+<body>
+<header class="topbar"><h1>多任务协作</h1><label class="workspace-label" for="workspace">工作区</label><select id="workspace" aria-label="协作工作区"></select><button id="add-workspace" class="secondary">指定文件夹</button><button id="refresh" class="secondary">刷新</button></header>
+<section class="toolbar" aria-label="多模型协作总开关">
+<button id="collaboration-toggle" type="button" class="secondary" role="switch" aria-checked="false" aria-describedby="collaboration-state">多模型协作：关闭</button>
+<p id="collaboration-state" class="hint" role="status" aria-live="polite">正在读取协作状态。未开启时职位、成员、协作任务与原生协作执行均不生效。</p>
+</section>
+<div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+<div id="collaboration-content" hidden>
+<details class="completion-policy"><summary>完成策略（可选）</summary>
+<label class="checkbox-label"><input id="native-review-required" type="checkbox">原生协作完成后由我验收（默认关闭）</label>
+<p class="hint">完成、验证、用户验收分别记录。关闭时执行器按授权目标自主收尾；只有开启才进入待审查。未运行的检查保持未运行，未知副作用仍阻塞。</p></details>
+<nav class="tabs" role="tablist" aria-label="多任务协作">
+<button role="tab" aria-selected="false" data-tab="roles" aria-controls="tab-roles">职位与成员</button>
+<button role="tab" aria-selected="false" data-tab="staff" aria-controls="tab-staff">员工</button>
+<button role="tab" aria-selected="false" data-tab="teams" aria-controls="tab-teams">经理与团队</button>
+<button role="tab" aria-selected="true" data-tab="tasks" aria-controls="tab-tasks">协作任务</button>
+<button role="tab" aria-selected="false" data-tab="routing" aria-controls="tab-routing">模型与技能路由</button>
+<button role="tab" aria-selected="false" data-tab="messages" aria-controls="tab-messages">定向消息</button>
+</nav>
+<main>
+<section id="tab-roles" role="tabpanel" hidden>
+  <div class="editor-layout role-layout">
+    <aside><div class="section-heading"><h2>职位</h2><button id="new-role" class="secondary">自定义</button></div><div id="role-list" class="item-list"></div></aside>
+    <div class="editor"><label for="role-name">职位名称</label><input id="role-name" maxlength="200"><label for="role-instructions">职责</label><textarea id="role-instructions" rows="6" maxlength="32000"></textarea><label for="role-tools">允许工具（每行一个；* 表示全部已授权工具）</label><textarea id="role-tools" rows="7" spellcheck="false"></textarea><label class="checkbox-label"><input id="role-readonly" type="checkbox">此职位只读工作区</label><div class="actions"><button id="save-role">保存职位</button><button id="copy-role" class="secondary">复制为自定义职位</button><button id="discard-role" class="secondary">放弃修改</button></div><p class="hint">“未分配 / 只读”不可提升权限。职位由本地用户分配；模型选择、类别和显示名都不授予权限。共享凭证不是安全的多用户隔离。</p></div>
+  </div>
+  <h2>当前 MCP 成员</h2><p class="hint">只列当前 MCP 已确认的会话。流连接、进行中的请求及最近两分钟确认分别标注；空闲确认过期、断开或被新连接替换后隐藏。历史角色与任务保留但不充当连接；不据此认证底层模型或宣称持续网络在线。</p>
+  <div class="table-wrap"><table><thead><tr><th>成员</th><th>执行来源</th><th>连接确认</th><th>规则确认</th><th>职位</th><th></th></tr></thead><tbody id="agents"></tbody></table></div>
+</section>
+<section id="tab-staff" role="tabpanel" hidden>
+  <div class="section-heading"><h2>员工</h2><div class="actions"><button id="employee-new" class="secondary">添加员工</button><button id="employee-manager-role" class="secondary">新建经理职位模板</button><button id="employee-review-role" class="secondary">新建团队审查职位</button></div></div>
+  <p class="hint">职位控制权限，员工选择执行后端。API员工复用模型管理中各个提供方的独立配置；这里只保存模型引用，不保存密钥。MCP员工是主动接单的外部AI代理，不是任意MCP工具，也不会自动唤醒网页AI。</p>
+  <p id="staff-error" class="feedback error" hidden></p>
+  <div class="editor-layout staff-layout">
+    <aside><div id="employee-list" class="item-list"></div></aside>
+    <div class="editor">
+      <p id="employee-edit-state" class="hint"></p>
+      <label for="employee-name">员工名称</label><input id="employee-name" maxlength="200">
+      <label for="employee-kind">执行后端</label><select id="employee-kind"><option value="api">API / 已配置模型</option><option value="mcp">外部 MCP 代理（主动接单）</option></select>
+      <label for="employee-role">绑定职位</label><select id="employee-role"></select>
+      <div id="employee-api-fields"><label for="employee-model">固定模型</label><select id="employee-model"></select><div class="actions"><button id="employee-api-settings" class="secondary">配置 API 提供方</button><button id="employee-model-refresh" class="secondary">刷新模型目录</button></div><p class="hint">在模型管理中可配置不同端点、协议、模型和密钥，再分别分配给员工。目录可用不等于提供方健康或真实模型身份认证。</p></div>
+      <label for="employee-paths">可写目录前缀（相对项目，每行一个）</label><textarea id="employee-paths" rows="3" spellcheck="false" placeholder="例如 src/frontend；. 表示整个执行副本"></textarea>
+      <label class="checkbox-label"><input id="employee-shell" type="checkbox">明确允许通用 Shell（仅全目录范围；不是 OS 沙箱）</label>
+      <label class="checkbox-label"><input id="employee-manager" type="checkbox">可被本地选为团队经理（职位仍须允许派工与审查工具）</label>
+      <label class="checkbox-label"><input id="employee-enabled" type="checkbox" checked>启用此员工</label>
+      <div class="actions"><button id="employee-save">保存员工</button><button id="employee-discard" class="secondary">放弃修改</button></div>
+      <div id="employee-mcp-fields" hidden>
+        <h3>MCP 连接绑定</h3><p class="hint">先保存员工。可选择当前经确认的真实连接绑定，也可复制10分钟内有效的一次性配对信息给外部客户端。绑定后客户端须重新读取确认规则；已有执行不因重连转移。</p>
+        <label for="employee-agent">当前 MCP 连接</label><select id="employee-agent"></select>
+        <div class="actions"><button id="employee-bind" class="secondary">绑定此连接</button><button id="employee-pair" class="secondary">复制一次性配对信息</button><button id="employee-unbind" class="secondary">解除连接绑定</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="tab-teams" role="tabpanel" hidden>
+  <div class="section-heading"><h2>经理与团队</h2><button id="team-new" class="secondary">新建团队草案</button></div>
+  <p class="hint">一次明确授权限定项目、员工、任务数和原生模型请求总数；经理可在此范围内派工与返工，无需逐张任务卡人工确认。重启或暂停后须重新授权，预算不重置。MCP客户端自身的模型费用无法由本机计量。</p>
+  <details id="team-editor" class="team-editor" open><summary id="team-edit-state">新建团队草案（保存不会发起模型请求）</summary>
+    <div class="task-create">
+      <label for="team-name">团队名称</label><input id="team-name" maxlength="200">
+      <label for="team-goal">授权目标与交付要求</label><textarea id="team-goal" rows="4" maxlength="16000"></textarea>
+      <label for="team-manager">经理员工</label><select id="team-manager"></select>
+      <label for="team-members">执行员工（多选）</label><select id="team-members" multiple size="5"></select>
+      <label for="team-isolation">写入隔离</label><select id="team-isolation"><option value="auto">自动：干净 Git 并行 worktree，其余串行单写者</option><option value="worktree" selected>必须独立 worktree（不满足则阻塞）</option><option value="single-writer">明确在原项目串行单写者</option></select>
+      <label for="team-max-tasks">任务总数上限</label><input id="team-max-tasks" type="number" min="2" max="40" value="20">
+      <label for="team-max-requests">原生 SDK 请求总数上限</label><input id="team-max-requests" type="number" min="1" max="120" value="60">
+      <span></span><p class="hint">含经理、员工与恢复请求；每次执行仍最多12轮。提供方内部重试依原配置，这不是金额上限。最多1名原生经理与2名原生执行员工并行；外部MCP进程不计入这些槽位。</p>
+      <span></span><label class="checkbox-label"><input id="team-integrate" type="checkbox" checked>要求经理审查并整合员工交付</label>
+      <span></span><label class="checkbox-label"><input id="team-publish" type="checkbox">整合后应用回原项目（逐文件核对版本，不提交）</label>
+      <span></span><p class="hint">不勾选回写时，worktree模式的最终产物留在经理副本。auto降级或明确单写者时，员工会直接修改原项目；不允许此行为请选择必须worktree。自动整合限有界UTF-8文本；冲突、二进制、过大或未知结果明确阻塞，不最后写入胜出。单写者模式只核对已在原项目中的产物。</p>
+      <div class="actions control-row"><button id="team-save">保存草案</button><button id="team-discard" class="secondary">取消编辑</button></div>
+    </div>
+  </details>
+  <div id="team-list" class="team-list"></div>
+</section>
+
+<section id="tab-tasks" role="tabpanel">
+  <div class="section-heading"><h2>当前工作区任务（最新更新在上）</h2><div class="actions"><span id="worker-status" class="hint"></span><button id="start-queue">启动原生队列</button></div></div>
+  <div class="task-create">
+    <label for="task-title">任务标题</label><input id="task-title" maxlength="200">
+    <label for="task-goal">目标与交付要求</label><textarea id="task-goal" rows="3" maxlength="16000"></textarea>
+    <label for="task-role">职位</label><select id="task-role"></select>
+    <label for="task-category">任务类别</label><select id="task-category"></select>
+    <label for="task-model">任务模型覆盖</label><select id="task-model" aria-describedby="task-model-hint"></select>
+    <span></span><p id="task-model-hint" class="hint">优先使用任务覆盖，其次类别模型；均未配置时才在启动时选择批次默认模型。不可用模型不会静默替换。</p>
+    <label for="task-skills">任务 Skills</label><div><label class="checkbox-label"><input id="task-inherit-skills" type="checkbox" checked>继承类别 Skills</label><select id="task-skills" multiple size="4" aria-label="任务技能覆盖"></select></div>
+    <label for="task-max-turns">模型轮次上限</label><input id="task-max-turns" type="number" min="1" max="12" placeholder="留空继承类别；最多 12 轮">
+    <label for="task-isolation">写入隔离</label><select id="task-isolation"><option value="auto">自动：干净 Git 使用 worktree，其余协作单写者</option><option value="worktree">必须使用独立 worktree（不满足条件则阻塞）</option><option value="single-writer">明确使用源目录单写者</option></select>
+    <label for="task-artifacts">必须交付的文件</label><textarea id="task-artifacts" rows="2" placeholder="可选；每行一个实际文件路径，不填测试命令"></textarea>
+    <label for="task-dependencies">依赖</label><select id="task-dependencies" multiple size="3" aria-label="任务依赖"></select>
+    <div class="actions control-row"><button id="create-task">创建任务</button><button id="cancel-task-edit" class="secondary" hidden>取消配置编辑</button><span id="task-edit-state" class="hint"></span></div>
+  </div>
+  <p class="hint">写入任务使用独立工作副本，或在 Git 不可用／工作区不干净时使用明确记录的协作单写者。不会复制未提交文件、自动安装依赖、合并、提交、测试或删除工作副本。Shell、共享端口与外部服务不是安全沙箱。</p>
+  <div id="tasks" class="task-list"></div>
+</section>
+<section id="tab-routing" role="tabpanel" hidden>
+  <h2>按任务类别选择模型与 Skills</h2><p class="hint">职位控制工具权限；类别只选择执行配置。主协调会话保持原模型，不因类别切换身份。没有可用模型或 Skill 时明确阻塞，不自动安装。</p>
+  <div class="editor-layout role-layout">
+    <aside><div class="section-heading"><h2>类别</h2><button id="new-category" class="secondary">自定义</button></div><div id="category-list" class="item-list"></div></aside>
+    <div class="editor"><label for="category-name">类别名称</label><input id="category-name" maxlength="200"><label for="category-model">默认模型</label><select id="category-model"></select><label for="category-skills">加载 Skills（多选）</label><select id="category-skills" multiple size="6"></select><label for="category-max-turns">模型轮次上限</label><input id="category-max-turns" type="number" min="1" max="12" value="12"><div class="actions"><button id="save-category">保存类别</button><button id="discard-category" class="secondary">放弃修改</button></div><p id="routing-catalog-state" class="hint"></p></div>
+  </div>
+</section>
+<section id="tab-messages" role="tabpanel" hidden>
+  <h2>任务消息与交接</h2><p class="hint">本地协调者可查看本工作区的消息。AI 收件箱只返回自己的消息。发送、送达、已处理分别记录；不广播，不把消息处理当作任务完成。</p>
+  <div class="task-create"><label for="message-task">所属任务</label><select id="message-task"></select><label for="message-recipient">收件人</label><select id="message-recipient"></select><label for="message-kind">类型</label><select id="message-kind"><option value="finding">发现／证据</option><option value="question">问题／决策请求</option><option value="handoff">交接</option><option value="blocked">阻塞</option></select><label for="message-text">正文</label><textarea id="message-text" rows="4" maxlength="8000"></textarea><div class="actions control-row"><button id="send-message">发送定向消息</button></div></div>
+  <div id="messages" class="message-list"></div>
+</section>
+</main>
+</div>
+<script src="collaboration.js"></script>
+</body>
+</html>

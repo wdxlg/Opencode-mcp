@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>规则中心</title>
+<link rel="stylesheet" href="automation.css">
+</head>
+<body>
+<header class="topbar"><h1>规则中心</h1><label class="workspace-label" for="workspace">工作区</label><select id="workspace" aria-label="规则工作区"></select><button id="add-workspace" class="secondary">指定文件夹</button><button id="refresh" class="secondary">刷新</button></header>
+<div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+<main>
+<div class="scope-settings">
+  <div><label for="global-group">通用规则组</label><div class="control-row"><select id="global-group"></select><button id="set-global">设为通用规则组</button></div></div>
+  <div><label for="binding-mode">当前工作区规则</label><div class="control-row"><select id="binding-mode"><option value="global">使用通用规则组</option><option value="preset">使用指定规则组</option></select><select id="binding-group" aria-label="工作区指定规则组"></select><button id="save-binding">保存绑定</button></div></div>
+</div>
+<div class="editor-layout">
+  <aside><div class="section-heading"><h2>已保存规则组</h2><button id="new-group" class="secondary">新建组</button></div><div id="group-list" class="item-list"></div></aside>
+  <div class="editor">
+    <label for="group-name">规则组名称</label><input id="group-name" maxlength="200">
+    <div class="section-heading"><h2>组内规则</h2></div>
+    <p class="hint">名称框可搜索并选择规则库预设；精确匹配库名时引用库正文，改成库中不存在的名字时保留正文并独立。可同时启用多条规则，保存后按列表顺序一起生效。</p>
+    <div id="rule-list" class="rule-list"></div>
+    <div class="rule-add-row"><button id="add-rule" class="secondary">添加规则</button></div>
+    <div class="checks"><label><input id="group-readonly" type="checkbox">只读工作区</label><label><input id="group-commands" type="checkbox">允许命令执行</label></div>
+    <p class="hint">操作策略作用于整组。命令执行不是操作系统沙箱，规则文本不扩大当前任务授权。</p>
+    <div class="actions"><button id="save-group">保存规则组</button><button id="copy-group" class="secondary">复制规则组</button><button id="discard-group" class="secondary">放弃修改</button><button id="delete-group" class="secondary">删除未引用组</button></div>
+  </div>
+  <aside class="preview"><h2>保存后的实际生效规则</h2><div id="effective-source" class="hint"></div><div id="effective-rules" class="effective-rules"></div><details><summary>合并正文与版本</summary><pre id="effective-text"></pre><code id="effective-hash"></code><p class="hint">MCP 和原生 Chat 获取全部已启用规则。修改内容、启用状态或顺序后，旧确认失效。</p></details></aside>
+</div>
+<div class="storage"><span>跨版本持久数据位置</span><code id="storage-file"></code><button id="export-rules" class="secondary">导出规则组与绑定</button><p class="hint">已有单文本规则自动转换为组内一条规则。迁移前备份，保留内容、通用选中项和工作区绑定，不重置规则库。</p></div>
+</main>
+<script src="rules.js"></script>
+</body>
+</html>

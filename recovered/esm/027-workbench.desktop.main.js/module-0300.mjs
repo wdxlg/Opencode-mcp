@@ -1,0 +1,46 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/workbench/workbench.desktop.main.js
+// Original module marker: src/vs/editor/browser/viewParts/viewLines/domReadingContext.ts
+
+
+
+// src/vs/editor/browser/viewParts/viewLines/domReadingContext.ts
+var DomReadingContext = class {
+  constructor(_domNode, endNode) {
+    this._domNode = _domNode;
+    this.endNode = endNode;
+    this._didDomLayout = false;
+    this._clientRectDeltaLeft = 0;
+    this._clientRectScale = 1;
+    this._clientRectRead = false;
+  }
+  get didDomLayout() {
+    return this._didDomLayout;
+  }
+  readClientRect() {
+    if (!this._clientRectRead) {
+      this._clientRectRead = true;
+      const rect = this._domNode.getBoundingClientRect();
+      this.markDidDomLayout();
+      this._clientRectDeltaLeft = rect.left;
+      const offsetWidth = this._domNode.offsetWidth;
+      this._clientRectScale = offsetWidth > 0 ? rect.width / offsetWidth : 1;
+    }
+  }
+  get clientRectDeltaLeft() {
+    if (!this._clientRectRead) {
+      this.readClientRect();
+    }
+    return this._clientRectDeltaLeft;
+  }
+  get clientRectScale() {
+    if (!this._clientRectRead) {
+      this.readClientRect();
+    }
+    return this._clientRectScale;
+  }
+  markDidDomLayout() {
+    this._didDomLayout = true;
+  }
+};
+export { DomReadingContext };

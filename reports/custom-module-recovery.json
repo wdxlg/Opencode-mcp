@@ -1,0 +1,897 @@
+{
+  "recovered": 116,
+  "originalTypeScriptTypesRestored": false,
+  "modules": [
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/global-skill-paths.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0025.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/global-skill-settings.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0026.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/global-skill-catalog.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0027.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/custom-tool-skill.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0028.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/custom-tool-contract.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0029.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/file-tool-registry.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0030.mjs",
+        "recovered/esm/002-agent-host.js/module-0015.mjs",
+        "recovered/esm/003-mcp-server.js/module-0100.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/apply-patch.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0031.mjs",
+        "recovered/esm/002-agent-host.js/module-0016.mjs",
+        "recovered/esm/003-mcp-server.js/module-0089.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/canonical-diff.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0032.mjs",
+        "recovered/esm/002-agent-host.js/module-0017.mjs",
+        "recovered/esm/003-mcp-server.js/module-0090.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/apply-patch-directories.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0033.mjs",
+        "recovered/esm/002-agent-host.js/module-0018.mjs",
+        "recovered/esm/003-mcp-server.js/module-0091.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/workspace-paths.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0034.mjs",
+        "recovered/esm/002-agent-host.js/module-0019.mjs",
+        "recovered/esm/003-mcp-server.js/module-0092.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/file-tool-input-compat.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0035.mjs",
+        "recovered/esm/002-agent-host.js/module-0020.mjs",
+        "recovered/esm/003-mcp-server.js/module-0093.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/find-files.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0036.mjs",
+        "recovered/esm/002-agent-host.js/module-0021.mjs",
+        "recovered/esm/003-mcp-server.js/module-0094.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/ripgrep-diagnostics.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0037.mjs",
+        "recovered/esm/002-agent-host.js/module-0022.mjs",
+        "recovered/esm/003-mcp-server.js/module-0095.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/read-files.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0038.mjs",
+        "recovered/esm/002-agent-host.js/module-0023.mjs",
+        "recovered/esm/003-mcp-server.js/module-0096.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/read-image.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0039.mjs",
+        "recovered/esm/002-agent-host.js/module-0024.mjs",
+        "recovered/esm/003-mcp-server.js/module-0097.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/search-files.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0040.mjs",
+        "recovered/esm/002-agent-host.js/module-0025.mjs",
+        "recovered/esm/003-mcp-server.js/module-0098.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/tool-input-validation.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0041.mjs",
+        "recovered/esm/002-agent-host.js/module-0026.mjs",
+        "recovered/esm/003-mcp-server.js/module-0099.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/ide-tool-definitions.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0042.mjs",
+        "recovered/esm/002-agent-host.js/module-0027.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/bridge-agent-instructions.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0043.mjs",
+        "recovered/esm/002-agent-host.js/module-0028.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/global-skill-import.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0044.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/custom-tool-skill-import.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0045.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/skill-archive.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0046.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/skill-archive-detect.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0047.mjs",
+        "recovered/esm/001-skill-archive-worker.js/module-0002.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/skill-archive-limits.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0048.mjs",
+        "recovered/esm/001-skill-archive-worker.js/module-0003.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/skill-fs-retry.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0049.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/skill-import-journal.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0050.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/skill-import-recovery.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0051.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/global-skill-migration.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0052.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/custom-tools.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0053.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/custom-tool-manifest.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0054.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/custom-tool-migration.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0055.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/custom-tool-sandbox.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0056.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/custom-tool-admin.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0057.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/external-mcp-import.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0060.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/external-mcp-oauth-config.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0061.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/external-mcp-network-errors.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0109.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/bridge-ngrok-failure.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0115.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/bridge-task-owner.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0130.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/bridge-event-store.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0131.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/bridge-http-router.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0132.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/build-info.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0133.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/version.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0134.mjs",
+        "recovered/esm/002-agent-host.js/module-0066.mjs",
+        "recovered/esm/003-mcp-server.js/module-0101.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/mcp-protocol.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0135.mjs",
+        "recovered/esm/003-mcp-server.js/module-0103.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/jsonrpc-request-id-registry.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0136.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/bridge-session-registry.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0137.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/managed-command-cancellation.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0138.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/managed-command-risk.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0139.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/bridge-task-store.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0144.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/bridge-coordination-validation.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0145.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/ide-tool-output.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0146.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/bridge-activity-tracker.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0147.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/bridge-tool-name.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0148.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/concurrency.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0149.mjs",
+        "recovered/esm/003-mcp-server.js/module-0102.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/adaptive-concurrency.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0150.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/configure-mcp.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0151.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/mcp-runtime-provision.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0152.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/managed-command-id.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0166.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/managed-command-retention.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0167.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/managed-terminal-lifecycle.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0168.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/explicit-folder-target.ts",
+      "implementations": [
+        "recovered/esm/000-extension.js/module-0182.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/skill-archive-worker.ts",
+      "implementations": [
+        "recovered/esm/001-skill-archive-worker.js/module-0001.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/skill-safe-zip.ts",
+      "implementations": [
+        "recovered/esm/001-skill-archive-worker.js/module-0004.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/skill-safe-targz.ts",
+      "implementations": [
+        "recovered/esm/001-skill-archive-worker.js/module-0005.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/agent-host.ts",
+      "implementations": [
+        "recovered/esm/002-agent-host.js/module-0014.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/openai-agent.ts",
+      "implementations": [
+        "recovered/esm/002-agent-host.js/module-0029.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/deepseek-compat.ts",
+      "implementations": [
+        "recovered/esm/002-agent-host.js/module-0064.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/agent-tool-content.ts",
+      "implementations": [
+        "recovered/esm/002-agent-host.js/module-0065.mjs"
+      ]
+    },
+    {
+      "family": "opencode-extension",
+      "modulePath": "src/mcp-server.ts",
+      "implementations": [
+        "recovered/esm/003-mcp-server.js/module-0001.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/base/node/openCodeLanguagePackBootstrap.ts",
+      "implementations": [
+        "recovered/esm/005-cli.js/module-0059.mjs",
+        "recovered/esm/006-main.js/module-0398.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/platform/browserView/electron-main/browserArenaFollowLatestPage.ts",
+      "implementations": [
+        "recovered/esm/006-main.js/module-0142.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/platform/browserView/electron-main/browserArenaFollowLatest.ts",
+      "implementations": [
+        "recovered/esm/006-main.js/module-0143.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/chatBranchService.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-1992.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2015.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/common/modelChannelOrder.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2160.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2185.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/widget/chatContentParts/toolInvocationParts/openCodeChatToolProgressPart.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2319.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2344.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/common/chatService/openCodeSharedChat.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2476.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2502.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/actions/chatBranchActions.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2530.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2556.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/actions/openCodeSharedChatActions.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2567.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2592.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/customizationNavigationToggle.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2619.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2644.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeCustomizationSections.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2620.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2645.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeLocalization.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2621.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2646.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/automationsListWidget.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2641.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2666.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/chatManagement/chatModelsLocalization.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2642.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2667.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeMultiModelLocalization.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2649.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2674.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/promptMigration.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2652.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2677.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgePaymentPresentation.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2654.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2679.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeSettingTarget.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2655.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2680.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeContact.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2656.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2681.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeOpenFolder.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2657.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2682.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeQuickLinks.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2658.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2683.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgePurchasePresentation.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2659.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2684.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgePublicUrlField.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2660.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2685.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeSelectOptions.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2661.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2686.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeStartupFailureCatalog.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2662.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2687.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeStartupFailureCard.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2663.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2688.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeStatusMessage.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2664.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2689.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeStartupFailure.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2665.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2690.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeStartupFailureActions.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2666.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2691.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeWidget.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2667.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2692.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeMcpFormModel.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2668.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2693.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeMcpImportPanel.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2669.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2694.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeMcpAddForm.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2670.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2695.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeMcpSecretsMenu.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2671.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2696.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeMcpStatus.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2672.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2697.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeSkillWidget.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2673.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2698.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeMultiModelWidget.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2674.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2699.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeStartupFailureNotification.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2736.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2761.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/widgetHosts/viewPane/bridgeStatusRefresh.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2737.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2762.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/widgetHosts/viewPane/bridgeTaskPresentation.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2738.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2763.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/chat/browser/widgetHosts/viewPane/openCodeBridgeSessionView.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2739.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2764.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/mcp/common/openCodeMcpLaunchOptions.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2855.mjs",
+        "recovered/esm/019-extensionHostProcess.js/module-0324.mjs",
+        "recovered/esm/020-extensionHostWorkerMain.js/module-0317.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2974.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/mcp/browser/mcpStartup.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-2873.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-2992.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/browserView/common/browserArenaFollowLatestConfiguration.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-4160.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-4049.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/browserView/common/browserViewScope.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-4161.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-4050.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/browserView/electron-browser/features/browserEditorArenaFollowLatestFeature.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-4194.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-4083.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/contrib/browserView/electron-browser/features/browserScopeIndicatorFeature.ts",
+      "implementations": [
+        "recovered/esm/018-sessions.desktop.main.js/module-4201.mjs",
+        "recovered/esm/027-workbench.desktop.main.js/module-4090.mjs"
+      ]
+    },
+    {
+      "family": "core",
+      "modulePath": "src/vs/workbench/api/node/openCodeManagedMcpEnvironment.ts",
+      "implementations": [
+        "recovered/esm/019-extensionHostProcess.js/module-0519.mjs"
+      ]
+    }
+  ]
+}

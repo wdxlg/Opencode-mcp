@@ -1,0 +1,204 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/sessions/sessions.desktop.main.js
+// Original module marker: src/vs/editor/contrib/inlineCompletions/browser/model/editKind.ts
+
+
+
+// src/vs/editor/contrib/inlineCompletions/browser/model/editKind.ts
+var syntacticalChars = /* @__PURE__ */ new Set([";", ",", "=", "+", "-", "*", "/", "{", "}", "(", ")", "[", "]", "<", ">", ":", ".", "!", "?", "&", "|", "^", "%", "@", "#", "~", "`", "\\", "'", '"', "$"]);
+
+function isSyntacticalChar(char) {
+  return syntacticalChars.has(char);
+}
+
+function isIdentifierChar(char) {
+  return /[a-zA-Z0-9_]/.test(char);
+}
+
+function isWhitespaceChar(char) {
+  return char === " " || char === "	";
+}
+
+function analyzeTextShape(text2) {
+  const lines = text2.split(/\r\n|\r|\n/);
+  if (lines.length > 1) {
+    return {
+      kind: "multiLine",
+      lineCount: lines.length
+    };
+  }
+  const isSingleChar = text2.length === 1;
+  let singleCharKind;
+  if (isSingleChar) {
+    if (isSyntacticalChar(text2)) {
+      singleCharKind = "syntactical";
+    } else if (isIdentifierChar(text2)) {
+      singleCharKind = "identifier";
+    } else if (isWhitespaceChar(text2)) {
+      singleCharKind = "whitespace";
+    }
+  }
+  const whitespaceMatches = text2.match(/[ \t]+/g) || [];
+  const isMultipleWhitespace = whitespaceMatches.some((ws) => ws.length > 1);
+  const hasDuplicatedWhitespace = whitespaceMatches.some(
+    (ws) => ws.includes("  ") || ws.includes("		")
+  );
+  const words = text2.split(/\s+/).filter((w) => w.length > 0);
+  const isWord = words.length === 1 && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(words[0]);
+  const isMultipleWords = words.length > 1;
+  return {
+    kind: "singleLine",
+    isSingleCharacter: isSingleChar,
+    singleCharacterKind: singleCharKind,
+    isWord,
+    isMultipleWords,
+    isMultipleWhitespace,
+    hasDuplicatedWhitespace
+  };
+}
+
+var InlineSuggestionEditKind = class {
+  constructor(edits) {
+    this.edits = edits;
+  }
+  toString() {
+    return JSON.stringify({ edits: this.edits });
+  }
+};
+
+function computeEditKind(edit3, textModel, cursorPosition) {
+  if (edit3.replacements.length === 0) {
+    return void 0;
+  }
+  return new InlineSuggestionEditKind(edit3.replacements.map((rep) => computeSingleEditKind(rep, textModel, cursorPosition)));
+}
+
+function countLines(text2) {
+  if (text2.length === 0) {
+    return 0;
+  }
+  return text2.split(/\r\n|\r|\n/).length - 1;
+}
+
+function computeSingleEditKind(replacement, textModel, cursorPosition) {
+  const replaceRange = replacement.replaceRange;
+  const newText = replacement.newText;
+  const deletedLength = replaceRange.length;
+  const insertedLength = newText.length;
+  const linesInserted = countLines(newText);
+  const kind = replaceRange.isEmpty ? "insert" : newText.length === 0 ? "delete" : "replace";
+  switch (kind) {
+    case "insert":
+      return {
+        operation: "insert",
+        properties: computeInsertProperties(replaceRange.start, newText, textModel, cursorPosition),
+        charactersInserted: insertedLength,
+        charactersDeleted: 0,
+        linesInserted,
+        linesDeleted: 0
+      };
+    case "delete": {
+      const deletedText = textModel.getValue().substring(replaceRange.start, replaceRange.endExclusive);
+      return {
+        operation: "delete",
+        properties: computeDeleteProperties(replaceRange.start, replaceRange.endExclusive, textModel),
+        charactersInserted: 0,
+        charactersDeleted: deletedLength,
+        linesInserted: 0,
+        linesDeleted: countLines(deletedText)
+      };
+    }
+    case "replace": {
+      const oldText = textModel.getValue().substring(replaceRange.start, replaceRange.endExclusive);
+      return {
+        operation: "replace",
+        properties: computeReplaceProperties(oldText, newText),
+        charactersInserted: insertedLength,
+        charactersDeleted: deletedLength,
+        linesInserted,
+        linesDeleted: countLines(oldText)
+      };
+    }
+  }
+}
+
+function computeInsertProperties(offset, newText, textModel, cursorPosition) {
+  const textShape = analyzeTextShape(newText);
+  const insertPosition = textModel.getPositionAt(offset);
+  const lineContent = textModel.getLineContent(insertPosition.lineNumber);
+  const lineLength = lineContent.length;
+  let locationShape;
+  const isLineEmpty = lineContent.trim().length === 0;
+  const isAtEndOfLine = insertPosition.column > lineLength;
+  const isAtStartOfLine = insertPosition.column === 1;
+  if (isLineEmpty) {
+    locationShape = "emptyLine";
+  } else if (isAtEndOfLine) {
+    locationShape = "endOfLine";
+  } else if (isAtStartOfLine) {
+    locationShape = "startOfLine";
+  } else {
+    locationShape = "middleOfLine";
+  }
+  let relativeToCursor;
+  if (cursorPosition) {
+    const cursorLine = cursorPosition.lineNumber;
+    const insertLine = insertPosition.lineNumber;
+    const cursorColumn = cursorPosition.column;
+    const insertColumn = insertPosition.column;
+    const atCursor = cursorLine === insertLine && cursorColumn === insertColumn;
+    const beforeCursorOnSameLine = cursorLine === insertLine && insertColumn < cursorColumn;
+    const afterCursorOnSameLine = cursorLine === insertLine && insertColumn > cursorColumn;
+    const linesAbove = insertLine < cursorLine ? cursorLine - insertLine : void 0;
+    const linesBelow = insertLine > cursorLine ? insertLine - cursorLine : void 0;
+    relativeToCursor = {
+      atCursor,
+      beforeCursorOnSameLine,
+      afterCursorOnSameLine,
+      linesAbove,
+      linesBelow
+    };
+  }
+  return {
+    textShape,
+    locationShape,
+    relativeToCursor
+  };
+}
+
+function computeDeleteProperties(startOffset, endOffset, textModel) {
+  const deletedText = textModel.getValue().substring(startOffset, endOffset);
+  const textShape = analyzeTextShape(deletedText);
+  const startPosition = textModel.getPositionAt(startOffset);
+  const endPosition = textModel.getPositionAt(endOffset);
+  const lineContent = textModel.getLineContent(endPosition.lineNumber);
+  const isAtEndOfLine = endPosition.column > lineContent.length;
+  const deletesEntireLineContent = startPosition.lineNumber === endPosition.lineNumber && startPosition.column === 1 && endPosition.column > lineContent.length;
+  return {
+    textShape,
+    isAtEndOfLine,
+    deletesEntireLineContent
+  };
+}
+
+function computeReplaceProperties(oldText, newText) {
+  const oldShape = analyzeTextShape(oldText);
+  const newShape = analyzeTextShape(newText);
+  const oldIsWord = oldShape.kind === "singleLine" && oldShape.isWord;
+  const newIsWord = newShape.kind === "singleLine" && newShape.isWord;
+  const isWordToWordReplacement = oldIsWord && newIsWord;
+  const isAdditive = newText.length > oldText.length;
+  const isSubtractive = newText.length < oldText.length;
+  const isSingleLineToSingleLine = oldShape.kind === "singleLine" && newShape.kind === "singleLine";
+  const isSingleLineToMultiLine = oldShape.kind === "singleLine" && newShape.kind === "multiLine";
+  const isMultiLineToSingleLine = oldShape.kind === "multiLine" && newShape.kind === "singleLine";
+  return {
+    isWordToWordReplacement,
+    isAdditive,
+    isSubtractive,
+    isSingleLineToSingleLine,
+    isSingleLineToMultiLine,
+    isMultiLineToSingleLine
+  };
+}
+export { isSyntacticalChar, isIdentifierChar, isWhitespaceChar, analyzeTextShape, computeEditKind, countLines, computeSingleEditKind, computeInsertProperties, computeDeleteProperties, computeReplaceProperties, syntacticalChars, InlineSuggestionEditKind };

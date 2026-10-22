@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">OpenCode MCP</title>
+  <desc id="desc">A black rounded rectangle with white lowercase mcp lettering constructed entirely from vector paths.</desc>
+  <rect width="512" height="512" rx="96" fill="#000000"/>
+  <g transform="translate(-2 -25)" fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M102 300V224 M102 247C102 232 112 222 127 222C142 222 150 232 150 247V300 M150 247C150 232 160 222 175 222C190 222 198 232 198 247V300"/>
+    <path d="M306 234C297 226 286 222 274 222C250 222 236 238 236 262C236 286 250 302 274 302C286 302 297 298 306 289"/>
+    <path d="M344 340V224 M344 245C351 230 363 222 378 222C400 222 414 238 414 262C414 286 400 302 378 302C363 302 351 294 344 280"/>
+  </g>
+</svg>

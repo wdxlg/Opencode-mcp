@@ -1,0 +1,27 @@
+{
+  "name": "opencode-source-recovery",
+  "version": "1.0.0-recovered.24",
+  "private": true,
+  "description": "Buildable recovered JavaScript application sources; original TypeScript types are not restored",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/update.cjs",
+    "build:clean": "node scripts/clean-build.cjs",
+    "verify": "node scripts/verify-build.cjs",
+    "test:isolated": "node scripts/test-isolated.cjs",
+    "recovery:status": "node scripts/status.cjs",
+    "package": "node scripts/update.cjs",
+    "build:source": "node scripts/update.cjs --source-only",
+    "generate:workspace-mcp": "node scripts/update.cjs",
+    "generate:windows-mcp": "node scripts/update.cjs",
+    "update": "node scripts/update.cjs",
+    "test:concurrency": "node scripts/test-concurrency.mjs",
+    "test:updates": "node scripts/test-publisher.cjs",
+    "verify:runtime": "node scripts/verify-runtime.cjs",
+    "test:portable-move": "node scripts/test-portable-relocation.cjs",
+    "test:task-autonomy": "node --test scripts/test-task-autonomy.mjs",
+    "test:version-isolation": "node scripts/test-version-isolation.mjs"
+  }
+}

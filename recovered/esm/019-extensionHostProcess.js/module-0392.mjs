@@ -1,0 +1,231 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/workbench/api/node/extensionHostProcess.js
+// Original module marker: src/vs/platform/files/common/watcher.ts
+import { Disposable, DisposableStore, MutableDisposable } from "./module-0011.mjs";
+import { URI } from "./module-0025.mjs";
+import { GLOBSTAR, parse3 } from "./module-0185.mjs";
+import { isAbsolute } from "./module-0019.mjs";
+import { isLinux } from "./module-0014.mjs";
+import { isParent } from "./module-0073.mjs";
+
+
+// src/vs/platform/files/common/watcher.ts
+function isWatchRequestWithCorrelation(request) {
+  return typeof request.correlationId === "number";
+}
+
+function isRecursiveWatchRequest(request) {
+  return request.recursive === true;
+}
+
+var AbstractWatcherClient = class _AbstractWatcherClient extends Disposable {
+  constructor(onFileChanges, onLogMessage, verboseLogging, options2) {
+    super();
+    this.onFileChanges = onFileChanges;
+    this.onLogMessage = onLogMessage;
+    this.verboseLogging = verboseLogging;
+    this.options = options2;
+    this.watcherDisposables = this._register(new MutableDisposable());
+    this.requests = void 0;
+    this.restartCounter = 0;
+  }
+  static {
+    this.MAX_RESTARTS = 5;
+  }
+  init() {
+    const disposables = new DisposableStore();
+    this.watcherDisposables.value = disposables;
+    this.watcher = this.createWatcher(disposables);
+    this.watcher.setVerboseLogging(this.verboseLogging);
+    disposables.add(this.watcher.onDidChangeFile((changes) => this.onFileChanges(changes)));
+    disposables.add(this.watcher.onDidLogMessage((msg) => this.onLogMessage(msg)));
+    disposables.add(this.watcher.onDidError((e) => this.onError(e.error, e.request)));
+  }
+  onError(error, failedRequest) {
+    if (this.canRestart(error, failedRequest)) {
+      if (this.restartCounter < _AbstractWatcherClient.MAX_RESTARTS && this.requests) {
+        this.error(`restarting watcher after unexpected error: ${error}`);
+        this.restart(this.requests);
+      } else {
+        this.error(`gave up attempting to restart watcher after unexpected error: ${error}`);
+      }
+    } else {
+      this.error(error);
+    }
+  }
+  canRestart(error, failedRequest) {
+    if (!this.options.restartOnError) {
+      return false;
+    }
+    if (failedRequest) {
+      return false;
+    }
+    if (error.indexOf("No space left on device") !== -1 || error.indexOf("EMFILE") !== -1) {
+      return false;
+    }
+    return true;
+  }
+  restart(requests) {
+    this.restartCounter++;
+    this.init();
+    this.watch(requests);
+  }
+  async watch(requests) {
+    this.requests = requests;
+    await this.watcher?.watch(requests);
+  }
+  async setVerboseLogging(verboseLogging) {
+    this.verboseLogging = verboseLogging;
+    await this.watcher?.setVerboseLogging(verboseLogging);
+  }
+  error(message) {
+    this.onLogMessage({ type: "error", message: `[File Watcher (${this.options.type})] ${message}` });
+  }
+  trace(message) {
+    this.onLogMessage({ type: "trace", message: `[File Watcher (${this.options.type})] ${message}` });
+  }
+  dispose() {
+    this.watcher = void 0;
+    return super.dispose();
+  }
+};
+
+var AbstractNonRecursiveWatcherClient = class extends AbstractWatcherClient {
+  constructor(onFileChanges, onLogMessage, verboseLogging) {
+    super(onFileChanges, onLogMessage, verboseLogging, { type: "node.js", restartOnError: false });
+  }
+};
+
+var AbstractUniversalWatcherClient = class extends AbstractWatcherClient {
+  constructor(onFileChanges, onLogMessage, verboseLogging) {
+    super(onFileChanges, onLogMessage, verboseLogging, { type: "universal", restartOnError: true });
+  }
+};
+
+function reviveFileChanges(changes) {
+  return changes.map((change) => ({
+    type: change.type,
+    resource: URI.revive(change.resource),
+    cId: change.cId
+  }));
+}
+
+function coalesceEvents(changes) {
+  const coalescer = new EventCoalescer();
+  for (const event of changes) {
+    coalescer.processEvent(event);
+  }
+  return coalescer.coalesce();
+}
+
+function normalizeWatcherPattern(path, pattern) {
+  if (typeof pattern === "string" && !pattern.startsWith(GLOBSTAR) && !isAbsolute(pattern)) {
+    return { base: path, pattern };
+  }
+  return pattern;
+}
+
+function parseWatcherPatterns(path, patterns, ignoreCase) {
+  const parsedPatterns = [];
+  for (const pattern of patterns) {
+    parsedPatterns.push(parse3(normalizeWatcherPattern(path, pattern), { ignoreCase }));
+  }
+  return parsedPatterns;
+}
+
+var EventCoalescer = class {
+  constructor() {
+    this.coalesced = /* @__PURE__ */ new Set();
+    this.mapPathToChange = /* @__PURE__ */ new Map();
+  }
+  toKey(event) {
+    if (isLinux) {
+      return event.resource.fsPath;
+    }
+    return event.resource.fsPath.toLowerCase();
+  }
+  processEvent(event) {
+    const existingEvent = this.mapPathToChange.get(this.toKey(event));
+    let keepEvent = false;
+    if (existingEvent) {
+      const currentChangeType = existingEvent.type;
+      const newChangeType = event.type;
+      if (existingEvent.resource.fsPath !== event.resource.fsPath && (event.type === 2 /* DELETED */ || event.type === 1 /* ADDED */)) {
+        keepEvent = true;
+      } else if (currentChangeType === 1 /* ADDED */ && newChangeType === 2 /* DELETED */) {
+        this.mapPathToChange.delete(this.toKey(event));
+        this.coalesced.delete(existingEvent);
+      } else if (currentChangeType === 2 /* DELETED */ && newChangeType === 1 /* ADDED */) {
+        existingEvent.type = 0 /* UPDATED */;
+      } else if (currentChangeType === 1 /* ADDED */ && newChangeType === 0 /* UPDATED */) {
+      } else {
+        existingEvent.type = newChangeType;
+      }
+    } else {
+      keepEvent = true;
+    }
+    if (keepEvent) {
+      this.coalesced.add(event);
+      this.mapPathToChange.set(this.toKey(event), event);
+    }
+  }
+  coalesce() {
+    const addOrChangeEvents = [];
+    const deletedPaths = [];
+    return Array.from(this.coalesced).filter((e) => {
+      if (e.type !== 2 /* DELETED */) {
+        addOrChangeEvents.push(e);
+        return false;
+      }
+      return true;
+    }).sort((e1, e2) => {
+      return e1.resource.fsPath.length - e2.resource.fsPath.length;
+    }).filter((e) => {
+      if (deletedPaths.some((deletedPath) => isParent(
+        e.resource.fsPath,
+        deletedPath,
+        !isLinux
+        /* ignorecase */
+      ))) {
+        return false;
+      }
+      deletedPaths.push(e.resource.fsPath);
+      return true;
+    }).concat(addOrChangeEvents);
+  }
+};
+
+function isFiltered(event, filter2) {
+  if (typeof filter2 === "number") {
+    switch (event.type) {
+      case 1 /* ADDED */:
+        return (filter2 & 4 /* ADDED */) === 0;
+      case 2 /* DELETED */:
+        return (filter2 & 8 /* DELETED */) === 0;
+      case 0 /* UPDATED */:
+        return (filter2 & 2 /* UPDATED */) === 0;
+    }
+  }
+  return false;
+}
+
+function requestFilterToString(filter2) {
+  if (typeof filter2 === "number") {
+    const filters = [];
+    if (filter2 & 4 /* ADDED */) {
+      filters.push("Added");
+    }
+    if (filter2 & 8 /* DELETED */) {
+      filters.push("Deleted");
+    }
+    if (filter2 & 2 /* UPDATED */) {
+      filters.push("Updated");
+    }
+    if (filters.length === 0) {
+      return "<all>";
+    }
+    return `[${filters.join(", ")}]`;
+  }
+  return "<none>";
+}
+export { isWatchRequestWithCorrelation, isRecursiveWatchRequest, reviveFileChanges, coalesceEvents, normalizeWatcherPattern, parseWatcherPatterns, isFiltered, requestFilterToString, AbstractWatcherClient, AbstractNonRecursiveWatcherClient, AbstractUniversalWatcherClient, EventCoalescer };

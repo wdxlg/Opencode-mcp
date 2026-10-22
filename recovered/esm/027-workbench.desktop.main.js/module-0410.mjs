@@ -1,0 +1,123 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/workbench/workbench.desktop.main.js
+// Original module marker: src/vs/editor/common/tokens/contiguousTokensEditing.ts
+import { LineTokens } from "./module-0145.mjs";
+
+
+// src/vs/editor/common/tokens/contiguousTokensEditing.ts
+var EMPTY_LINE_TOKENS = new Uint32Array(0).buffer;
+
+var ContiguousTokensEditing = class _ContiguousTokensEditing {
+  static deleteBeginning(lineTokens, toChIndex) {
+    if (lineTokens === null || lineTokens === EMPTY_LINE_TOKENS) {
+      return lineTokens;
+    }
+    return _ContiguousTokensEditing.delete(lineTokens, 0, toChIndex);
+  }
+  static deleteEnding(lineTokens, fromChIndex) {
+    if (lineTokens === null || lineTokens === EMPTY_LINE_TOKENS) {
+      return lineTokens;
+    }
+    const tokens = toUint32Array(lineTokens);
+    const lineTextLength = tokens[tokens.length - 2];
+    return _ContiguousTokensEditing.delete(lineTokens, fromChIndex, lineTextLength);
+  }
+  static delete(lineTokens, fromChIndex, toChIndex) {
+    if (lineTokens === null || lineTokens === EMPTY_LINE_TOKENS || fromChIndex === toChIndex) {
+      return lineTokens;
+    }
+    const tokens = toUint32Array(lineTokens);
+    const tokensCount = tokens.length >>> 1;
+    if (fromChIndex === 0 && tokens[tokens.length - 2] === toChIndex) {
+      return EMPTY_LINE_TOKENS;
+    }
+    const fromTokenIndex = LineTokens.findIndexInTokensArray(tokens, fromChIndex);
+    const fromTokenStartOffset = fromTokenIndex > 0 ? tokens[fromTokenIndex - 1 << 1] : 0;
+    const fromTokenEndOffset = tokens[fromTokenIndex << 1];
+    if (toChIndex < fromTokenEndOffset) {
+      const delta3 = toChIndex - fromChIndex;
+      for (let i2 = fromTokenIndex; i2 < tokensCount; i2++) {
+        tokens[i2 << 1] -= delta3;
+      }
+      return lineTokens;
+    }
+    let dest;
+    let lastEnd;
+    if (fromTokenStartOffset !== fromChIndex) {
+      tokens[fromTokenIndex << 1] = fromChIndex;
+      dest = fromTokenIndex + 1 << 1;
+      lastEnd = fromChIndex;
+    } else {
+      dest = fromTokenIndex << 1;
+      lastEnd = fromTokenStartOffset;
+    }
+    const delta2 = toChIndex - fromChIndex;
+    for (let tokenIndex = fromTokenIndex + 1; tokenIndex < tokensCount; tokenIndex++) {
+      const tokenEndOffset = tokens[tokenIndex << 1] - delta2;
+      if (tokenEndOffset > lastEnd) {
+        tokens[dest++] = tokenEndOffset;
+        tokens[dest++] = tokens[(tokenIndex << 1) + 1];
+        lastEnd = tokenEndOffset;
+      }
+    }
+    if (dest === tokens.length) {
+      return lineTokens;
+    }
+    const tmp = new Uint32Array(dest);
+    tmp.set(tokens.subarray(0, dest), 0);
+    return tmp.buffer;
+  }
+  static append(lineTokens, _otherTokens) {
+    if (_otherTokens === EMPTY_LINE_TOKENS) {
+      return lineTokens;
+    }
+    if (lineTokens === EMPTY_LINE_TOKENS) {
+      return _otherTokens;
+    }
+    if (lineTokens === null) {
+      return lineTokens;
+    }
+    if (_otherTokens === null) {
+      return null;
+    }
+    const myTokens = toUint32Array(lineTokens);
+    const otherTokens = toUint32Array(_otherTokens);
+    const otherTokensCount = otherTokens.length >>> 1;
+    const result = new Uint32Array(myTokens.length + otherTokens.length);
+    result.set(myTokens, 0);
+    let dest = myTokens.length;
+    const delta2 = myTokens[myTokens.length - 2];
+    for (let i2 = 0; i2 < otherTokensCount; i2++) {
+      result[dest++] = otherTokens[i2 << 1] + delta2;
+      result[dest++] = otherTokens[(i2 << 1) + 1];
+    }
+    return result.buffer;
+  }
+  static insert(lineTokens, chIndex, textLength) {
+    if (lineTokens === null || lineTokens === EMPTY_LINE_TOKENS) {
+      return lineTokens;
+    }
+    const tokens = toUint32Array(lineTokens);
+    const tokensCount = tokens.length >>> 1;
+    let fromTokenIndex = LineTokens.findIndexInTokensArray(tokens, chIndex);
+    if (fromTokenIndex > 0) {
+      const fromTokenStartOffset = tokens[fromTokenIndex - 1 << 1];
+      if (fromTokenStartOffset === chIndex) {
+        fromTokenIndex--;
+      }
+    }
+    for (let tokenIndex = fromTokenIndex; tokenIndex < tokensCount; tokenIndex++) {
+      tokens[tokenIndex << 1] += textLength;
+    }
+    return lineTokens;
+  }
+};
+
+function toUint32Array(arr) {
+  if (arr instanceof Uint32Array) {
+    return arr;
+  } else {
+    return new Uint32Array(arr);
+  }
+}
+export { toUint32Array, EMPTY_LINE_TOKENS, ContiguousTokensEditing };

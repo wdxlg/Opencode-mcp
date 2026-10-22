@@ -1,0 +1,714 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/sessions/sessions.desktop.main.js
+// Original module marker: src/vs/workbench/contrib/output/common/outputChannelModel.ts
+import { Range2 } from "./module-0106.mjs";
+import { Disposable, DisposableStore, MutableDisposable, toDisposable } from "./module-0012.mjs";
+import { Emitter, Event2 } from "./module-0017.mjs";
+import { Promises, ThrottledDelayer } from "./module-0036.mjs";
+import { isCancellationError } from "./module-0004.mjs";
+import { isNumber } from "./module-0010.mjs";
+import { IFileService, toFileOperationResult } from "./module-0269.mjs";
+import { TextModel } from "./module-0423.mjs";
+import { LOG_MIME } from "./module-1245.mjs";
+import { __decorateClass, __decorateParam } from "./module-0000.mjs";
+import { IInstantiationService } from "./module-0077.mjs";
+import { ILogService, ILoggerService } from "./module-0095.mjs";
+import { binarySearch, sortedDiff } from "./module-0007.mjs";
+import { extUri, joinPath } from "./module-0034.mjs";
+import { CancellationTokenSource } from "./module-0025.mjs";
+import { EditOperation } from "./module-0162.mjs";
+import { Position } from "./module-0079.mjs";
+import { IModelService } from "./module-0080.mjs";
+import { IEditorWorkerService } from "./module-0158.mjs";
+import { VSBuffer } from "./module-0038.mjs";
+
+
+// src/vs/workbench/contrib/output/common/outputChannelModel.ts
+var LOG_ENTRY_REGEX = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s(\[(info|trace|debug|error|warning)\])\s(\[(.*?)\])?/;
+
+function parseLogEntryAt(model, lineNumber) {
+  const lineContent = model.getLineContent(lineNumber);
+  const match2 = LOG_ENTRY_REGEX.exec(lineContent);
+  if (match2) {
+    const timestamp = new Date(match2[1]).getTime();
+    const timestampRange = new Range2(lineNumber, 1, lineNumber, match2[1].length);
+    const logLevel = parseLogLevel2(match2[3]);
+    const logLevelRange = new Range2(lineNumber, timestampRange.endColumn + 1, lineNumber, timestampRange.endColumn + 1 + match2[2].length);
+    const category9 = match2[5];
+    const startLine = lineNumber;
+    let endLine = lineNumber;
+    const lineCount = model.getLineCount();
+    while (endLine < lineCount) {
+      const nextLineContent = model.getLineContent(endLine + 1);
+      const isLastLine = endLine + 1 === lineCount && nextLineContent === "";
+      if (LOG_ENTRY_REGEX.test(nextLineContent) || isLastLine) {
+        break;
+      }
+      endLine++;
+    }
+    const range2 = new Range2(startLine, 1, endLine, model.getLineMaxColumn(endLine));
+    return { range: range2, timestamp, timestampRange, logLevel, logLevelRange, category: category9 };
+  }
+  return null;
+}
+
+function* logEntryIterator(model, process3) {
+  for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+    const logEntry = parseLogEntryAt(model, lineNumber);
+    if (logEntry) {
+      yield process3(logEntry);
+      lineNumber = logEntry.range.endLineNumber;
+    }
+  }
+}
+
+function changeStartLineNumber(logEntry, lineNumber) {
+  return {
+    ...logEntry,
+    range: new Range2(lineNumber, logEntry.range.startColumn, lineNumber + logEntry.range.endLineNumber - logEntry.range.startLineNumber, logEntry.range.endColumn),
+    timestampRange: new Range2(lineNumber, logEntry.timestampRange.startColumn, lineNumber, logEntry.timestampRange.endColumn),
+    logLevelRange: new Range2(lineNumber, logEntry.logLevelRange.startColumn, lineNumber, logEntry.logLevelRange.endColumn)
+  };
+}
+
+function parseLogLevel2(level) {
+  switch (level.toLowerCase()) {
+    case "trace":
+      return 1 /* Trace */;
+    case "debug":
+      return 2 /* Debug */;
+    case "info":
+      return 3 /* Info */;
+    case "warning":
+      return 4 /* Warning */;
+    case "error":
+      return 5 /* Error */;
+    default:
+      throw new Error(`Unknown log level: ${level}`);
+  }
+}
+
+var FileContentProvider = class extends Disposable {
+  constructor({ name, resource }, fileService, instantiationService, logService) {
+    super();
+    this.fileService = fileService;
+    this.instantiationService = instantiationService;
+    this.logService = logService;
+    this._onDidAppend = this._register(new Emitter());
+    this._onDidReset = this._register(new Emitter());
+    this.watching = false;
+    this.etag = "";
+    this.logEntries = [];
+    this.startOffset = 0;
+    this.endOffset = 0;
+    this.name = name ?? "";
+    this.resource = resource;
+    this.syncDelayer = new ThrottledDelayer(500);
+    this._register(toDisposable(() => this.unwatch()));
+  }
+  get onDidAppend() {
+    return this._onDidAppend.event;
+  }
+  get onDidReset() {
+    return this._onDidReset.event;
+  }
+  reset(offset) {
+    this.endOffset = this.startOffset = offset ?? this.startOffset;
+    this.logEntries = [];
+  }
+  resetToEnd() {
+    this.startOffset = this.endOffset;
+    this.logEntries = [];
+  }
+  watch() {
+    if (!this.watching) {
+      this.logService.trace("Started polling", this.resource.toString());
+      this.poll();
+      this.watching = true;
+    }
+  }
+  unwatch() {
+    if (this.watching) {
+      this.syncDelayer.cancel();
+      this.watching = false;
+      this.logService.trace("Stopped polling", this.resource.toString());
+    }
+  }
+  poll() {
+    const loop = () => this.doWatch().then(() => this.poll());
+    this.syncDelayer.trigger(loop).catch((error) => {
+      if (!isCancellationError(error)) {
+        throw error;
+      }
+    });
+  }
+  async doWatch() {
+    try {
+      if (!this.fileService.hasProvider(this.resource)) {
+        return;
+      }
+      const stat = await this.fileService.stat(this.resource);
+      if (stat.etag !== this.etag) {
+        this.etag = stat.etag;
+        if (isNumber(stat.size) && this.endOffset > stat.size) {
+          this.reset(0);
+          this._onDidReset.fire();
+        } else {
+          this._onDidAppend.fire();
+        }
+      }
+    } catch (error) {
+      if (toFileOperationResult(error) !== 1 /* FILE_NOT_FOUND */) {
+        throw error;
+      }
+    }
+  }
+  getLogEntries() {
+    return this.logEntries;
+  }
+  async getContent(donotConsumeLogEntries) {
+    try {
+      if (!this.fileService.hasProvider(this.resource)) {
+        return {
+          name: this.name,
+          content: "",
+          consume: () => {
+          }
+        };
+      }
+      const fileContent = await this.fileService.readFile(this.resource, { position: this.endOffset });
+      const content = fileContent.value.toString();
+      const logEntries = donotConsumeLogEntries ? [] : this.parseLogEntries(content, this.logEntries[this.logEntries.length - 1]);
+      let consumed = false;
+      return {
+        name: this.name,
+        content,
+        consume: () => {
+          if (!consumed) {
+            consumed = true;
+            this.endOffset += fileContent.value.byteLength;
+            this.etag = fileContent.etag;
+            this.logEntries.push(...logEntries);
+          }
+        }
+      };
+    } catch (error) {
+      if (toFileOperationResult(error) !== 1 /* FILE_NOT_FOUND */) {
+        throw error;
+      }
+      return {
+        name: this.name,
+        content: "",
+        consume: () => {
+        }
+      };
+    }
+  }
+  parseLogEntries(content, lastLogEntry) {
+    const model = this.instantiationService.createInstance(TextModel, content, LOG_MIME, TextModel.DEFAULT_CREATION_OPTIONS, null);
+    try {
+      if (!parseLogEntryAt(model, 1)) {
+        return [];
+      }
+      const logEntries = [];
+      let logEntryStartLineNumber = lastLogEntry ? lastLogEntry.range.endLineNumber + 1 : 1;
+      for (const entry of logEntryIterator(model, (e4) => changeStartLineNumber(e4, logEntryStartLineNumber))) {
+        logEntries.push(entry);
+        logEntryStartLineNumber = entry.range.endLineNumber + 1;
+      }
+      return logEntries;
+    } finally {
+      model.dispose();
+    }
+  }
+};
+
+FileContentProvider = __decorateClass([
+  __decorateParam(1, IFileService),
+  __decorateParam(2, IInstantiationService),
+  __decorateParam(3, ILogService)
+], FileContentProvider);
+
+var MultiFileContentProvider = class extends Disposable {
+  constructor(filesInfos, instantiationService, fileService, logService) {
+    super();
+    this.instantiationService = instantiationService;
+    this.fileService = fileService;
+    this.logService = logService;
+    this._onDidAppend = this._register(new Emitter());
+    this.onDidAppend = this._onDidAppend.event;
+    this.onDidReset = Event2.None;
+    this.logEntries = [];
+    this.fileContentProviderItems = [];
+    this.watching = false;
+    for (const file of filesInfos) {
+      this.fileContentProviderItems.push(this.createFileContentProvider(file));
+    }
+    this._register(toDisposable(() => {
+      for (const [, disposables] of this.fileContentProviderItems) {
+        disposables.dispose();
+      }
+    }));
+  }
+  createFileContentProvider(file) {
+    const disposables = new DisposableStore();
+    const fileOutput = disposables.add(new FileContentProvider(file, this.fileService, this.instantiationService, this.logService));
+    disposables.add(fileOutput.onDidAppend(() => this._onDidAppend.fire()));
+    return [fileOutput, disposables];
+  }
+  watch() {
+    if (!this.watching) {
+      this.watching = true;
+      for (const [output] of this.fileContentProviderItems) {
+        output.watch();
+      }
+    }
+  }
+  unwatch() {
+    if (this.watching) {
+      this.watching = false;
+      for (const [output] of this.fileContentProviderItems) {
+        output.unwatch();
+      }
+    }
+  }
+  updateFiles(files) {
+    const wasWatching = this.watching;
+    if (wasWatching) {
+      this.unwatch();
+    }
+    const result = sortedDiff(this.fileContentProviderItems.map(([output]) => output), files, (a, b) => extUri.compare(a.resource, b.resource));
+    for (const { start, deleteCount, toInsert } of result) {
+      const outputs = toInsert.map((file) => this.createFileContentProvider(file));
+      const outputsToRemove = this.fileContentProviderItems.splice(start, deleteCount, ...outputs);
+      for (const [, disposables] of outputsToRemove) {
+        disposables.dispose();
+      }
+    }
+    if (wasWatching) {
+      this.watch();
+    }
+  }
+  reset() {
+    for (const [output] of this.fileContentProviderItems) {
+      output.reset();
+    }
+    this.logEntries = [];
+  }
+  resetToEnd() {
+    for (const [output] of this.fileContentProviderItems) {
+      output.resetToEnd();
+    }
+    this.logEntries = [];
+  }
+  getLogEntries() {
+    return this.logEntries;
+  }
+  async getContent() {
+    const outputs = await Promise.all(this.fileContentProviderItems.map(([output]) => output.getContent(true)));
+    const { content, logEntries } = this.combineLogEntries(outputs, this.logEntries[this.logEntries.length - 1]);
+    let consumed = false;
+    return {
+      content,
+      consume: () => {
+        if (!consumed) {
+          consumed = true;
+          outputs.forEach(({ consume }) => consume());
+          this.logEntries.push(...logEntries);
+        }
+      }
+    };
+  }
+  combineLogEntries(outputs, lastEntry) {
+    outputs = outputs.filter((output) => !!output.content);
+    if (outputs.length === 0) {
+      return { logEntries: [], content: "" };
+    }
+    const logEntries = [];
+    const contents = [];
+    const process3 = (model2, logEntry, name) => {
+      const lineContent = model2.getValueInRange(logEntry.range);
+      const content2 = name ? `${lineContent.substring(0, logEntry.logLevelRange.endColumn)} [${name}]${lineContent.substring(logEntry.logLevelRange.endColumn)}` : lineContent;
+      return [{
+        ...logEntry,
+        category: name,
+        range: new Range2(logEntry.range.startLineNumber, logEntry.logLevelRange.startColumn, logEntry.range.endLineNumber, name ? logEntry.range.endColumn + name.length + 3 : logEntry.range.endColumn)
+      }, content2];
+    };
+    const model = this.instantiationService.createInstance(TextModel, outputs[0].content, LOG_MIME, TextModel.DEFAULT_CREATION_OPTIONS, null);
+    try {
+      for (const [logEntry, content2] of logEntryIterator(model, (e4) => process3(model, e4, outputs[0].name))) {
+        logEntries.push(logEntry);
+        contents.push(content2);
+      }
+    } finally {
+      model.dispose();
+    }
+    for (let index2 = 1; index2 < outputs.length; index2++) {
+      const { content: content2, name } = outputs[index2];
+      const model2 = this.instantiationService.createInstance(TextModel, content2, LOG_MIME, TextModel.DEFAULT_CREATION_OPTIONS, null);
+      try {
+        const iterator = logEntryIterator(model2, (e4) => process3(model2, e4, name));
+        let next = iterator.next();
+        while (!next.done) {
+          const [logEntry, content3] = next.value;
+          const logEntriesToAdd = [logEntry];
+          const contentsToAdd = [content3];
+          let insertionIndex;
+          if (logEntry.timestamp >= logEntries[logEntries.length - 1].timestamp) {
+            insertionIndex = logEntries.length;
+            for (next = iterator.next(); !next.done; next = iterator.next()) {
+              logEntriesToAdd.push(next.value[0]);
+              contentsToAdd.push(next.value[1]);
+            }
+          } else {
+            if (logEntry.timestamp <= logEntries[0].timestamp) {
+              insertionIndex = 0;
+            } else {
+              const idx = binarySearch(logEntries, logEntry, (a, b) => a.timestamp - b.timestamp);
+              insertionIndex = idx < 0 ? ~idx : idx;
+            }
+            for (next = iterator.next(); !next.done && next.value[0].timestamp <= logEntries[insertionIndex].timestamp; next = iterator.next()) {
+              logEntriesToAdd.push(next.value[0]);
+              contentsToAdd.push(next.value[1]);
+            }
+          }
+          contents.splice(insertionIndex, 0, ...contentsToAdd);
+          logEntries.splice(insertionIndex, 0, ...logEntriesToAdd);
+        }
+      } finally {
+        model2.dispose();
+      }
+    }
+    let content = "";
+    const updatedLogEntries = [];
+    let logEntryStartLineNumber = lastEntry ? lastEntry.range.endLineNumber + 1 : 1;
+    for (let i2 = 0; i2 < logEntries.length; i2++) {
+      content += contents[i2] + "\n";
+      const updatedLogEntry = changeStartLineNumber(logEntries[i2], logEntryStartLineNumber);
+      updatedLogEntries.push(updatedLogEntry);
+      logEntryStartLineNumber = updatedLogEntry.range.endLineNumber + 1;
+    }
+    return { logEntries: updatedLogEntries, content };
+  }
+};
+
+MultiFileContentProvider = __decorateClass([
+  __decorateParam(1, IInstantiationService),
+  __decorateParam(2, IFileService),
+  __decorateParam(3, ILogService)
+], MultiFileContentProvider);
+
+var AbstractFileOutputChannelModel = class extends Disposable {
+  constructor(modelUri, language2, outputContentProvider, modelService, editorWorkerService) {
+    super();
+    this.modelUri = modelUri;
+    this.language = language2;
+    this.outputContentProvider = outputContentProvider;
+    this.modelService = modelService;
+    this.editorWorkerService = editorWorkerService;
+    this._onDispose = this._register(new Emitter());
+    this.onDispose = this._onDispose.event;
+    this.loadModelPromise = null;
+    this.modelDisposable = this._register(new MutableDisposable());
+    this.model = null;
+    this.modelUpdateInProgress = false;
+    this.modelUpdateCancellationSource = this._register(new MutableDisposable());
+    this.appendThrottler = this._register(new ThrottledDelayer(300));
+  }
+  async loadModel() {
+    this.loadModelPromise = Promises.withAsyncBody(async (c, e4) => {
+      try {
+        this.modelDisposable.value = new DisposableStore();
+        this.model = this.modelService.createModel("", this.language, this.modelUri);
+        const { content, consume } = await this.outputContentProvider.getContent();
+        consume();
+        this.doAppendContent(this.model, content);
+        this.modelDisposable.value.add(this.outputContentProvider.onDidReset(() => this.onDidContentChange(true, true)));
+        this.modelDisposable.value.add(this.outputContentProvider.onDidAppend(() => this.onDidContentChange(false, false)));
+        this.outputContentProvider.watch();
+        this.modelDisposable.value.add(toDisposable(() => this.outputContentProvider.unwatch()));
+        this.modelDisposable.value.add(this.model.onWillDispose(() => {
+          this.outputContentProvider.reset();
+          this.modelDisposable.value = void 0;
+          this.cancelModelUpdate();
+          this.model = null;
+        }));
+        c(this.model);
+      } catch (error) {
+        e4(error);
+      }
+    });
+    return this.loadModelPromise;
+  }
+  getLogEntries() {
+    return this.outputContentProvider.getLogEntries();
+  }
+  onDidContentChange(reset2, appendImmediately) {
+    if (reset2 && !this.modelUpdateInProgress) {
+      this.doUpdate(3 /* Clear */, true);
+    }
+    this.doUpdate(1 /* Append */, appendImmediately);
+  }
+  doUpdate(mode, immediate) {
+    if (mode === 3 /* Clear */ || mode === 2 /* Replace */) {
+      this.cancelModelUpdate();
+    }
+    if (!this.model) {
+      return;
+    }
+    this.modelUpdateInProgress = true;
+    if (!this.modelUpdateCancellationSource.value) {
+      this.modelUpdateCancellationSource.value = new CancellationTokenSource();
+    }
+    const token = this.modelUpdateCancellationSource.value.token;
+    if (mode === 3 /* Clear */) {
+      this.clearContent(this.model);
+    } else if (mode === 2 /* Replace */) {
+      this.replacePromise = this.replaceContent(this.model, token).finally(() => this.replacePromise = void 0);
+    } else {
+      this.appendContent(this.model, immediate, token);
+    }
+  }
+  clearContent(model) {
+    model.applyEdits([EditOperation.delete(model.getFullModelRange())]);
+    this.modelUpdateInProgress = false;
+  }
+  appendContent(model, immediate, token) {
+    this.appendThrottler.trigger(async () => {
+      if (token.isCancellationRequested) {
+        return;
+      }
+      if (this.replacePromise) {
+        try {
+          await this.replacePromise;
+        } catch (e4) {
+        }
+        if (token.isCancellationRequested) {
+          return;
+        }
+      }
+      const { content, consume } = await this.outputContentProvider.getContent();
+      if (token.isCancellationRequested) {
+        return;
+      }
+      consume();
+      this.doAppendContent(model, content);
+      this.modelUpdateInProgress = false;
+    }, immediate ? 0 : void 0).catch((error) => {
+      if (!isCancellationError(error)) {
+        throw error;
+      }
+    });
+  }
+  doAppendContent(model, content) {
+    const lastLine = model.getLineCount();
+    const lastLineMaxColumn = model.getLineMaxColumn(lastLine);
+    model.applyEdits([EditOperation.insert(new Position(lastLine, lastLineMaxColumn), content)]);
+  }
+  async replaceContent(model, token) {
+    const { content, consume } = await this.outputContentProvider.getContent();
+    if (token.isCancellationRequested) {
+      return;
+    }
+    const edits = await this.getReplaceEdits(model, content.toString());
+    if (token.isCancellationRequested) {
+      return;
+    }
+    consume();
+    if (edits.length) {
+      model.applyEdits(edits);
+    }
+    this.modelUpdateInProgress = false;
+  }
+  async getReplaceEdits(model, contentToReplace) {
+    if (!contentToReplace) {
+      return [EditOperation.delete(model.getFullModelRange())];
+    }
+    if (contentToReplace !== model.getValue()) {
+      const edits = await this.editorWorkerService.computeMoreMinimalEdits(model.uri, [{ text: contentToReplace.toString(), range: model.getFullModelRange() }]);
+      if (edits?.length) {
+        return edits.map((edit3) => EditOperation.replace(Range2.lift(edit3.range), edit3.text));
+      }
+    }
+    return [];
+  }
+  cancelModelUpdate() {
+    this.modelUpdateCancellationSource.value?.cancel();
+    this.modelUpdateCancellationSource.value = void 0;
+    this.appendThrottler.cancel();
+    this.replacePromise = void 0;
+    this.modelUpdateInProgress = false;
+  }
+  isVisible() {
+    return !!this.model;
+  }
+  dispose() {
+    this._onDispose.fire();
+    super.dispose();
+  }
+  append(message) {
+    throw new Error("Not supported");
+  }
+  replace(message) {
+    throw new Error("Not supported");
+  }
+};
+
+AbstractFileOutputChannelModel = __decorateClass([
+  __decorateParam(3, IModelService),
+  __decorateParam(4, IEditorWorkerService)
+], AbstractFileOutputChannelModel);
+
+var FileOutputChannelModel = class extends AbstractFileOutputChannelModel {
+  constructor(modelUri, language2, source, fileService, modelService, instantiationService, logService, editorWorkerService) {
+    const fileOutput = new FileContentProvider(source, fileService, instantiationService, logService);
+    super(modelUri, language2, fileOutput, modelService, editorWorkerService);
+    this.source = source;
+    this.fileOutput = this._register(fileOutput);
+  }
+  clear() {
+    this.update(3 /* Clear */, void 0, true);
+  }
+  update(mode, till, immediate) {
+    const loadModelPromise = this.loadModelPromise ? this.loadModelPromise : Promise.resolve();
+    loadModelPromise.then(() => {
+      if (mode === 3 /* Clear */ || mode === 2 /* Replace */) {
+        if (isNumber(till)) {
+          this.fileOutput.reset(till);
+        } else {
+          this.fileOutput.resetToEnd();
+        }
+      }
+      this.doUpdate(mode, immediate);
+    });
+  }
+  updateChannelSources(files) {
+    throw new Error("Not supported");
+  }
+};
+
+FileOutputChannelModel = __decorateClass([
+  __decorateParam(3, IFileService),
+  __decorateParam(4, IModelService),
+  __decorateParam(5, IInstantiationService),
+  __decorateParam(6, ILogService),
+  __decorateParam(7, IEditorWorkerService)
+], FileOutputChannelModel);
+
+var MultiFileOutputChannelModel = class extends AbstractFileOutputChannelModel {
+  constructor(modelUri, language2, source, fileService, modelService, logService, editorWorkerService, instantiationService) {
+    const multifileOutput = new MultiFileContentProvider(source, instantiationService, fileService, logService);
+    super(modelUri, language2, multifileOutput, modelService, editorWorkerService);
+    this.source = source;
+    this.multifileOutput = this._register(multifileOutput);
+  }
+  updateChannelSources(files) {
+    this.multifileOutput.unwatch();
+    this.multifileOutput.updateFiles(files);
+    this.multifileOutput.reset();
+    this.doUpdate(2 /* Replace */, true);
+    if (this.isVisible()) {
+      this.multifileOutput.watch();
+    }
+  }
+  clear() {
+    const loadModelPromise = this.loadModelPromise ? this.loadModelPromise : Promise.resolve();
+    loadModelPromise.then(() => {
+      this.multifileOutput.resetToEnd();
+      this.doUpdate(3 /* Clear */, true);
+    });
+  }
+  update(mode, till, immediate) {
+    throw new Error("Not supported");
+  }
+};
+
+MultiFileOutputChannelModel = __decorateClass([
+  __decorateParam(3, IFileService),
+  __decorateParam(4, IModelService),
+  __decorateParam(5, ILogService),
+  __decorateParam(6, IEditorWorkerService),
+  __decorateParam(7, IInstantiationService)
+], MultiFileOutputChannelModel);
+
+var OutputChannelBackedByFile = class extends FileOutputChannelModel {
+  constructor(id2, modelUri, language2, file, fileService, modelService, loggerService, instantiationService, logService, editorWorkerService) {
+    super(modelUri, language2, { resource: file, name: "" }, fileService, modelService, instantiationService, logService, editorWorkerService);
+    this.logger = loggerService.createLogger(file, { logLevel: "always", donotRotate: true, donotUseFormatters: true, hidden: true });
+    this._offset = 0;
+  }
+  append(message) {
+    this.write(message);
+    this.update(1 /* Append */, void 0, this.isVisible());
+  }
+  replace(message) {
+    const till = this._offset;
+    this.write(message);
+    this.update(2 /* Replace */, till, true);
+  }
+  write(content) {
+    this._offset += VSBuffer.fromString(content).byteLength;
+    this.logger.info(content);
+    if (this.isVisible()) {
+      this.logger.flush();
+    }
+  }
+};
+
+OutputChannelBackedByFile = __decorateClass([
+  __decorateParam(4, IFileService),
+  __decorateParam(5, IModelService),
+  __decorateParam(6, ILoggerService),
+  __decorateParam(7, IInstantiationService),
+  __decorateParam(8, ILogService),
+  __decorateParam(9, IEditorWorkerService)
+], OutputChannelBackedByFile);
+
+var DelegatedOutputChannelModel = class extends Disposable {
+  constructor(id2, modelUri, language2, outputDir, outputDirCreationPromise, instantiationService, fileService) {
+    super();
+    this.instantiationService = instantiationService;
+    this.fileService = fileService;
+    this._onDispose = this._register(new Emitter());
+    this.onDispose = this._onDispose.event;
+    this.outputChannelModel = this.createOutputChannelModel(id2, modelUri, language2, outputDir, outputDirCreationPromise);
+    const resource = joinPath(outputDir, `${id2.replace(/[\\/:\*\?"<>\|]/g, "")}.log`);
+    this.source = { resource };
+  }
+  async createOutputChannelModel(id2, modelUri, language2, outputDir, outputDirPromise) {
+    await outputDirPromise;
+    const file = joinPath(outputDir, `${id2.replace(/[\\/:\*\?"<>\|]/g, "")}.log`);
+    await this.fileService.createFile(file);
+    const outputChannelModel = this._register(this.instantiationService.createInstance(OutputChannelBackedByFile, id2, modelUri, language2, file));
+    this._register(outputChannelModel.onDispose(() => this._onDispose.fire()));
+    return outputChannelModel;
+  }
+  getLogEntries() {
+    return [];
+  }
+  append(output) {
+    this.outputChannelModel.then((outputChannelModel) => outputChannelModel.append(output));
+  }
+  update(mode, till, immediate) {
+    this.outputChannelModel.then((outputChannelModel) => outputChannelModel.update(mode, till, immediate));
+  }
+  loadModel() {
+    return this.outputChannelModel.then((outputChannelModel) => outputChannelModel.loadModel());
+  }
+  clear() {
+    this.outputChannelModel.then((outputChannelModel) => outputChannelModel.clear());
+  }
+  replace(value2) {
+    this.outputChannelModel.then((outputChannelModel) => outputChannelModel.replace(value2));
+  }
+  updateChannelSources(files) {
+    this.outputChannelModel.then((outputChannelModel) => outputChannelModel.updateChannelSources(files));
+  }
+};
+
+DelegatedOutputChannelModel = __decorateClass([
+  __decorateParam(5, IInstantiationService),
+  __decorateParam(6, IFileService)
+], DelegatedOutputChannelModel);
+export { parseLogEntryAt, logEntryIterator, changeStartLineNumber, parseLogLevel2, LOG_ENTRY_REGEX, FileContentProvider, MultiFileContentProvider, AbstractFileOutputChannelModel, FileOutputChannelModel, MultiFileOutputChannelModel, OutputChannelBackedByFile, DelegatedOutputChannelModel };

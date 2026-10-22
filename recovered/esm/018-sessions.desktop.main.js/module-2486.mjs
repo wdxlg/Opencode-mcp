@@ -1,0 +1,296 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/sessions/sessions.desktop.main.js
+// Original module marker: src/vs/workbench/contrib/chat/common/tools/builtinTools/manageTodoListTool.ts
+import { ThemeIcon } from "./module-0086.mjs";
+import { Codicon } from "./module-0085.mjs";
+import { localize } from "./module-0001.mjs";
+import { ToolDataSource } from "./module-0991.mjs";
+import { Disposable } from "./module-0012.mjs";
+import { URI } from "./module-0032.mjs";
+import { MarkdownString } from "./module-0462.mjs";
+import { __decorateClass, __decorateParam } from "./module-0000.mjs";
+import { IChatTodoListService } from "./module-1480.mjs";
+import { ILogService } from "./module-0095.mjs";
+import { ITelemetryService } from "./module-0093.mjs";
+
+
+// src/vs/workbench/contrib/chat/common/tools/builtinTools/manageTodoListTool.ts
+var ManageTodoListToolToolId = "manage_todo_list";
+
+function createManageTodoListToolData() {
+  const inputSchema3 = {
+    type: "object",
+    properties: {
+      todoList: {
+        type: "array",
+        description: "Complete array of all todo items. Must include ALL items - both existing and new.",
+        items: {
+          type: "object",
+          properties: {
+            id: {
+              type: "number",
+              description: "Unique identifier for the todo. Use sequential numbers starting from 1."
+            },
+            title: {
+              type: "string",
+              description: "Concise action-oriented todo label (3-7 words). Displayed in UI."
+            },
+            status: {
+              type: "string",
+              enum: ["not-started", "in-progress", "completed"],
+              description: "not-started: Not begun | in-progress: Currently working (max 1) | completed: Fully finished with no blockers"
+            }
+          },
+          required: ["id", "title", "status"]
+        }
+      }
+    },
+    required: ["todoList"]
+  };
+  return {
+    id: ManageTodoListToolToolId,
+    toolReferenceName: "todo",
+    legacyToolReferenceFullNames: ["todos"],
+    canBeReferencedInPrompt: true,
+    icon: ThemeIcon.fromId(Codicon.checklist.id),
+    displayName: localize(13435, null),
+    userDescription: localize(13436, null),
+    modelDescription: "Manage a structured todo list to track progress and plan tasks throughout your coding session. Use this tool VERY frequently to ensure task visibility and proper planning.\n\nWhen to use this tool:\n- Complex multi-step work requiring planning and tracking\n- When user provides multiple tasks or requests (numbered/comma-separated)\n- After receiving new instructions that require multiple steps\n- BEFORE starting work on any todo (mark as in-progress)\n- IMMEDIATELY after completing each todo (mark completed individually)\n- When breaking down larger tasks into smaller actionable steps\n- To give users visibility into your progress and planning\n\nWhen NOT to use:\n- Single, trivial tasks that can be completed in one step\n- Purely conversational/informational requests\n- When just reading files or performing simple searches\n\nCRITICAL workflow:\n1. Plan tasks by writing todo list with specific, actionable items\n2. Mark ONE todo as in-progress before starting work\n3. Complete the work for that specific todo\n4. Mark that todo as completed IMMEDIATELY\n5. Move to next todo and repeat\n\nTodo states:\n- not-started: Todo not yet begun\n- in-progress: Currently working (limit ONE at a time)\n- completed: Finished successfully\n\nIMPORTANT: Mark todos completed as soon as they are done. Do not batch completions.",
+    source: ToolDataSource.Internal,
+    inputSchema: inputSchema3
+  };
+}
+
+var ManageTodoListToolData = createManageTodoListToolData();
+
+var ManageTodoListTool = class extends Disposable {
+  constructor(chatTodoListService, logService, telemetryService) {
+    super();
+    this.chatTodoListService = chatTodoListService;
+    this.logService = logService;
+    this.telemetryService = telemetryService;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async invoke(invocation, _countTokens, _progress, _token) {
+    const args2 = invocation.parameters;
+    let chatSessionResource = invocation.context?.sessionResource;
+    if (!chatSessionResource && args2.operation === "read" && args2.chatSessionResource) {
+      try {
+        chatSessionResource = URI.parse(args2.chatSessionResource);
+      } catch (error) {
+        this.logService.error("ManageTodoListTool: Invalid chatSessionResource URI", error);
+      }
+    }
+    if (!chatSessionResource) {
+      return {
+        content: [{
+          kind: "text",
+          value: "Error: No session resource available"
+        }]
+      };
+    }
+    this.logService.debug(`ManageTodoListTool: Invoking with options ${JSON.stringify(args2)}`);
+    try {
+      if (args2.operation === "read") {
+        return this.handleReadOperation(chatSessionResource);
+      } else {
+        return this.handleWriteOperation(args2, chatSessionResource);
+      }
+    } catch (error) {
+      const errorMessage = `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
+      return {
+        content: [{
+          kind: "text",
+          value: errorMessage
+        }]
+      };
+    }
+  }
+  async prepareToolInvocation(context2, _token) {
+    const args2 = context2.parameters;
+    const chatSessionResource = context2.chatSessionResource;
+    if (!chatSessionResource) {
+      return void 0;
+    }
+    const currentTodoItems = this.chatTodoListService.getTodos(chatSessionResource);
+    let message;
+    if (args2.operation === "read") {
+      message = localize(13430, null);
+    } else if (args2.todoList) {
+      message = this.generatePastTenseMessage(currentTodoItems, args2.todoList);
+    }
+    const items = args2.todoList ?? currentTodoItems;
+    const todoList = items.map((todo) => ({
+      id: todo.id.toString(),
+      title: todo.title,
+      status: todo.status
+    }));
+    const invocationLabel = message?.replace(/^(Starting|Completed): /i, "") ?? localize(13434, null);
+    const invocationMessage = new MarkdownString(invocationLabel);
+    return {
+      invocationMessage,
+      presentation: items.length ? void 0 : "hidden" /* Hidden */,
+      pastTenseMessage: new MarkdownString(message ?? localize(13433, null)),
+      toolSpecificData: {
+        kind: "todoList",
+        todoList
+      }
+    };
+  }
+  generatePastTenseMessage(currentTodos, newTodos) {
+    if (currentTodos.length === 0 && newTodos.length > 0) {
+      return newTodos.length === 1 ? localize(13429, null) : localize(13428, null, newTodos.length);
+    }
+    const currentTodoMap = new Map(currentTodos.map((todo) => [todo.id, todo]));
+    const startedTodos = newTodos.filter((newTodo) => {
+      const currentTodo = currentTodoMap.get(newTodo.id);
+      return currentTodo && currentTodo.status !== "in-progress" && newTodo.status === "in-progress";
+    });
+    if (startedTodos.length > 0) {
+      const startedTodo = startedTodos[0];
+      const totalTodos = newTodos.length;
+      const currentPosition = newTodos.findIndex((todo) => todo.id === startedTodo.id) + 1;
+      return localize(13431, null, startedTodo.title, currentPosition, totalTodos);
+    }
+    const completedTodos = newTodos.filter((newTodo) => {
+      const currentTodo = currentTodoMap.get(newTodo.id);
+      return currentTodo && currentTodo.status !== "completed" && newTodo.status === "completed";
+    });
+    if (completedTodos.length > 0) {
+      const completedTodo = completedTodos[0];
+      const totalTodos = newTodos.length;
+      const currentPosition = newTodos.findIndex((todo) => todo.id === completedTodo.id) + 1;
+      return localize(13427, null, completedTodo.title, currentPosition, totalTodos);
+    }
+    const addedTodos = newTodos.filter((newTodo) => !currentTodoMap.has(newTodo.id));
+    if (addedTodos.length > 0) {
+      return addedTodos.length === 1 ? localize(13426, null) : localize(13425, null, addedTodos.length);
+    }
+    return localize(13432, null);
+  }
+  handleRead(todoItems, sessionResource) {
+    if (todoItems.length === 0) {
+      return "No todo list found.";
+    }
+    const markdownTaskList = this.formatTodoListAsMarkdownTaskList(todoItems);
+    return `# Todo List
+
+${markdownTaskList}`;
+  }
+  handleReadOperation(chatSessionResource) {
+    const todoItems = this.chatTodoListService.getTodos(chatSessionResource);
+    const readResult = this.handleRead(todoItems, chatSessionResource);
+    const statusCounts = this.calculateStatusCounts(todoItems);
+    this.telemetryService.publicLog2(
+      "todoListToolInvoked",
+      {
+        operation: "read",
+        notStartedCount: statusCounts.notStartedCount,
+        inProgressCount: statusCounts.inProgressCount,
+        completedCount: statusCounts.completedCount
+      }
+    );
+    return {
+      content: [{
+        kind: "text",
+        value: readResult
+      }]
+    };
+  }
+  handleWriteOperation(args2, chatSessionResource) {
+    if (!args2.todoList) {
+      return {
+        content: [{
+          kind: "text",
+          value: "Error: todoList is required for write operation"
+        }]
+      };
+    }
+    const todoList = args2.todoList.map((parsedTodo) => ({
+      id: parsedTodo.id,
+      title: parsedTodo.title,
+      status: parsedTodo.status
+    }));
+    const existingTodos = this.chatTodoListService.getTodos(chatSessionResource);
+    const changes = this.calculateTodoChanges(existingTodos, todoList);
+    this.chatTodoListService.setTodos(chatSessionResource, todoList);
+    const statusCounts = this.calculateStatusCounts(todoList);
+    const warnings = [];
+    if (todoList.length < 3) {
+      warnings.push("Warning: Small todo list (<3 items). This task might not need a todo list.");
+    } else if (todoList.length > 10) {
+      warnings.push("Warning: Large todo list (>10 items). Consider keeping the list focused and actionable.");
+    }
+    if (changes > 3) {
+      warnings.push("Warning: Did you mean to update so many todos at the same time? Consider working on them one by one.");
+    }
+    this.telemetryService.publicLog2(
+      "todoListToolInvoked",
+      {
+        operation: "write",
+        notStartedCount: statusCounts.notStartedCount,
+        inProgressCount: statusCounts.inProgressCount,
+        completedCount: statusCounts.completedCount
+      }
+    );
+    return {
+      content: [{
+        kind: "text",
+        value: `Successfully wrote todo list${warnings.length ? "\n\n" + warnings.join("\n") : ""}`
+      }],
+      toolMetadata: {
+        warnings
+      }
+    };
+  }
+  calculateStatusCounts(todos) {
+    const notStartedCount = todos.filter((todo) => todo.status === "not-started").length;
+    const inProgressCount = todos.filter((todo) => todo.status === "in-progress").length;
+    const completedCount = todos.filter((todo) => todo.status === "completed").length;
+    return { notStartedCount, inProgressCount, completedCount };
+  }
+  formatTodoListAsMarkdownTaskList(todoList) {
+    if (todoList.length === 0) {
+      return "";
+    }
+    return todoList.map((todo) => {
+      let checkbox;
+      switch (todo.status) {
+        case "completed":
+          checkbox = "[x]";
+          break;
+        case "in-progress":
+          checkbox = "[-]";
+          break;
+        case "not-started":
+        default:
+          checkbox = "[ ]";
+          break;
+      }
+      const lines = [`- ${checkbox} ${todo.title}`];
+      return lines.join("\n");
+    }).join("\n");
+  }
+  calculateTodoChanges(oldList, newList) {
+    let modified = 0;
+    const minLen = Math.min(oldList.length, newList.length);
+    for (let i2 = 0; i2 < minLen; i2++) {
+      const o = oldList[i2];
+      const n2 = newList[i2];
+      if (o.title !== n2.title || o.status !== n2.status) {
+        modified++;
+      }
+    }
+    const added = Math.max(0, newList.length - oldList.length);
+    const removed = Math.max(0, oldList.length - newList.length);
+    const totalChanges = added + removed + modified;
+    return totalChanges;
+  }
+};
+
+ManageTodoListTool = __decorateClass([
+  __decorateParam(0, IChatTodoListService),
+  __decorateParam(1, ILogService),
+  __decorateParam(2, ITelemetryService)
+], ManageTodoListTool);
+export { createManageTodoListToolData, ManageTodoListToolToolId, ManageTodoListToolData, ManageTodoListTool };

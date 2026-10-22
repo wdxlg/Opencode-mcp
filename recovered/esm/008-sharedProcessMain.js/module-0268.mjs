@@ -1,0 +1,68 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/code/electron-utility/sharedProcess/sharedProcessMain.js
+// Original module marker: src/vs/platform/environment/node/userDataPath.ts
+
+
+
+// src/vs/platform/environment/node/userDataPath.ts
+import { homedir as homedir4 } from "os";
+
+import { resolve as resolve2, isAbsolute as isAbsolute2, join as join3 } from "path";
+
+var cwd2 = process.env["VSCODE_CWD"] || process.cwd();
+
+function getUserDataPath(cliArgs, productName) {
+  const userDataPath = doGetUserDataPath(cliArgs, productName);
+  const pathsToResolve = [userDataPath];
+  if (!isAbsolute2(userDataPath)) {
+    pathsToResolve.unshift(cwd2);
+  }
+  return resolve2(...pathsToResolve);
+}
+
+function doGetUserDataPath(cliArgs, productName) {
+
+  if (process.env["VSCODE_DEV"]) {
+    productName = "code-oss-dev";
+  }
+  const portablePath = process.env["VSCODE_PORTABLE"];
+  if (portablePath) {
+    return join3(portablePath, "user-data");
+  }
+  const appDataPath = process.env["VSCODE_APPDATA"];
+  if (appDataPath) {
+    return join3(appDataPath, productName);
+  }
+  const cliPath = cliArgs["user-data-dir"];
+  if (cliPath) {
+    return cliPath;
+  }
+  return getDefaultUserDataPath(productName);
+}
+
+function getDefaultUserDataPath(productName) {
+
+  let appDataPath;
+  switch (process.platform) {
+    case "win32":
+      appDataPath = process.env["APPDATA"];
+      if (!appDataPath) {
+        const userProfile = process.env["USERPROFILE"];
+        if (typeof userProfile !== "string") {
+          throw new Error("Windows: Unexpected undefined %USERPROFILE% environment variable");
+        }
+        appDataPath = join3(userProfile, "AppData", "Roaming");
+      }
+      break;
+    case "darwin":
+      appDataPath = join3(homedir4(), "Library", "Application Support");
+      break;
+    case "linux":
+      appDataPath = process.env["XDG_CONFIG_HOME"] || join3(homedir4(), ".config");
+      break;
+    default:
+      throw new Error("Platform not supported");
+  }
+  return join3(appDataPath, productName);
+}
+export { getUserDataPath, doGetUserDataPath, getDefaultUserDataPath, homedir4, resolve2, isAbsolute2, join3, cwd2 };

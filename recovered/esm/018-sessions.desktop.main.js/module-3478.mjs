@@ -1,0 +1,1197 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/sessions/sessions.desktop.main.js
+// Original module marker: src/vs/workbench/browser/parts/editor/editorPart.ts
+import { $, Dimension, EventHelper, addDisposableGenericMouseDownListener, getActiveElement, getWindow, isAncestorOfActiveElement, isHTMLElement } from "./module-0075.mjs";
+import { Emitter, Event2, PauseableEmitter, Relay } from "./module-0017.mjs";
+import { Part } from "./module-1563.mjs";
+import { DisposableStore, dispose, toDisposable } from "./module-0012.mjs";
+import { findGroup } from "./module-1598.mjs";
+import { SIDE_GROUP } from "./module-0935.mjs";
+import { DeferredPromise, Promises } from "./module-0036.mjs";
+import { ServiceCollection } from "./module-0440.mjs";
+import { IContextKeyService } from "./module-0089.mjs";
+import { getEditorPartOptions, impactsEditorPartOptions } from "./module-1089.mjs";
+import { EditorGroupView } from "./module-2019.mjs";
+import { coalesce, distinct } from "./module-0007.mjs";
+import { SerializableGrid, Sizing2, createSerializedGrid, isGridBranchNode } from "./module-1508.mjs";
+import { orthogonal } from "./module-1507.mjs";
+import { isSerializedEditorGroupModel } from "./module-1103.mjs";
+import { assertType } from "./module-0010.mjs";
+import { EditorDropTarget } from "./module-3476.mjs";
+import { EDITOR_GROUP_BORDER, EDITOR_PANE_BACKGROUND } from "./module-0868.mjs";
+import { contrastBorder } from "./module-0227.mjs";
+import { Color } from "./module-0197.mjs";
+import { editorBackground } from "./module-0229.mjs";
+import { mainWindow } from "./module-0002.mjs";
+import { CenteredViewLayout } from "./module-3477.mjs";
+import { EditorAreaFocusContext, EditorPartMaximizedEditorGroupContext, EditorPartMultipleEditorGroupsContext, EditorTabsVisibleContext, IsTopRightEditorGroupContext } from "./module-0950.mjs";
+import { CompositeDragAndDropObserver } from "./module-1380.mjs";
+import { onUnexpectedError } from "./module-0004.mjs";
+import { IWorkbenchLayoutService, getFloatingEditorVerticalMargins, getFloatingEditorVerticalOuterEdges, getFloatingOuterEdgeOwners, getFloatingPaneCompositeHorizontalMargins } from "./module-1119.mjs";
+import { __decorateClass, __decorateParam } from "./module-0000.mjs";
+import { IInstantiationService } from "./module-0077.mjs";
+import { IThemeService } from "./module-0287.mjs";
+import { IConfigurationService } from "./module-0132.mjs";
+import { IStorageService } from "./module-0512.mjs";
+import { IHostService } from "./module-1118.mjs";
+
+
+// src/vs/workbench/browser/parts/editor/editorPart.ts
+var EDITOR_FRAME_BORDER_WIDTH = 1;
+
+var GridWidgetView = class {
+  constructor() {
+    this.element = $(".grid-view-container");
+    this._onDidChange = new Relay();
+    this.onDidChange = this._onDidChange.event;
+  }
+  get minimumWidth() {
+    return this.gridWidget ? this.gridWidget.minimumWidth : 0;
+  }
+  get maximumWidth() {
+    return this.gridWidget ? this.gridWidget.maximumWidth : Number.POSITIVE_INFINITY;
+  }
+  get minimumHeight() {
+    return this.gridWidget ? this.gridWidget.minimumHeight : 0;
+  }
+  get maximumHeight() {
+    return this.gridWidget ? this.gridWidget.maximumHeight : Number.POSITIVE_INFINITY;
+  }
+  get gridWidget() {
+    return this._gridWidget;
+  }
+  set gridWidget(grid) {
+    this.element.textContent = "";
+    if (grid) {
+      this.element.appendChild(grid.element);
+      this._onDidChange.input = grid.onDidChange;
+    } else {
+      this._onDidChange.input = Event2.None;
+    }
+    this._gridWidget = grid;
+  }
+  layout(width2, height, top2, left) {
+    this.gridWidget?.layout(width2, height, top2, left);
+  }
+  dispose() {
+    this._onDidChange.dispose();
+  }
+};
+
+var EditorPart = class extends Part {
+  constructor(editorPartsView, id2, groupsLabel, windowId, instantiationService, themeService, configurationService, storageService, layoutService, hostService, contextKeyService) {
+    super(id2, { hasTitle: false }, themeService, storageService, layoutService);
+    this.editorPartsView = editorPartsView;
+    this.groupsLabel = groupsLabel;
+    this.windowId = windowId;
+    this.instantiationService = instantiationService;
+    this.configurationService = configurationService;
+    this.hostService = hostService;
+    this.contextKeyService = contextKeyService;
+    //#region Events
+    this._onDidFocus = this._register(new Emitter());
+    this.onDidFocus = this._onDidFocus.event;
+    this._onDidLayout = this._register(new Emitter());
+    this.onDidLayout = this._onDidLayout.event;
+    this._onDidChangeActiveGroup = this._register(new Emitter());
+    this.onDidChangeActiveGroup = this._onDidChangeActiveGroup.event;
+    this._onDidChangeGroupIndex = this._register(new Emitter());
+    this.onDidChangeGroupIndex = this._onDidChangeGroupIndex.event;
+    this._onDidChangeGroupLabel = this._register(new Emitter());
+    this.onDidChangeGroupLabel = this._onDidChangeGroupLabel.event;
+    this._onDidChangeGroupLocked = this._register(new Emitter());
+    this.onDidChangeGroupLocked = this._onDidChangeGroupLocked.event;
+    this._onDidChangeGroupMaximized = this._register(new Emitter());
+    this.onDidChangeGroupMaximized = this._onDidChangeGroupMaximized.event;
+    this._onDidActivateGroup = this._register(new Emitter());
+    this.onDidActivateGroup = this._onDidActivateGroup.event;
+    this._onDidAddGroup = this._register(new PauseableEmitter());
+    this.onDidAddGroup = this._onDidAddGroup.event;
+    this._onDidRemoveGroup = this._register(new PauseableEmitter());
+    this.onDidRemoveGroup = this._onDidRemoveGroup.event;
+    this._onDidMoveGroup = this._register(new Emitter());
+    this.onDidMoveGroup = this._onDidMoveGroup.event;
+    this.onDidSetGridWidget = this._register(new Emitter());
+    this._onDidChangeSizeConstraints = this._register(new Relay());
+    this.onDidChangeSizeConstraints = Event2.any(this.onDidSetGridWidget.event, this._onDidChangeSizeConstraints.event);
+    this._onDidScroll = this._register(new Relay());
+    this.onDidScroll = Event2.any(this.onDidSetGridWidget.event, this._onDidScroll.event);
+    this._onDidChangeEditorPartOptions = this._register(new Emitter());
+    this.onDidChangeEditorPartOptions = this._onDidChangeEditorPartOptions.event;
+    this._onWillDispose = this._register(new Emitter());
+    this.onWillDispose = this._onWillDispose.event;
+    //#endregion
+    this.workspaceMemento = this.getMemento(1 /* WORKSPACE */, 0 /* USER */);
+    this.profileMemento = this.getMemento(0 /* PROFILE */, 1 /* MACHINE */);
+    this.groupViews = /* @__PURE__ */ new Map();
+    this.mostRecentActiveGroups = [];
+    this.container = $(".content");
+    this.gridWidgetDisposables = this._register(new DisposableStore());
+    this.gridWidgetView = this._register(new GridWidgetView());
+    this.enforcedPartOptions = [];
+    this.top = 0;
+    this.left = 0;
+    this._contentRightInset = 0;
+    this.sideGroup = {
+      openEditor: async (editor, options3) => {
+        const findGroupResult = this.scopedInstantiationService.invokeFunction((accessor) => findGroup(accessor, { editor, options: options3 }, SIDE_GROUP));
+        let group2;
+        if (findGroupResult instanceof Promise) {
+          [group2] = await findGroupResult;
+        } else {
+          [group2] = findGroupResult;
+        }
+        return group2.openEditor(editor, options3);
+      }
+    };
+    this._isReady = false;
+    this.whenReadyPromise = new DeferredPromise();
+    this.whenReady = this.whenReadyPromise.p;
+    this.whenRestoredPromise = new DeferredPromise();
+    this.whenRestored = this.whenRestoredPromise.p;
+    this._willRestoreState = false;
+    this.priority = 2 /* High */;
+    this.scopedContextKeyService = this._register(this.contextKeyService.createScoped(this.container));
+    this.scopedInstantiationService = this._register(this.instantiationService.createChild(new ServiceCollection(
+      [IContextKeyService, this.scopedContextKeyService]
+    )));
+    this._partOptions = getEditorPartOptions(this.configurationService, this.themeService);
+    this.registerListeners();
+  }
+  static {
+    this.EDITOR_PART_UI_STATE_STORAGE_KEY = "editorpart.state";
+  }
+  static {
+    this.EDITOR_PART_CENTERED_VIEW_STORAGE_KEY = "editorpart.centeredview";
+  }
+  registerListeners() {
+    this._register(this.configurationService.onDidChangeConfiguration((e4) => this.onConfigurationUpdated(e4)));
+    this._register(this.themeService.onDidFileIconThemeChange(() => this.handleChangedPartOptions()));
+    this._register(this.onDidChangeMementoValue(1 /* WORKSPACE */, this._store)((e4) => this.onDidChangeMementoState(e4)));
+  }
+  onConfigurationUpdated(event) {
+    if (impactsEditorPartOptions(event)) {
+      this.handleChangedPartOptions();
+    }
+  }
+  handleChangedPartOptions() {
+    const oldPartOptions = this._partOptions;
+    const newPartOptions = getEditorPartOptions(this.configurationService, this.themeService);
+    for (const enforcedPartOptions of this.enforcedPartOptions) {
+      Object.assign(newPartOptions, enforcedPartOptions);
+    }
+    this._partOptions = newPartOptions;
+    this._onDidChangeEditorPartOptions.fire({ oldPartOptions, newPartOptions });
+  }
+  get partOptions() {
+    return this._partOptions;
+  }
+  enforcePartOptions(options3) {
+    this.enforcedPartOptions.push(options3);
+    this.handleChangedPartOptions();
+    return toDisposable(() => {
+      this.enforcedPartOptions.splice(this.enforcedPartOptions.indexOf(options3), 1);
+      this.handleChangedPartOptions();
+    });
+  }
+  get contentDimension() {
+    return this._contentDimension;
+  }
+  /**
+   * Reserves an inset (px) on the right of the editor content of the group(s) at the
+   * right edge of the editor part, while the title stays full width, so a docked panel
+   * can sit beside the editor content under one full-width tab bar. Only the right-edge
+   * groups (no neighbor to the right) are inset; interior groups in a split layout keep
+   * full-width content. Recomputed when the group topology changes. `0` (default)
+   * restores full-width content for all groups.
+   */
+  setContentRightInset(inset) {
+    this._contentRightInset = Math.max(0, Math.round(inset));
+    this.applyContentRightInset();
+  }
+  applyContentRightInset() {
+    if (!this.gridWidget) {
+      return;
+    }
+    for (const group2 of this.groupViews.values()) {
+      if (!(group2 instanceof EditorGroupView)) {
+        continue;
+      }
+      const atRightEdge = this._contentRightInset > 0 && this.gridWidget.getNeighborViews(group2, 3 /* Right */).length === 0;
+      group2.setContentRightInset(atRightEdge ? this._contentRightInset : 0);
+    }
+  }
+  get activeGroup() {
+    return this._activeGroup;
+  }
+  get groups() {
+    return Array.from(this.groupViews.values());
+  }
+  get count() {
+    return this.groupViews.size;
+  }
+  get orientation() {
+    return this.gridWidget && this.gridWidget.orientation === 0 /* VERTICAL */ ? 1 /* VERTICAL */ : 0 /* HORIZONTAL */;
+  }
+  get isReady() {
+    return this._isReady;
+  }
+  get hasRestorableState() {
+    return !!this.workspaceMemento[EditorPart.EDITOR_PART_UI_STATE_STORAGE_KEY];
+  }
+  get willRestoreState() {
+    return this._willRestoreState;
+  }
+  getGroups(order = 0 /* CREATION_TIME */) {
+    switch (order) {
+      case 0 /* CREATION_TIME */:
+        return this.groups;
+      case 1 /* MOST_RECENTLY_ACTIVE */: {
+        const mostRecentActive = coalesce(this.mostRecentActiveGroups.map((groupId) => this.getGroup(groupId)));
+        return distinct([...mostRecentActive, ...this.groups]);
+      }
+      case 2 /* GRID_APPEARANCE */: {
+        const views = [];
+        if (this.gridWidget) {
+          this.fillGridNodes(views, this.gridWidget.getViews());
+        }
+        return views;
+      }
+    }
+  }
+  fillGridNodes(target, node) {
+    if (isGridBranchNode(node)) {
+      node.children.forEach((child) => this.fillGridNodes(target, child));
+    } else {
+      target.push(node.view);
+    }
+  }
+  hasGroup(identifier2) {
+    return this.groupViews.has(identifier2);
+  }
+  getGroup(identifier2) {
+    return this.groupViews.get(identifier2);
+  }
+  findGroup(scope, source = this.activeGroup, wrap) {
+    if (typeof scope.direction === "number") {
+      return this.doFindGroupByDirection(scope.direction, source, wrap);
+    }
+    if (typeof scope.location === "number") {
+      return this.doFindGroupByLocation(scope.location, source, wrap);
+    }
+    throw new Error("invalid arguments");
+  }
+  doFindGroupByDirection(direction, source, wrap) {
+    const sourceGroupView = this.assertGroupView(source);
+    const neighbours = this.gridWidget.getNeighborViews(sourceGroupView, this.toGridViewDirection(direction), wrap);
+    neighbours.sort(((n1, n2) => this.mostRecentActiveGroups.indexOf(n1.id) - this.mostRecentActiveGroups.indexOf(n2.id)));
+    return neighbours[0];
+  }
+  doFindGroupByLocation(location2, source, wrap) {
+    const sourceGroupView = this.assertGroupView(source);
+    const groups = this.getGroups(2 /* GRID_APPEARANCE */);
+    const index2 = groups.indexOf(sourceGroupView);
+    switch (location2) {
+      case 0 /* FIRST */:
+        return groups[0];
+      case 1 /* LAST */:
+        return groups[groups.length - 1];
+      case 2 /* NEXT */: {
+        let nextGroup = groups[index2 + 1];
+        if (!nextGroup && wrap) {
+          nextGroup = this.doFindGroupByLocation(0 /* FIRST */, source);
+        }
+        return nextGroup;
+      }
+      case 3 /* PREVIOUS */: {
+        let previousGroup = groups[index2 - 1];
+        if (!previousGroup && wrap) {
+          previousGroup = this.doFindGroupByLocation(1 /* LAST */, source);
+        }
+        return previousGroup;
+      }
+    }
+  }
+  activateGroup(group2, preserveWindowOrder, reason) {
+    const groupView = this.assertGroupView(group2);
+    this.doSetGroupActive(groupView, reason);
+    if (!preserveWindowOrder) {
+      this.hostService.moveTop(getWindow(this.element));
+    }
+    return groupView;
+  }
+  restoreGroup(group2) {
+    const groupView = this.assertGroupView(group2);
+    this.doRestoreGroup(groupView);
+    return groupView;
+  }
+  getSize(group2) {
+    const groupView = this.assertGroupView(group2);
+    return this.gridWidget.getViewSize(groupView);
+  }
+  setSize(group2, size3) {
+    const groupView = this.assertGroupView(group2);
+    this.gridWidget.resizeView(groupView, size3);
+  }
+  arrangeGroups(arrangement, target = this.activeGroup) {
+    if (this.count < 2) {
+      return;
+    }
+    if (!this.gridWidget) {
+      return;
+    }
+    const groupView = this.assertGroupView(target);
+    switch (arrangement) {
+      case 2 /* EVEN */:
+        this.gridWidget.distributeViewSizes();
+        break;
+      case 0 /* MAXIMIZE */:
+        if (this.groups.length < 2) {
+          return;
+        }
+        this.gridWidget.maximizeView(groupView);
+        groupView.focus();
+        break;
+      case 1 /* EXPAND */:
+        this.gridWidget.expandView(groupView);
+        break;
+    }
+  }
+  toggleMaximizeGroup(target = this.activeGroup) {
+    if (this.hasMaximizedGroup()) {
+      this.unmaximizeGroup();
+    } else {
+      this.arrangeGroups(0 /* MAXIMIZE */, target);
+    }
+  }
+  toggleExpandGroup(target = this.activeGroup) {
+    if (this.isGroupExpanded(this.activeGroup)) {
+      this.arrangeGroups(2 /* EVEN */);
+    } else {
+      this.arrangeGroups(1 /* EXPAND */, target);
+    }
+  }
+  unmaximizeGroup() {
+    this.gridWidget.exitMaximizedView();
+    this._activeGroup.focus();
+  }
+  hasMaximizedGroup() {
+    return this.gridWidget.hasMaximizedView();
+  }
+  isGroupMaximized(targetGroup) {
+    return this.gridWidget.isViewMaximized(targetGroup);
+  }
+  isGroupExpanded(targetGroup) {
+    return this.gridWidget.isViewExpanded(targetGroup);
+  }
+  setGroupOrientation(orientation) {
+    if (!this.gridWidget) {
+      return;
+    }
+    const newOrientation = orientation === 0 /* HORIZONTAL */ ? 1 /* HORIZONTAL */ : 0 /* VERTICAL */;
+    if (this.gridWidget.orientation !== newOrientation) {
+      this.gridWidget.orientation = newOrientation;
+    }
+  }
+  applyLayout(layout2) {
+    const restoreFocus = this.shouldRestoreFocus(this.container);
+    let layoutGroupsCount = 0;
+    function countGroups(groups) {
+      for (const group2 of groups) {
+        if (Array.isArray(group2.groups)) {
+          countGroups(group2.groups);
+        } else {
+          layoutGroupsCount++;
+        }
+      }
+    }
+    countGroups(layout2.groups);
+    let currentGroupViews = this.getGroups(2 /* GRID_APPEARANCE */);
+    if (layoutGroupsCount < currentGroupViews.length) {
+      const lastGroupInLayout = currentGroupViews[layoutGroupsCount - 1];
+      currentGroupViews.forEach((group2, index2) => {
+        if (index2 >= layoutGroupsCount) {
+          this.mergeGroup(group2, lastGroupInLayout);
+        }
+      });
+      currentGroupViews = this.getGroups(2 /* GRID_APPEARANCE */);
+    }
+    const activeGroup = this.activeGroup;
+    const gridDescriptor = createSerializedGrid({
+      orientation: this.toGridViewOrientation(
+        layout2.orientation,
+        this.isTwoDimensionalGrid() ? this.gridWidget.orientation : (
+          // preserve original orientation for 2-dimensional grids
+          orthogonal(this.gridWidget.orientation)
+        )
+        // otherwise flip (fix https://github.com/microsoft/vscode/issues/52975)
+      ),
+      groups: layout2.groups
+    });
+    this.doApplyGridState(gridDescriptor, activeGroup.id, currentGroupViews);
+    if (restoreFocus) {
+      this._activeGroup.focus();
+    }
+  }
+  getLayout() {
+    const serializedGrid = this.gridWidget.serialize();
+    const orientation = serializedGrid.orientation === 1 /* HORIZONTAL */ ? 0 /* HORIZONTAL */ : 1 /* VERTICAL */;
+    const root = this.serializedNodeToGroupLayoutArgument(serializedGrid.root);
+    return {
+      orientation,
+      groups: root.groups
+    };
+  }
+  serializedNodeToGroupLayoutArgument(serializedNode) {
+    if (serializedNode.type === "branch") {
+      return {
+        size: serializedNode.size,
+        groups: serializedNode.data.map((node) => this.serializedNodeToGroupLayoutArgument(node))
+      };
+    }
+    return { size: serializedNode.size };
+  }
+  shouldRestoreFocus(target) {
+    if (!target) {
+      return false;
+    }
+    const activeElement = getActiveElement();
+    if (activeElement === target.ownerDocument.body) {
+      return true;
+    }
+    return isAncestorOfActiveElement(target);
+  }
+  isTwoDimensionalGrid() {
+    const views = this.gridWidget.getViews();
+    if (isGridBranchNode(views)) {
+      return views.children.some((child) => isGridBranchNode(child));
+    }
+    return false;
+  }
+  addGroup(location2, direction, groupToCopy) {
+    const locationView = this.assertGroupView(location2);
+    let newGroupView;
+    if (locationView.groupsView === this) {
+      const restoreFocus = this.shouldRestoreFocus(locationView.element);
+      const shouldExpand = this.groupViews.size > 1 && this.isGroupExpanded(locationView);
+      newGroupView = this.doCreateGroupView(groupToCopy);
+      this.gridWidget.addView(
+        newGroupView,
+        this.getSplitSizingStyle(),
+        locationView,
+        this.toGridViewDirection(direction)
+      );
+      this.updateContainer();
+      this._onDidAddGroup.fire(newGroupView);
+      this.notifyGroupIndexChange();
+      if (shouldExpand) {
+        this.arrangeGroups(1 /* EXPAND */, newGroupView);
+      }
+      if (restoreFocus) {
+        locationView.focus();
+      }
+    } else {
+      newGroupView = locationView.groupsView.addGroup(locationView, direction, groupToCopy);
+    }
+    return newGroupView;
+  }
+  getSplitSizingStyle() {
+    switch (this._partOptions.splitSizing) {
+      case "distribute":
+        return Sizing2.Distribute;
+      case "split":
+        return Sizing2.Split;
+      default:
+        return Sizing2.Auto;
+    }
+  }
+  /**
+   * Base {@link IEditorGroupViewOptions} applied to every group this part creates.
+   * Subclasses override to configure part-wide group behavior (e.g. header menus).
+   */
+  getGroupViewOptions() {
+    return void 0;
+  }
+  doCreateGroupView(from, options3) {
+    const resolvedOptions = { ...this.getGroupViewOptions(), ...options3 };
+    let groupView;
+    if (from instanceof EditorGroupView) {
+      groupView = EditorGroupView.createCopy(from, this.editorPartsView, this, this.groupsLabel, this.count, this.scopedInstantiationService, resolvedOptions);
+    } else if (isSerializedEditorGroupModel(from)) {
+      groupView = EditorGroupView.createFromSerialized(from, this.editorPartsView, this, this.groupsLabel, this.count, this.scopedInstantiationService, resolvedOptions);
+    } else {
+      groupView = EditorGroupView.createNew(this.editorPartsView, this, this.groupsLabel, this.count, this.scopedInstantiationService, resolvedOptions);
+    }
+    this.groupViews.set(groupView.id, groupView);
+    const groupDisposables = new DisposableStore();
+    groupDisposables.add(groupView.onDidFocus(() => {
+      this.doSetGroupActive(groupView);
+      this._onDidFocus.fire();
+    }));
+    groupDisposables.add(groupView.onDidModelChange((e4) => {
+      switch (e4.kind) {
+        case 3 /* GROUP_LOCKED */:
+          this._onDidChangeGroupLocked.fire(groupView);
+          break;
+        case 1 /* GROUP_INDEX */:
+          this._onDidChangeGroupIndex.fire(groupView);
+          break;
+        case 2 /* GROUP_LABEL */:
+          this._onDidChangeGroupLabel.fire(groupView);
+          break;
+      }
+    }));
+    groupDisposables.add(groupView.onDidActiveEditorChange(() => {
+      this.updateContainer();
+    }));
+    Event2.once(groupView.onWillDispose)(() => {
+      dispose(groupDisposables);
+      this.groupViews.delete(groupView.id);
+      this.doUpdateMostRecentActive(groupView);
+    });
+    return groupView;
+  }
+  doSetGroupActive(group2, reason = 0 /* DEFAULT */) {
+    if (this._activeGroup !== group2) {
+      const previousActiveGroup = this._activeGroup;
+      this._activeGroup = group2;
+      this.doUpdateMostRecentActive(group2, true);
+      if (previousActiveGroup && !previousActiveGroup.disposed) {
+        previousActiveGroup.setActive(false);
+      }
+      group2.setActive(true);
+      this.doRestoreGroup(group2);
+      this._onDidChangeActiveGroup.fire(group2);
+    }
+    this._onDidActivateGroup.fire({ group: group2, reason });
+  }
+  doRestoreGroup(group2) {
+    if (!this.gridWidget) {
+      return;
+    }
+    try {
+      if (this.hasMaximizedGroup() && !this.isGroupMaximized(group2)) {
+        this.unmaximizeGroup();
+      }
+      const viewSize = this.gridWidget.getViewSize(group2);
+      if (viewSize.width === group2.minimumWidth || viewSize.height === group2.minimumHeight) {
+        this.arrangeGroups(1 /* EXPAND */, group2);
+      }
+    } catch (error) {
+    }
+  }
+  doUpdateMostRecentActive(group2, makeMostRecentlyActive) {
+    const index2 = this.mostRecentActiveGroups.indexOf(group2.id);
+    if (index2 !== -1) {
+      this.mostRecentActiveGroups.splice(index2, 1);
+    }
+    if (makeMostRecentlyActive) {
+      this.mostRecentActiveGroups.unshift(group2.id);
+    }
+  }
+  toGridViewDirection(direction) {
+    switch (direction) {
+      case 0 /* UP */:
+        return 0 /* Up */;
+      case 1 /* DOWN */:
+        return 1 /* Down */;
+      case 2 /* LEFT */:
+        return 2 /* Left */;
+      case 3 /* RIGHT */:
+        return 3 /* Right */;
+    }
+  }
+  toGridViewOrientation(orientation, fallback2) {
+    if (typeof orientation === "number") {
+      return orientation === 0 /* HORIZONTAL */ ? 1 /* HORIZONTAL */ : 0 /* VERTICAL */;
+    }
+    return fallback2;
+  }
+  removeGroup(group2, preserveFocus) {
+    const groupView = this.assertGroupView(group2);
+    if (this.count === 1) {
+      return;
+    }
+    if (groupView.isEmpty) {
+      this.doRemoveEmptyGroup(groupView, preserveFocus);
+    } else {
+      this.doRemoveGroupWithEditors(groupView);
+    }
+  }
+  doRemoveGroupWithEditors(groupView) {
+    const mostRecentlyActiveGroups = this.getGroups(1 /* MOST_RECENTLY_ACTIVE */);
+    let lastActiveGroup;
+    if (this._activeGroup === groupView) {
+      lastActiveGroup = mostRecentlyActiveGroups[1];
+    } else {
+      lastActiveGroup = mostRecentlyActiveGroups[0];
+    }
+    this.mergeGroup(groupView, lastActiveGroup);
+  }
+  doRemoveEmptyGroup(groupView, preserveFocus) {
+    const restoreFocus = !preserveFocus && this.shouldRestoreFocus(this.container);
+    if (this._activeGroup === groupView) {
+      const mostRecentlyActiveGroups = this.getGroups(1 /* MOST_RECENTLY_ACTIVE */);
+      const nextActiveGroup = mostRecentlyActiveGroups[1];
+      this.doSetGroupActive(nextActiveGroup);
+    }
+    this.gridWidget.removeView(groupView, this.getSplitSizingStyle());
+    groupView.dispose();
+    if (restoreFocus) {
+      this._activeGroup.focus();
+    }
+    this.notifyGroupIndexChange();
+    this.updateContainer();
+    this._onDidRemoveGroup.fire(groupView);
+  }
+  moveGroup(group2, location2, direction) {
+    const sourceView = this.assertGroupView(group2);
+    const targetView = this.assertGroupView(location2);
+    if (sourceView.id === targetView.id) {
+      throw new Error("Cannot move group into its own");
+    }
+    const restoreFocus = this.shouldRestoreFocus(sourceView.element);
+    let movedView;
+    if (sourceView.groupsView === targetView.groupsView) {
+      this.gridWidget.moveView(sourceView, this.getSplitSizingStyle(), targetView, this.toGridViewDirection(direction));
+      movedView = sourceView;
+    } else {
+      movedView = targetView.groupsView.addGroup(targetView, direction, sourceView);
+      sourceView.closeAllEditors({ force: true });
+      this.removeGroup(sourceView, restoreFocus);
+    }
+    if (restoreFocus) {
+      movedView.focus();
+    }
+    this._onDidMoveGroup.fire(movedView);
+    this.notifyGroupIndexChange();
+    return movedView;
+  }
+  copyGroup(group2, location2, direction) {
+    const groupView = this.assertGroupView(group2);
+    const locationView = this.assertGroupView(location2);
+    const restoreFocus = this.shouldRestoreFocus(groupView.element);
+    const copiedGroupView = this.addGroup(locationView, direction, groupView);
+    if (restoreFocus) {
+      copiedGroupView.focus();
+    }
+    return copiedGroupView;
+  }
+  mergeGroup(group2, target, options3) {
+    const sourceView = this.assertGroupView(group2);
+    const targetView = this.assertGroupView(target);
+    const editors = [];
+    let index2 = options3 && typeof options3.index === "number" ? options3.index : targetView.count;
+    for (const editor of sourceView.editors) {
+      const inactive = !sourceView.isActive(editor) || this._activeGroup !== sourceView;
+      let actualIndex;
+      if (targetView.contains(editor) && // Do not configure an `index` for editors that are sticky in
+      // the target, otherwise there is a chance of losing that state
+      // when the editor is moved.
+      // See https://github.com/microsoft/vscode/issues/239549
+      (targetView.isSticky(editor) || // Do not configure an `index` when we are explicitly instructed
+      options3?.preserveExistingIndex)) {
+      } else {
+        actualIndex = index2;
+        index2++;
+      }
+      editors.push({
+        editor,
+        options: {
+          index: actualIndex,
+          inactive,
+          preserveFocus: inactive
+        }
+      });
+    }
+    let result = true;
+    if (options3?.mode === 0 /* COPY_EDITORS */) {
+      sourceView.copyEditors(editors, targetView);
+    } else {
+      result = sourceView.moveEditors(editors, targetView);
+    }
+    if (sourceView.isEmpty && !sourceView.disposed) {
+      this.removeGroup(sourceView, true);
+    }
+    return result;
+  }
+  mergeAllGroups(target, options3) {
+    const targetView = this.assertGroupView(target);
+    let result = true;
+    for (const group2 of this.getGroups(1 /* MOST_RECENTLY_ACTIVE */)) {
+      if (group2 === targetView) {
+        continue;
+      }
+      const merged = this.mergeGroup(group2, targetView, options3);
+      if (!merged) {
+        result = false;
+      }
+    }
+    return result;
+  }
+  assertGroupView(group2) {
+    let groupView;
+    if (typeof group2 === "number") {
+      groupView = this.editorPartsView.getGroup(group2);
+    } else {
+      groupView = group2;
+    }
+    if (!groupView) {
+      throw new Error("Invalid editor group provided!");
+    }
+    return groupView;
+  }
+  createEditorDropTarget(container2, delegate) {
+    assertType(isHTMLElement(container2));
+    return this.scopedInstantiationService.createInstance(EditorDropTarget, this, container2, delegate);
+  }
+  //#region Part
+  // TODO @sbatten @joao find something better to prevent editor taking over #79897
+  get minimumWidth() {
+    return Math.min(this.centeredLayoutWidget.minimumWidth, this.layoutService.getMaximumEditorDimensions(this.layoutService.getContainer(getWindow(this.container))).width);
+  }
+  get maximumWidth() {
+    return this.centeredLayoutWidget.maximumWidth;
+  }
+  get minimumHeight() {
+    return Math.min(this.centeredLayoutWidget.minimumHeight, this.layoutService.getMaximumEditorDimensions(this.layoutService.getContainer(getWindow(this.container))).height);
+  }
+  get maximumHeight() {
+    return this.centeredLayoutWidget.maximumHeight;
+  }
+  get snap() {
+    return this.layoutService.getPanelAlignment() === "center";
+  }
+  get onDidChange() {
+    return Event2.any(this.centeredLayoutWidget.onDidChange, this.onDidSetGridWidget.event);
+  }
+  get gridSeparatorBorder() {
+    return this.theme.getColor(EDITOR_GROUP_BORDER) || this.theme.getColor(contrastBorder) || Color.transparent;
+  }
+  updateStyles() {
+    this.container.style.backgroundColor = this.getColor(editorBackground) || "";
+    const separatorBorderStyle = { separatorBorder: this.gridSeparatorBorder, background: this.theme.getColor(EDITOR_PANE_BACKGROUND) || Color.transparent };
+    this.gridWidget.style(separatorBorderStyle);
+    this.centeredLayoutWidget.styles(separatorBorderStyle);
+  }
+  createContentArea(parent, options3) {
+    this.element = parent;
+    if (this.windowId !== mainWindow.vscodeWindowId) {
+      this.container.classList.add("auxiliary");
+    }
+    parent.appendChild(this.container);
+    this._willRestoreState = !options3 || options3.restorePreviousState;
+    this.doCreateGridControl();
+    this.centeredLayoutWidget = this._register(new CenteredViewLayout(this.container, this.gridWidgetView, this.profileMemento[EditorPart.EDITOR_PART_CENTERED_VIEW_STORAGE_KEY], this._partOptions.centeredLayoutFixedWidth));
+    this._register(this.onDidChangeEditorPartOptions((e4) => this.centeredLayoutWidget.setFixedWidth(e4.newPartOptions.centeredLayoutFixedWidth ?? false)));
+    this.setupDragAndDropSupport(parent, this.container);
+    this.handleContextKeys();
+    this.whenReadyPromise.complete();
+    this._isReady = true;
+    Promises.settled(this.groups.map((group2) => group2.whenRestored)).finally(() => {
+      this.whenRestoredPromise.complete();
+    });
+    return this.container;
+  }
+  handleContextKeys() {
+    EditorAreaFocusContext.bindTo(this.scopedContextKeyService).set(true);
+    const multipleEditorGroupsContext = EditorPartMultipleEditorGroupsContext.bindTo(this.scopedContextKeyService);
+    const maximizedEditorGroupContext = EditorPartMaximizedEditorGroupContext.bindTo(this.scopedContextKeyService);
+    const editorTabsVisibleContext = EditorTabsVisibleContext.bindTo(this.scopedContextKeyService);
+    const updateContextKeys = () => {
+      const groupCount = this.count;
+      if (groupCount > 1) {
+        multipleEditorGroupsContext.set(true);
+      } else {
+        multipleEditorGroupsContext.reset();
+      }
+      if (this.hasMaximizedGroup()) {
+        maximizedEditorGroupContext.set(true);
+      } else {
+        maximizedEditorGroupContext.reset();
+      }
+    };
+    const updateEditorTabsVisibleContext = () => {
+      editorTabsVisibleContext.set(this.partOptions.showTabs === "multiple");
+    };
+    const updateTopRightGroupContextKey = () => {
+      if (!this.gridWidget || !this._contentDimension) {
+        return;
+      }
+      let topRightGroup;
+      for (const group2 of this.groups) {
+        if (this.gridWidget.getNeighborViews(group2, 0 /* Up */).length === 0 && this.gridWidget.getNeighborViews(group2, 3 /* Right */).length === 0) {
+          topRightGroup = group2;
+          break;
+        }
+      }
+      for (const group2 of this.groups) {
+        const contextKey = this.editorPartsView.bind(IsTopRightEditorGroupContext, group2);
+        contextKey.set(group2 === topRightGroup);
+      }
+    };
+    updateContextKeys();
+    updateEditorTabsVisibleContext();
+    updateTopRightGroupContextKey();
+    this._register(this.onDidAddGroup(() => {
+      updateContextKeys();
+      updateTopRightGroupContextKey();
+      this.applyContentRightInset();
+    }));
+    this._register(this.onDidRemoveGroup(() => {
+      updateContextKeys();
+      updateTopRightGroupContextKey();
+      this.applyContentRightInset();
+    }));
+    this._register(this.onDidChangeGroupMaximized(() => {
+      updateContextKeys();
+      this.applyContentRightInset();
+    }));
+    this._register(this.onDidChangeEditorPartOptions(() => updateEditorTabsVisibleContext()));
+    this._register(this.onDidMoveGroup(() => {
+      updateTopRightGroupContextKey();
+      this.applyContentRightInset();
+    }));
+    this._register(this.onDidLayout(() => updateTopRightGroupContextKey()));
+  }
+  setupDragAndDropSupport(parent, container2) {
+    this._register(this.createEditorDropTarget(container2, /* @__PURE__ */ Object.create(null)));
+    const overlay = $(".drop-block-overlay");
+    parent.appendChild(overlay);
+    this._register(addDisposableGenericMouseDownListener(overlay, () => overlay.classList.remove("visible")));
+    this._register(CompositeDragAndDropObserver.INSTANCE.registerTarget(this.element, {
+      onDragStart: (e4) => overlay.classList.add("visible"),
+      onDragEnd: (e4) => overlay.classList.remove("visible")
+    }));
+    let horizontalOpenerTimeout;
+    let verticalOpenerTimeout;
+    let lastOpenHorizontalPosition;
+    let lastOpenVerticalPosition;
+    const openPartAtPosition = (position2) => {
+      if (!this.layoutService.isVisible("workbench.parts.panel" /* PANEL_PART */) && position2 === this.layoutService.getPanelPosition()) {
+        this.layoutService.setPartHidden(false, "workbench.parts.panel" /* PANEL_PART */);
+      } else if (!this.layoutService.isVisible("workbench.parts.auxiliarybar" /* AUXILIARYBAR_PART */) && position2 === (this.layoutService.getSideBarPosition() === 1 /* RIGHT */ ? 0 /* LEFT */ : 1 /* RIGHT */)) {
+        this.layoutService.setPartHidden(false, "workbench.parts.auxiliarybar" /* AUXILIARYBAR_PART */);
+      }
+    };
+    const clearAllTimeouts = () => {
+      if (horizontalOpenerTimeout) {
+        clearTimeout(horizontalOpenerTimeout);
+        horizontalOpenerTimeout = void 0;
+      }
+      if (verticalOpenerTimeout) {
+        clearTimeout(verticalOpenerTimeout);
+        verticalOpenerTimeout = void 0;
+      }
+    };
+    this._register(CompositeDragAndDropObserver.INSTANCE.registerTarget(overlay, {
+      onDragOver: (e4) => {
+        EventHelper.stop(e4.eventData, true);
+        if (e4.eventData.dataTransfer) {
+          e4.eventData.dataTransfer.dropEffect = "none";
+        }
+        const boundingRect = overlay.getBoundingClientRect();
+        let openHorizontalPosition = void 0;
+        let openVerticalPosition = void 0;
+        const proximity = 100;
+        if (e4.eventData.clientX < boundingRect.left + proximity) {
+          openHorizontalPosition = 0 /* LEFT */;
+        }
+        if (e4.eventData.clientX > boundingRect.right - proximity) {
+          openHorizontalPosition = 1 /* RIGHT */;
+        }
+        if (e4.eventData.clientY > boundingRect.bottom - proximity) {
+          openVerticalPosition = 2 /* BOTTOM */;
+        }
+        if (e4.eventData.clientY < boundingRect.top + proximity) {
+          openVerticalPosition = 3 /* TOP */;
+        }
+        if (horizontalOpenerTimeout && openHorizontalPosition !== lastOpenHorizontalPosition) {
+          clearTimeout(horizontalOpenerTimeout);
+          horizontalOpenerTimeout = void 0;
+        }
+        if (verticalOpenerTimeout && openVerticalPosition !== lastOpenVerticalPosition) {
+          clearTimeout(verticalOpenerTimeout);
+          verticalOpenerTimeout = void 0;
+        }
+        if (!horizontalOpenerTimeout && openHorizontalPosition !== void 0) {
+          lastOpenHorizontalPosition = openHorizontalPosition;
+          horizontalOpenerTimeout = setTimeout(() => openPartAtPosition(openHorizontalPosition), 200);
+        }
+        if (!verticalOpenerTimeout && openVerticalPosition !== void 0) {
+          lastOpenVerticalPosition = openVerticalPosition;
+          verticalOpenerTimeout = setTimeout(() => openPartAtPosition(openVerticalPosition), 200);
+        }
+      },
+      onDragLeave: () => clearAllTimeouts(),
+      onDragEnd: () => clearAllTimeouts(),
+      onDrop: () => clearAllTimeouts()
+    }));
+    this._register(toDisposable(() => clearAllTimeouts()));
+  }
+  centerLayout(active) {
+    this.centeredLayoutWidget.activate(active);
+  }
+  isLayoutCentered() {
+    if (this.centeredLayoutWidget) {
+      return this.centeredLayoutWidget.isActive();
+    }
+    return false;
+  }
+  doCreateGridControl() {
+    let restoreError = false;
+    if (this._willRestoreState) {
+      restoreError = !this.doCreateGridControlWithPreviousState();
+    }
+    if (!this.gridWidget || restoreError) {
+      const initialGroup = this.doCreateGroupView();
+      this.doSetGridWidget(new SerializableGrid(initialGroup));
+      this.doSetGroupActive(initialGroup);
+    }
+    this.updateContainer();
+    this.notifyGroupIndexChange();
+  }
+  doCreateGridControlWithPreviousState() {
+    const state = this.loadState();
+    if (state?.serializedGrid) {
+      try {
+        this.mostRecentActiveGroups = state.mostRecentActiveGroups;
+        this.doCreateGridControlWithState(state.serializedGrid, state.activeGroup);
+      } catch (error) {
+        onUnexpectedError(new Error(`Error restoring editor grid widget: ${error} (with state: ${JSON.stringify(state)})`));
+        this.disposeGroups();
+        return false;
+      }
+    }
+    return true;
+  }
+  doCreateGridControlWithState(serializedGrid, activeGroupId, editorGroupViewsToReuse, options3) {
+    let reuseGroupViews;
+    if (editorGroupViewsToReuse) {
+      reuseGroupViews = editorGroupViewsToReuse.slice(0);
+    } else {
+      reuseGroupViews = [];
+    }
+    const groupViews = [];
+    const gridWidget = SerializableGrid.deserialize(serializedGrid, {
+      fromJSON: (serializedEditorGroup) => {
+        let groupView;
+        if (reuseGroupViews.length > 0) {
+          groupView = reuseGroupViews.shift();
+        } else {
+          groupView = this.doCreateGroupView(serializedEditorGroup, options3);
+        }
+        groupViews.push(groupView);
+        if (groupView.id === activeGroupId) {
+          this.doSetGroupActive(groupView);
+        }
+        return groupView;
+      }
+    }, { styles: { separatorBorder: this.gridSeparatorBorder } });
+    if (!this._activeGroup) {
+      this.doSetGroupActive(groupViews[0]);
+    }
+    if (this.mostRecentActiveGroups.some((groupId) => !this.getGroup(groupId))) {
+      this.mostRecentActiveGroups = groupViews.map((group2) => group2.id);
+    }
+    this.doSetGridWidget(gridWidget);
+  }
+  doSetGridWidget(gridWidget) {
+    let boundarySashes = {};
+    if (this.gridWidget) {
+      boundarySashes = this.gridWidget.boundarySashes;
+      this.gridWidget.dispose();
+    }
+    this.gridWidget = gridWidget;
+    this.gridWidget.boundarySashes = boundarySashes;
+    this.gridWidgetView.gridWidget = gridWidget;
+    this._onDidChangeSizeConstraints.input = gridWidget.onDidChange;
+    this._onDidScroll.input = gridWidget.onDidScroll;
+    this.gridWidgetDisposables.clear();
+    this.gridWidgetDisposables.add(gridWidget.onDidChangeViewMaximized((maximized) => this._onDidChangeGroupMaximized.fire(maximized)));
+    this.onDidSetGridWidget.fire(void 0);
+  }
+  updateContainer() {
+    this.container.classList.toggle("empty", this.isEmpty);
+  }
+  notifyGroupIndexChange() {
+    this.getGroups(2 /* GRID_APPEARANCE */).forEach((group2, index2) => group2.notifyIndexChanged(index2));
+  }
+  notifyGroupsLabelChange(newLabel) {
+    for (const group2 of this.groups) {
+      group2.notifyLabelChanged(newLabel);
+    }
+  }
+  get isEmpty() {
+    return this.count === 1 && this._activeGroup.isEmpty;
+  }
+  setBoundarySashes(sashes) {
+    this.gridWidget.boundarySashes = sashes;
+    this.centeredLayoutWidget.boundarySashes = sashes;
+  }
+  layout(width2, height, top2, left) {
+    this.top = top2;
+    this.left = left;
+    if (this.windowId === mainWindow.vscodeWindowId && this.layoutService.isFloatingPanelsEnabled()) {
+      const owners = getFloatingOuterEdgeOwners(this.layoutService);
+      const outerLeft = owners.left === "workbench.parts.editor" /* EDITOR_PART */;
+      const outerRight = owners.right === "workbench.parts.editor" /* EDITOR_PART */;
+      const verticalOuterEdges = getFloatingEditorVerticalOuterEdges(this.layoutService);
+      const { left: leftMargin, right: rightMargin } = getFloatingPaneCompositeHorizontalMargins(this.layoutService, "workbench.parts.editor" /* EDITOR_PART */);
+      width2 = Math.max(0, width2 - leftMargin - rightMargin);
+      const { top: top3, bottom } = getFloatingEditorVerticalMargins(this.layoutService, mainWindow);
+      height = Math.max(0, height - top3 - bottom);
+      if (!this.element.classList.contains("modal-editor-part")) {
+        width2 = Math.max(0, width2 - EDITOR_FRAME_BORDER_WIDTH * 2);
+        height = Math.max(0, height - EDITOR_FRAME_BORDER_WIDTH * 2);
+      }
+      this.element.classList.toggle("floating-editor-outer-left", outerLeft);
+      this.element.classList.toggle("floating-editor-outer-right", outerRight);
+      this.element.classList.toggle("floating-editor-outer-top", verticalOuterEdges.top);
+      this.element.classList.toggle("floating-editor-outer-bottom", verticalOuterEdges.bottom);
+    } else {
+      this.element.classList.remove("floating-editor-outer-left", "floating-editor-outer-right", "floating-editor-outer-top", "floating-editor-outer-bottom");
+    }
+    const contentAreaSize = super.layoutContents(width2, height).contentSize;
+    this.doLayout(Dimension.lift(contentAreaSize), top2, left);
+  }
+  doLayout(dimension, top2 = this.top, left = this.left) {
+    this._contentDimension = dimension;
+    this.centeredLayoutWidget.layout(this._contentDimension.width, this._contentDimension.height, top2, left);
+    this._onDidLayout.fire(dimension);
+  }
+  saveState() {
+    if (this.gridWidget) {
+      if (this.isEmpty) {
+        delete this.workspaceMemento[EditorPart.EDITOR_PART_UI_STATE_STORAGE_KEY];
+      } else {
+        this.workspaceMemento[EditorPart.EDITOR_PART_UI_STATE_STORAGE_KEY] = this.createState();
+      }
+    }
+    if (this.centeredLayoutWidget) {
+      const centeredLayoutState = this.centeredLayoutWidget.state;
+      if (this.centeredLayoutWidget.isDefault(centeredLayoutState)) {
+        delete this.profileMemento[EditorPart.EDITOR_PART_CENTERED_VIEW_STORAGE_KEY];
+      } else {
+        this.profileMemento[EditorPart.EDITOR_PART_CENTERED_VIEW_STORAGE_KEY] = centeredLayoutState;
+      }
+    }
+    super.saveState();
+  }
+  loadState() {
+    return this.workspaceMemento[EditorPart.EDITOR_PART_UI_STATE_STORAGE_KEY];
+  }
+  createState() {
+    return {
+      serializedGrid: this.gridWidget.serialize(),
+      activeGroup: this._activeGroup.id,
+      mostRecentActiveGroups: this.mostRecentActiveGroups
+    };
+  }
+  applyState(state, options3) {
+    if (state === "empty") {
+      return this.doApplyEmptyState();
+    } else {
+      return this.doApplyState(state, options3);
+    }
+  }
+  async doApplyState(state, options3) {
+    const groups = await this.doPrepareApplyState();
+    this._onDidAddGroup.pause();
+    this._onDidRemoveGroup.pause();
+    this.disposeGroups();
+    this.mostRecentActiveGroups = state.mostRecentActiveGroups;
+    try {
+      this.doApplyGridState(state.serializedGrid, state.activeGroup, void 0, options3);
+    } finally {
+      this._onDidRemoveGroup.resume();
+      this._onDidAddGroup.resume();
+    }
+    await this.activeGroup.openEditors(
+      groups.flatMap((group2) => group2.editors).filter((editor) => this.editorPartsView.groups.every((groupView) => !groupView.contains(editor))).map((editor) => ({
+        editor,
+        options: { pinned: true, preserveFocus: true, inactive: true }
+      }))
+    );
+  }
+  async doApplyEmptyState() {
+    await this.doPrepareApplyState();
+    this.mergeAllGroups(this.activeGroup);
+  }
+  async doPrepareApplyState() {
+    const groups = this.getGroups(1 /* MOST_RECENTLY_ACTIVE */);
+    for (const group2 of groups) {
+      await group2.closeAllEditors({ excludeConfirming: true, force: true });
+    }
+    return groups;
+  }
+  doApplyGridState(gridState, activeGroupId, editorGroupViewsToReuse, options3) {
+    this.doCreateGridControlWithState(gridState, activeGroupId, editorGroupViewsToReuse, options3);
+    if (this._contentDimension) {
+      this.doLayout(this._contentDimension);
+    }
+    this.updateContainer();
+    for (const groupView of this.getGroups(2 /* GRID_APPEARANCE */)) {
+      if (!editorGroupViewsToReuse?.includes(groupView)) {
+        this._onDidAddGroup.fire(groupView);
+      }
+    }
+    this.notifyGroupIndexChange();
+  }
+  onDidChangeMementoState(e4) {
+    if (e4.external && e4.scope === 1 /* WORKSPACE */) {
+      this.reloadMemento(e4.scope);
+      const state = this.loadState();
+      if (state) {
+        this.applyState(state);
+      }
+    }
+  }
+  toJSON() {
+    return {
+      type: "workbench.parts.editor" /* EDITOR_PART */
+    };
+  }
+  disposeGroups() {
+    for (const group2 of this.groups) {
+      group2.dispose();
+      this._onDidRemoveGroup.fire(group2);
+    }
+    this.groupViews.clear();
+    this.mostRecentActiveGroups = [];
+  }
+  dispose() {
+    this._onWillDispose.fire();
+    this.disposeGroups();
+    this.gridWidget?.dispose();
+    super.dispose();
+  }
+  //#endregion
+};
+
+EditorPart = __decorateClass([
+  __decorateParam(4, IInstantiationService),
+  __decorateParam(5, IThemeService),
+  __decorateParam(6, IConfigurationService),
+  __decorateParam(7, IStorageService),
+  __decorateParam(8, IWorkbenchLayoutService),
+  __decorateParam(9, IHostService),
+  __decorateParam(10, IContextKeyService)
+], EditorPart);
+
+var MainEditorPart = class extends EditorPart {
+  constructor(editorPartsView, instantiationService, themeService, configurationService, storageService, layoutService, hostService, contextKeyService) {
+    super(editorPartsView, "workbench.parts.editor" /* EDITOR_PART */, "", mainWindow.vscodeWindowId, instantiationService, themeService, configurationService, storageService, layoutService, hostService, contextKeyService);
+  }
+};
+
+MainEditorPart = __decorateClass([
+  __decorateParam(1, IInstantiationService),
+  __decorateParam(2, IThemeService),
+  __decorateParam(3, IConfigurationService),
+  __decorateParam(4, IStorageService),
+  __decorateParam(5, IWorkbenchLayoutService),
+  __decorateParam(6, IHostService),
+  __decorateParam(7, IContextKeyService)
+], MainEditorPart);
+export { EDITOR_FRAME_BORDER_WIDTH, GridWidgetView, EditorPart, MainEditorPart };

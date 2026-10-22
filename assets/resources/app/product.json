@@ -1,0 +1,210 @@
+{
+  "opencodeVersion": "0.8.1",
+  "nameShort": "OpenCode",
+  "nameLong": "OpenCode",
+  "applicationName": "opencode",
+  "dataFolderName": ".opencode",
+  "sharedDataFolderName": ".opencode-shared",
+  "win32MutexName": "opencode",
+  "licenseName": "MIT",
+  "licenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt",
+  "serverLicenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt",
+  "serverGreeting": [],
+  "serverLicense": [],
+  "serverLicensePrompt": "",
+  "serverApplicationName": "opencode-server",
+  "serverDataFolderName": ".opencode-server",
+  "tunnelApplicationName": "opencode-tunnel",
+  "win32DirName": "OpenCode",
+  "win32NameVersion": "OpenCode",
+  "win32RegValueName": "OpenCode",
+  "win32x64AppId": "{{4DDC76BC-6B27-477B-8A5E-533BE10A1016}",
+  "win32arm64AppId": "{{88833AD6-6685-4E9C-AB5F-246F37297CD5}",
+  "win32x64UserAppId": "{{3E5FA206-B32E-48F9-8D44-A8B4D2FC38F8}",
+  "win32arm64UserAppId": "{{F48B4EF7-5A88-4B69-AC8A-C41DBD1A8B80}",
+  "win32AppUserModelId": "OpenCode.OpenCode",
+  "win32ShellNameShort": "OpenCode",
+  "win32TunnelServiceMutex": "opencode-tunnelservice",
+  "win32TunnelMutex": "opencode-tunnel",
+  "darwinBundleIdentifier": "local.opencode",
+  "darwinProfileUUID": "42ADC01A-68C9-423C-B673-345254B55C7C",
+  "darwinProfilePayloadUUID": "725229E0-B307-4A19-BDDE-AC6895F2BFAE",
+  "linuxIconName": "opencode",
+  "licenseFileName": "LICENSE.txt",
+  "reportIssueUrl": "https://github.com/microsoft/vscode/issues/new",
+  "nodejsArtifactFeed": "",
+  "electronArtifactFeed": "",
+  "urlProtocol": "opencode",
+  "agentsTelemetryAppName": "agents",
+  "webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/ef65ac1ba57f57f2a3961bfe94aa20481caca4c6/out/vs/workbench/contrib/webview/browser/pre/",
+  "builtInExtensions": [
+    {
+      "name": "ms-vscode.js-debug-companion",
+      "version": "1.1.3",
+      "sha256": "7380a890787452f14b2db7835dfa94de538caf358ebc263f9d46dd68ac52de93",
+      "repo": "https://github.com/microsoft/vscode-js-debug-companion",
+      "metadata": {
+        "id": "99cb0b7f-7354-4278-b8da-6cc79972169d",
+        "publisherId": {
+          "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee",
+          "publisherName": "ms-vscode",
+          "displayName": "Microsoft",
+          "flags": "verified"
+        },
+        "publisherDisplayName": "Microsoft"
+      }
+    },
+    {
+      "name": "ms-vscode.js-debug",
+      "version": "1.117.0",
+      "sha256": "854eeb8a785b1f41ba2bd02d7ccd4fdbe10021b61473293973c7e96d036c7fb8",
+      "repo": "https://github.com/microsoft/vscode-js-debug",
+      "metadata": {
+        "id": "25629058-ddac-4e17-abba-74678e126c5d",
+        "publisherId": {
+          "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee",
+          "publisherName": "ms-vscode",
+          "displayName": "Microsoft",
+          "flags": "verified"
+        },
+        "publisherDisplayName": "Microsoft"
+      }
+    },
+    {
+      "name": "ms-vscode.vscode-js-profile-table",
+      "version": "1.0.11",
+      "sha256": "a962a1e6a3baf74c9354b7f47fa96e6d6f0423a63bff55d7f976b6134a748ae9",
+      "repo": "https://github.com/microsoft/vscode-js-profile-visualizer",
+      "metadata": {
+        "id": "7e52b41b-71ad-457b-ab7e-0620f1fc4feb",
+        "publisherId": {
+          "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee",
+          "publisherName": "ms-vscode",
+          "displayName": "Microsoft",
+          "flags": "verified"
+        },
+        "publisherDisplayName": "Microsoft"
+      }
+    }
+  ],
+  "trustedExtensionAuthAccess": {},
+  "onboardingKeymaps": [
+    {
+      "id": "vscode",
+      "label": "VS Code",
+      "description": "Default keyboard mapping"
+    },
+    {
+      "id": "sublime",
+      "label": "Sublime Text",
+      "extensionId": "ms-vscode.sublime-keybindings",
+      "description": "Keyboard mapping from Sublime Text"
+    },
+    {
+      "id": "intellij",
+      "label": "IntelliJ / JetBrains",
+      "extensionId": "k--kato.intellij-idea-keybindings",
+      "description": "Keyboard mapping from IntelliJ IDEA"
+    },
+    {
+      "id": "vim",
+      "label": "Vim",
+      "extensionId": "vscodevim.vim",
+      "description": "Vim modal editing"
+    },
+    {
+      "id": "eclipse",
+      "label": "Eclipse",
+      "extensionId": "alphabotsec.vscode-eclipse-keybindings",
+      "description": "Keyboard mapping from Eclipse"
+    },
+    {
+      "id": "notepadpp",
+      "label": "Notepad++",
+      "extensionId": "ms-vscode.notepadplusplus-keybindings",
+      "description": "Keyboard mapping from Notepad++"
+    }
+  ],
+  "onboardingThemes": [
+    {
+      "id": "dark-2026",
+      "label": "Dark 2026",
+      "themeId": "Dark 2026",
+      "type": "dark"
+    },
+    {
+      "id": "hc-dark",
+      "label": "Dark High Contrast",
+      "themeId": "Default High Contrast",
+      "type": "hcDark"
+    },
+    {
+      "id": "solarized-dark",
+      "label": "Solarized Dark",
+      "themeId": "Solarized Dark",
+      "type": "dark"
+    },
+    {
+      "id": "light-2026",
+      "label": "Light 2026",
+      "themeId": "Light 2026",
+      "type": "light"
+    },
+    {
+      "id": "hc-light",
+      "label": "Light High Contrast",
+      "themeId": "Default High Contrast Light",
+      "type": "hcLight"
+    },
+    {
+      "id": "solarized-light",
+      "label": "Solarized Light",
+      "themeId": "Solarized Light",
+      "type": "light"
+    }
+  ],
+  "builtInExtensionsEnabledWithAutoUpdates": [],
+  "sessionsWindowAllowedExtensions": [],
+  "voiceWsUrl": "wss://falcon-caas.mai.microsoft.com/voice-code/api/v1/realtime/voice",
+  "extensionsGallery": {
+    "serviceUrl": "https://open-vsx.org/vscode/gallery",
+    "itemUrl": "https://open-vsx.org/vscode/item",
+    "latestUrlTemplate": "https://open-vsx.org/vscode/gallery/{publisher}/{name}/latest",
+    "controlUrl": "https://raw.githubusercontent.com/EclipseFdn/publish-extensions/refs/heads/master/extension-control/extensions.json"
+  },
+  "extensionEnabledApiProposals": {
+    "opencode.opencode": [
+      "defaultChatParticipant",
+      "chatParticipantAdditions",
+      "chatParticipantPrivate",
+      "chatReferenceBinaryData",
+      "chatPromptFiles",
+      "chatProvider",
+      "languageModelThinkingPart"
+    ]
+  },
+  "opencodeBundledCopilot": false,
+  "opencodeAgentsWindowEnabled": false,
+  "commit": "5c03086397d13f66eb8c46dc97043a91d9e97c9f",
+  "date": "2026-10-06T09:54:53.534Z",
+  "checksums": {
+    "vs/base/parts/sandbox/electron-browser/preload.js": "12qqwlOK+o4fQ8i5dOPvCM5ZPnL3s+OJltWCSxnw5Ug",
+    "vs/workbench/workbench.desktop.main.js": "fBOePHv4MVBjHK9kj39goVaNHTVxCPlrEqY47yiLBAM",
+    "vs/workbench/workbench.desktop.main.css": "Unq2TmSz0qRGcKOBL6Ly5ViWviKz7bnhy5HU6SENWq8",
+    "vs/workbench/api/node/extensionHostProcess.js": "wutDdWY+bSU20KjhtsLvdgigdT6p8kRPfoxAJ7stuA8",
+    "vs/code/electron-browser/workbench/workbench.html": "Jy2ZZdrDEOIkNVFIGQnt5xfjEHfc0fqlvjQnLx8V7ck",
+    "vs/code/electron-browser/workbench/workbench.js": "1n27WG9mFYkUcUbegBwhCuN+tfULe/tayVjN0YdNCR8",
+    "vs/sessions/sessions.desktop.main.js": "EdkCQK1yr66nSYytetqSp6TAw39rHZItQJDqe+PSjGg",
+    "vs/sessions/sessions.desktop.main.css": "bVTkV8am0j2f5GwsEOU+2hYbxe7JoGxxtTS/Vvl3k3U",
+    "vs/sessions/electron-browser/sessions.html": "8XtRYP0Tsh0gaqVeSO2I0AoCMpnFTieE/cdC84pQi1A",
+    "vs/sessions/electron-browser/sessions.js": "fis8hvr4y+I1p4v94U/zf5si+E21ssPALEhaeOT9x4g"
+  },
+  "version": "1.136.1",
+  "copilotVersions": {
+    "runtime": "1.0.81-0",
+    "sdk": "1.0.11"
+  },
+  "opencodeBuildId": "327d42bd49005d0e",
+  "opencodeLocalBranding": false,
+  "opencodeStandaloneVersion": "2026.10.13.2"
+}

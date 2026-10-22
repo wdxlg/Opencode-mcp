@@ -1,0 +1,1309 @@
+{
+  "generatorVersion": 2,
+  "bundle": "015-profileAnalysisWorkerMain.js",
+  "artifactPath": "resources/app/out/vs/platform/profiling/electron-browser/profileAnalysisWorkerMain.js",
+  "status": "generated-not-validated",
+  "modules": [
+    {
+      "modulePath": "<bundle-preamble>",
+      "file": "module-0000.mjs",
+      "exportedBindings": [
+        "__extends",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension",
+        "extendStatics",
+        "__assign",
+        "__createBinding",
+        "__setModuleDefault",
+        "ownKeys",
+        "_SuppressedError",
+        "__defProp",
+        "__getOwnPropDesc",
+        "__decorateClass",
+        "__decorateParam"
+      ],
+      "imports": [],
+      "sha256": "a8f1b2099ac12ee237f984e8dacb6bcb7da65a6ee5144f92a8552c92406df4f3",
+      "directExportFix": [
+        "__extends",
+        "__assign",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__createBinding",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension"
+      ]
+    },
+    {
+      "modulePath": "src/vs/nls.ts",
+      "file": "module-0001.mjs",
+      "exportedBindings": [
+        "getNLSMessages",
+        "getNLSLanguage",
+        "_format",
+        "localize",
+        "lookupMessage",
+        "isPseudo"
+      ],
+      "imports": [],
+      "sha256": "00c2d84ceaed57b231ebe09be358a8fe957b52220530a8e9630c3b6118b2c7f7"
+    },
+    {
+      "modulePath": "src/vs/base/common/platform.ts",
+      "file": "module-0002.mjs",
+      "exportedBindings": [
+        "LANGUAGE_DEFAULT",
+        "_isWindows",
+        "_isMacintosh",
+        "_isLinux",
+        "_isLinuxSnap",
+        "_isNative",
+        "_isWeb",
+        "_isElectron",
+        "_isIOS",
+        "_isCI",
+        "_isMobile",
+        "_locale",
+        "_language",
+        "_platformLocale",
+        "_translationsConfigFile",
+        "_userAgent",
+        "$globalThis",
+        "nodeProcess",
+        "isElectronProcess",
+        "isElectronRenderer",
+        "_platform",
+        "isWindows",
+        "isMacintosh",
+        "isLinux",
+        "isNative",
+        "isWeb",
+        "isWebWorker",
+        "webWorkerOrigin",
+        "userAgent",
+        "language",
+        "Language",
+        "setTimeout0IsFaster",
+        "setTimeout0",
+        "isChrome",
+        "isFirefox",
+        "isSafari",
+        "isEdge",
+        "isAndroid",
+        "hasElectronUserAgent"
+      ],
+      "imports": [
+        {
+          "module": "module-0001",
+          "bindings": [
+            "getNLSLanguage"
+          ]
+        }
+      ],
+      "sha256": "289bc7041c2bf31aea07d58f27c23224c2bd71857ba7322b76b10698b941ba1d"
+    },
+    {
+      "modulePath": "src/vs/base/common/process.ts",
+      "file": "module-0003.mjs",
+      "exportedBindings": [
+        "safeProcess",
+        "vscodeGlobal",
+        "cwd",
+        "env",
+        "platform",
+        "arch"
+      ],
+      "imports": [
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isWindows",
+            "isMacintosh"
+          ]
+        }
+      ],
+      "sha256": "de039a74bebe806f8cd679a2c679a64ca276b436f073269af69c6bd104679166"
+    },
+    {
+      "modulePath": "src/vs/base/common/path.ts",
+      "file": "module-0004.mjs",
+      "exportedBindings": [
+        "validateObject",
+        "validateString",
+        "isPathSeparator",
+        "isPosixPathSeparator",
+        "isWindowsDeviceRoot",
+        "normalizeString",
+        "formatExt",
+        "_format2",
+        "CHAR_UPPERCASE_A",
+        "CHAR_LOWERCASE_A",
+        "CHAR_UPPERCASE_Z",
+        "CHAR_LOWERCASE_Z",
+        "CHAR_DOT",
+        "CHAR_FORWARD_SLASH",
+        "CHAR_BACKWARD_SLASH",
+        "CHAR_COLON",
+        "CHAR_QUESTION_MARK",
+        "ErrorInvalidArgType",
+        "platformIsWin32",
+        "win32",
+        "posixCwd",
+        "posix",
+        "normalize",
+        "isAbsolute",
+        "join",
+        "resolve",
+        "relative",
+        "dirname",
+        "basename",
+        "extname",
+        "format",
+        "parse",
+        "toNamespacedPath",
+        "sep",
+        "delimiter"
+      ],
+      "imports": [
+        {
+          "module": "module-0003",
+          "bindings": [
+            "platform",
+            "cwd",
+            "env"
+          ]
+        }
+      ],
+      "sha256": "fb1ff119c90512e23af1065e0feeb811e6405601e0edb7443af3d1bef11294a1"
+    },
+    {
+      "modulePath": "src/vs/base/common/arraysFind.ts",
+      "file": "module-0005.mjs",
+      "exportedBindings": [
+        "findLastIdxMonotonous",
+        "MonotonousArray"
+      ],
+      "imports": [],
+      "sha256": "02288b797f639217f1ca6ea58a2b62bb1a76acc5a25109e8e651d5cccf58464a"
+    },
+    {
+      "modulePath": "src/vs/base/common/errors.ts",
+      "file": "module-0006.mjs",
+      "exportedBindings": [
+        "onUnexpectedError",
+        "onUnexpectedExternalError",
+        "transformErrorForSerialization",
+        "isCancellationError",
+        "illegalState",
+        "ErrorHandler",
+        "errorHandler",
+        "canceledName",
+        "CancellationError",
+        "PendingMigrationError",
+        "ErrorNoTelemetry",
+        "BugIndicatingError"
+      ],
+      "imports": [],
+      "sha256": "f9f6b5d73286e5c8b593ff2d498fddd2a9ada6f2c0dd66f32cae325c413db581"
+    },
+    {
+      "modulePath": "src/vs/base/common/arrays.ts",
+      "file": "module-0007.mjs",
+      "exportedBindings": [
+        "shuffle",
+        "compareBy",
+        "CompareResult",
+        "numberComparator",
+        "CallbackIterable"
+      ],
+      "imports": [],
+      "sha256": "41f0a86821cf769b2875dbe21fe5659c93386cf3c21abbcf78f457c3ebea51db"
+    },
+    {
+      "modulePath": "src/vs/base/common/assert.ts",
+      "file": "module-0008.mjs",
+      "exportedBindings": [
+        "assert"
+      ],
+      "imports": [
+        {
+          "module": "module-0006",
+          "bindings": [
+            "BugIndicatingError"
+          ]
+        }
+      ],
+      "sha256": "d396c8957932da1af41da3338d851474d0e9d13c5e9db011f95f8d0163468896"
+    },
+    {
+      "modulePath": "src/vs/base/common/collections.ts",
+      "file": "module-0009.mjs",
+      "exportedBindings": [
+        "groupBy",
+        "_a",
+        "_b",
+        "SetWithKey"
+      ],
+      "imports": [],
+      "sha256": "cdf19120e7709ea14a693d7550143376aa02b7d881cc1512d32c0b2c377f52d9"
+    },
+    {
+      "modulePath": "src/vs/base/common/map.ts",
+      "file": "module-0010.mjs",
+      "exportedBindings": [
+        "isEntries",
+        "ResourceMapEntry",
+        "_a2",
+        "ResourceMap",
+        "_a3",
+        "ResourceSet",
+        "_a4",
+        "LinkedMap",
+        "SetMap"
+      ],
+      "imports": [],
+      "sha256": "1b9204e6e5c0151f3802faf6fbd12b2f3833bdfd9736b20020b85336ad9c2537"
+    },
+    {
+      "modulePath": "src/vs/base/common/types.ts",
+      "file": "module-0011.mjs",
+      "exportedBindings": [
+        "isIterable"
+      ],
+      "imports": [],
+      "sha256": "9bf2a8989e7b3ed1747f561fe5ff704b46e4c2eb838433ddee82740e4cc1ca6d"
+    },
+    {
+      "modulePath": "src/vs/base/common/iterator.ts",
+      "file": "module-0012.mjs",
+      "exportedBindings": [
+        "Iterable"
+      ],
+      "imports": [
+        {
+          "module": "module-0011",
+          "bindings": [
+            "isIterable"
+          ]
+        }
+      ],
+      "sha256": "40abaed2601603c1f64c81d686a373bc58e2c9e83b5dd0db27989ab75a4e035e"
+    },
+    {
+      "modulePath": "src/vs/base/common/lifecycle.ts",
+      "file": "module-0013.mjs",
+      "exportedBindings": [
+        "setDisposableTracker",
+        "trackDisposable",
+        "markAsDisposed",
+        "setParentOfDisposable",
+        "setParentOfDisposables",
+        "dispose",
+        "combinedDisposable",
+        "toDisposable",
+        "TRACK_DISPOSABLES",
+        "disposableTracker",
+        "DisposableTracker",
+        "FunctionDisposable",
+        "DisposableStore",
+        "Disposable"
+      ],
+      "imports": [
+        {
+          "module": "module-0010",
+          "bindings": [
+            "SetMap"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "compareBy",
+            "numberComparator"
+          ]
+        },
+        {
+          "module": "module-0009",
+          "bindings": [
+            "groupBy"
+          ]
+        },
+        {
+          "module": "module-0012",
+          "bindings": [
+            "Iterable"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "onUnexpectedError",
+            "BugIndicatingError"
+          ]
+        }
+      ],
+      "sha256": "d3456465b3370c2e346ee77a59454d483e0491c506e9f3be4c2a6b9ca5fe347e"
+    },
+    {
+      "modulePath": "src/vs/base/common/linkedList.ts",
+      "file": "module-0014.mjs",
+      "exportedBindings": [
+        "Node"
+      ],
+      "imports": [],
+      "sha256": "6284d114c5a4e8e6609adeea73de60a9c14e57bd686904ad0aba209cfbf901ab"
+    },
+    {
+      "modulePath": "src/vs/base/common/stopwatch.ts",
+      "file": "module-0015.mjs",
+      "exportedBindings": [
+        "performanceNow",
+        "StopWatch"
+      ],
+      "imports": [],
+      "sha256": "f9d1cc7ac9d2a488e3d80ec17c02897a5d72c98c61171a6ff28a93749d60515b"
+    },
+    {
+      "modulePath": "src/vs/base/common/event.ts",
+      "file": "module-0016.mjs",
+      "exportedBindings": [
+        "_isBufferLeakWarningEnabled",
+        "nextLeakageMonitorName",
+        "addToDisposables",
+        "disposeAndRemove",
+        "_enableDisposeWithListenerWarning",
+        "_enableSnapshotPotentialLeakWarning",
+        "_bufferLeakWarnCountThreshold",
+        "_bufferLeakWarnTimeThreshold",
+        "Event",
+        "EventProfiling",
+        "_globalLeakWarningThreshold",
+        "leakageMonitorId",
+        "LeakageMonitor",
+        "Stacktrace",
+        "ListenerLeakError",
+        "ListenerRefusalError",
+        "id",
+        "UniqueContainer",
+        "compactionThreshold",
+        "forEachListener",
+        "Emitter",
+        "EventDeliveryQueuePrivate"
+      ],
+      "imports": [
+        {
+          "module": "module-0003",
+          "bindings": [
+            "env"
+          ]
+        },
+        {
+          "module": "module-0013",
+          "bindings": [
+            "Disposable",
+            "combinedDisposable",
+            "toDisposable",
+            "DisposableStore"
+          ]
+        },
+        {
+          "module": "module-0015",
+          "bindings": [
+            "StopWatch"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "onUnexpectedError"
+          ]
+        }
+      ],
+      "sha256": "eaae7d35b3bad0c01e665cd92623a0e51ec5f008eb8351743eaae0c236745e51"
+    },
+    {
+      "modulePath": "src/vs/base/common/cancellation.ts",
+      "file": "module-0017.mjs",
+      "exportedBindings": [
+        "shortcutEvent",
+        "CancellationToken",
+        "MutableToken"
+      ],
+      "imports": [
+        {
+          "module": "module-0016",
+          "bindings": [
+            "Event",
+            "Emitter"
+          ]
+        }
+      ],
+      "sha256": "4631052d07ab7cbd0d754ab1da7f8442f4167a6c2d68568296058924840f0be5"
+    },
+    {
+      "modulePath": "src/vs/base/common/cache.ts",
+      "file": "module-0018.mjs",
+      "exportedBindings": [
+        "identity",
+        "LRUCachedFunction"
+      ],
+      "imports": [],
+      "sha256": "f7de5286003c3ce167d396c838338e5fc7b396b0cbf5914ec99876f2d8861e93"
+    },
+    {
+      "modulePath": "src/vs/base/common/lazy.ts",
+      "file": "module-0019.mjs",
+      "exportedBindings": [
+        "Lazy"
+      ],
+      "imports": [],
+      "sha256": "03932b55aa46edf83d14634b706dee8b2b48a1ee8bb2debcea2410ff3e53ac66"
+    },
+    {
+      "modulePath": "src/vs/base/common/strings.ts",
+      "file": "module-0020.mjs",
+      "exportedBindings": [
+        "isFalsyOrWhitespace",
+        "compare",
+        "compareSubstring",
+        "compareIgnoreCase",
+        "compareSubstringIgnoreCase",
+        "isLowerAsciiLetter",
+        "isUpperAsciiLetter",
+        "equalsIgnoreCase",
+        "startsWithIgnoreCase",
+        "isHighSurrogate",
+        "isLowSurrogate",
+        "computeCodePoint",
+        "getGraphemeBreakRawData",
+        "CSI_SEQUENCE",
+        "OSC_SEQUENCE",
+        "ESC_SEQUENCE",
+        "CONTROL_SEQUENCES",
+        "UTF8_BOM_CHARACTER",
+        "GraphemeBreakTree",
+        "AmbiguousCharacters",
+        "InvisibleCharacters"
+      ],
+      "imports": [
+        {
+          "module": "module-0019",
+          "bindings": [
+            "Lazy"
+          ]
+        },
+        {
+          "module": "module-0018",
+          "bindings": [
+            "LRUCachedFunction"
+          ]
+        }
+      ],
+      "sha256": "4b9fedf2e96fa172acfec0c12e6cbe7cde3e5d715bac6393b98eb818c5b25a28"
+    },
+    {
+      "modulePath": "src/vs/base/common/ternarySearchTree.ts",
+      "file": "module-0021.mjs",
+      "exportedBindings": [
+        "StringIterator",
+        "ConfigKeysIterator",
+        "PathIterator",
+        "UriIterator",
+        "Undef",
+        "TernarySearchTreeNode",
+        "TernarySearchTree"
+      ],
+      "imports": [
+        {
+          "module": "module-0020",
+          "bindings": [
+            "compareSubstring",
+            "compareSubstringIgnoreCase",
+            "compareIgnoreCase",
+            "compare"
+          ]
+        },
+        {
+          "module": "module-0007",
+          "bindings": [
+            "shuffle"
+          ]
+        },
+        {
+          "module": "module-0008",
+          "bindings": [
+            "assert"
+          ]
+        }
+      ],
+      "sha256": "7414e7f7a5ec9995bdd55f7792d8be61721e77d9b21e66d8dfa720ebcaf77151"
+    },
+    {
+      "modulePath": "src/vs/base/common/uri.ts",
+      "file": "module-0022.mjs",
+      "exportedBindings": [
+        "_validateUri",
+        "_schemeFix",
+        "_referenceResolution",
+        "encodeURIComponentFast",
+        "encodeURIComponentMinimal",
+        "uriToFsPath",
+        "_asFormatted",
+        "decodeURIComponentGraceful",
+        "percentDecode",
+        "_schemePattern",
+        "_singleSlashStart",
+        "_doubleSlashStart",
+        "_empty",
+        "_slash",
+        "_regexp",
+        "URI",
+        "_pathSepMarker",
+        "Uri",
+        "encodeTable",
+        "_rEncodedAsHex"
+      ],
+      "imports": [
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isWindows"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "win32",
+            "posix"
+          ]
+        }
+      ],
+      "sha256": "e233ed61d8f3259c794e8234474d4a409b13540aa2ffdbe6bad0208379b97e83"
+    },
+    {
+      "modulePath": "src/vs/platform/instantiation/common/instantiation.ts",
+      "file": "module-0023.mjs",
+      "exportedBindings": [
+        "storeServiceDependency",
+        "createDecorator",
+        "_util",
+        "IInstantiationService"
+      ],
+      "imports": [],
+      "sha256": "93affc31bbb7e852538ed4ca30dc26e3ff05e47d62f68dd507f91fde759f165a"
+    },
+    {
+      "modulePath": "src/vs/platform/profiling/common/profiling.ts",
+      "file": "module-0024.mjs",
+      "exportedBindings": [
+        "IV8InspectProfilingService",
+        "Utils"
+      ],
+      "imports": [
+        {
+          "module": "module-0023",
+          "bindings": [
+            "createDecorator"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "isAbsolute",
+            "join",
+            "basename"
+          ]
+        }
+      ],
+      "sha256": "68230f67ef6a997c2a3aae375a2329907d91dd0592804365eeece2349df965de"
+    },
+    {
+      "modulePath": "src/vs/platform/profiling/common/profilingModel.ts",
+      "file": "module-0025.mjs",
+      "exportedBindings": [
+        "computeAggregateTime",
+        "ensureSourceLocations",
+        "buildModel",
+        "BottomUpNode",
+        "processNode"
+      ],
+      "imports": [],
+      "sha256": "fe66adad8c3c9fff3c911408db89ed45842fd26c7586afa37a37fd715b8a9ef2"
+    },
+    {
+      "modulePath": "src/vs/platform/webWorker/browser/webWorkerDescriptor.ts",
+      "file": "module-0026.mjs",
+      "exportedBindings": [
+        "WebWorkerDescriptor"
+      ],
+      "imports": [],
+      "sha256": "685b14031a7e57fbbc3a1659c03b289f3cf036de2e3f89b2540bf7e457efd093"
+    },
+    {
+      "modulePath": "src/vs/platform/instantiation/common/descriptors.ts",
+      "file": "module-0027.mjs",
+      "exportedBindings": [
+        "SyncDescriptor"
+      ],
+      "imports": [],
+      "sha256": "8926639b20b989cf8bf63ad15110f689ae18a2a920a3d9c2416487d8681aaff5"
+    },
+    {
+      "modulePath": "src/vs/platform/instantiation/common/extensions.ts",
+      "file": "module-0028.mjs",
+      "exportedBindings": [
+        "registerSingleton",
+        "_registry"
+      ],
+      "imports": [
+        {
+          "module": "module-0027",
+          "bindings": [
+            "SyncDescriptor"
+          ]
+        }
+      ],
+      "sha256": "7e64d7ac594111d8cbff20f63de47b46bc339243f6bccd6cac86ecfba814d0d7"
+    },
+    {
+      "modulePath": "src/vs/platform/webWorker/browser/webWorkerService.ts",
+      "file": "module-0029.mjs",
+      "exportedBindings": [
+        "IWebWorkerService"
+      ],
+      "imports": [
+        {
+          "module": "module-0023",
+          "bindings": [
+            "createDecorator"
+          ]
+        }
+      ],
+      "sha256": "869b66a063b4980c055a9c442573865cf6f0ff9e8dffcdfe7e20ce9947fa16af"
+    },
+    {
+      "modulePath": "src/vs/base/common/buffer.ts",
+      "file": "module-0030.mjs",
+      "exportedBindings": [
+        "binaryIndexOf",
+        "readUInt32BE",
+        "writeUInt32BE",
+        "readUInt32LE",
+        "writeUInt32LE",
+        "readUInt8",
+        "writeUInt8",
+        "encodeHex",
+        "hasBuffer",
+        "indexOfTable",
+        "textEncoder",
+        "textDecoder",
+        "VSBuffer",
+        "hexChars"
+      ],
+      "imports": [
+        {
+          "module": "module-0019",
+          "bindings": [
+            "Lazy"
+          ]
+        }
+      ],
+      "sha256": "18f50f9c2394e6c4e0f6f89912ada6a82fd056805e774910bec5619ca88c799a"
+    },
+    {
+      "modulePath": "src/vs/base/common/hash.ts",
+      "file": "module-0031.mjs",
+      "exportedBindings": [
+        "leftRotate",
+        "toHexString",
+        "StringSHA1"
+      ],
+      "imports": [
+        {
+          "module": "module-0030",
+          "bindings": [
+            "encodeHex",
+            "VSBuffer"
+          ]
+        },
+        {
+          "module": "module-0020",
+          "bindings": [
+            "isHighSurrogate",
+            "isLowSurrogate",
+            "computeCodePoint"
+          ]
+        }
+      ],
+      "sha256": "5b2ef07d4c1f02939680d189bff51e58cb620972a3fb465cd4e7a5ac39e620e2"
+    },
+    {
+      "modulePath": "src/vs/base/common/extpath.ts",
+      "file": "module-0032.mjs",
+      "exportedBindings": [
+        "isPathSeparator2",
+        "toSlashes",
+        "toPosixPath",
+        "getRoot",
+        "isEqualOrParent",
+        "isWindowsDriveLetter"
+      ],
+      "imports": [
+        {
+          "module": "module-0004",
+          "bindings": [
+            "posix",
+            "sep",
+            "normalize"
+          ]
+        },
+        {
+          "module": "module-0020",
+          "bindings": [
+            "startsWithIgnoreCase"
+          ]
+        }
+      ],
+      "sha256": "335c440a6aaa99c67cad0239edf7ec92314be4528ef3af118ae4c67733c7b2f9"
+    },
+    {
+      "modulePath": "src/vs/base/common/network.ts",
+      "file": "module-0033.mjs",
+      "exportedBindings": [
+        "getServerProductSegment",
+        "Schemas",
+        "connectionTokenQueryName",
+        "RemoteAuthoritiesImpl",
+        "RemoteAuthorities",
+        "VSCODE_AUTHORITY",
+        "FileAccessImpl",
+        "FileAccess",
+        "CacheControlheaders",
+        "DocumentPolicyheaders",
+        "COI"
+      ],
+      "imports": [
+        {
+          "module": "module-0004",
+          "bindings": [
+            "posix",
+            "join"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "onUnexpectedExternalError"
+          ]
+        },
+        {
+          "module": "module-0022",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isWeb",
+            "isNative",
+            "webWorkerOrigin"
+          ]
+        }
+      ],
+      "sha256": "bf6698b12e3cb3eaed5e077147f31aa64df8d6410480675e3719b2f5f0672693"
+    },
+    {
+      "modulePath": "src/vs/base/common/resources.ts",
+      "file": "module-0034.mjs",
+      "exportedBindings": [
+        "originalFSPath",
+        "ExtUri",
+        "extUri",
+        "extUriBiasedIgnorePathCase",
+        "extUriIgnorePathCase",
+        "isEqual",
+        "isEqualOrParent2",
+        "getComparisonKey",
+        "basenameOrAuthority",
+        "basename2",
+        "extname2",
+        "dirname2",
+        "joinPath",
+        "normalizePath",
+        "relativePath",
+        "resolvePath",
+        "isAbsolutePath",
+        "isEqualAuthority",
+        "hasTrailingPathSeparator",
+        "removeTrailingPathSeparator",
+        "addTrailingPathSeparator",
+        "DataUri"
+      ],
+      "imports": [
+        {
+          "module": "module-0022",
+          "bindings": [
+            "uriToFsPath",
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0020",
+          "bindings": [
+            "compare",
+            "equalsIgnoreCase"
+          ]
+        },
+        {
+          "module": "module-0033",
+          "bindings": [
+            "Schemas"
+          ]
+        },
+        {
+          "module": "module-0032",
+          "bindings": [
+            "isEqualOrParent",
+            "toSlashes",
+            "toPosixPath",
+            "getRoot"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "posix",
+            "dirname",
+            "normalize",
+            "relative",
+            "resolve",
+            "sep"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isWindows",
+            "isLinux"
+          ]
+        }
+      ],
+      "sha256": "bd56592d00bf378a4f24d02f88e1957f3b9bb1065058f20f734f49d5df892d5c"
+    },
+    {
+      "modulePath": "src/vs/platform/contextkey/common/scanner.ts",
+      "file": "module-0035.mjs",
+      "exportedBindings": [
+        "hintDidYouMean",
+        "hintDidYouForgetToOpenOrCloseQuote",
+        "hintDidYouForgetToEscapeSlash",
+        "Scanner"
+      ],
+      "imports": [
+        {
+          "module": "module-0001",
+          "bindings": [
+            "localize"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "illegalState"
+          ]
+        }
+      ],
+      "sha256": "a3b82ef6086b4183bfe6359cb95d80b701fde2cb1be4f714d22a5a6fde15c5e4"
+    },
+    {
+      "modulePath": "src/vs/platform/contextkey/common/contextkey.ts",
+      "file": "module-0036.mjs",
+      "exportedBindings": [
+        "cmp",
+        "withFloatOrStr",
+        "eliminateConstantsInArray",
+        "cmp1",
+        "cmp2",
+        "getTerminals",
+        "CONSTANT_VALUES",
+        "hasOwnProperty",
+        "defaultConfig",
+        "errorEmptyString",
+        "hintEmptyString",
+        "errorNoInAfterNot",
+        "errorClosingParenthesis",
+        "errorUnexpectedToken",
+        "hintUnexpectedToken",
+        "errorUnexpectedEOF",
+        "hintUnexpectedEOF",
+        "Parser",
+        "ContextKeyExpr",
+        "ContextKeyFalseExpr",
+        "ContextKeyTrueExpr",
+        "ContextKeyDefinedExpr",
+        "ContextKeyEqualsExpr",
+        "ContextKeyInExpr",
+        "ContextKeyNotInExpr",
+        "ContextKeyNotEqualsExpr",
+        "ContextKeyNotExpr",
+        "ContextKeyGreaterExpr",
+        "ContextKeyGreaterEqualsExpr",
+        "ContextKeySmallerExpr",
+        "ContextKeySmallerEqualsExpr",
+        "ContextKeyRegexExpr",
+        "ContextKeyNotRegexExpr",
+        "ContextKeyAndExpr",
+        "ContextKeyOrExpr",
+        "RawContextKey",
+        "IContextKeyService"
+      ],
+      "imports": [
+        {
+          "module": "module-0002",
+          "bindings": [
+            "isMacintosh",
+            "isLinux",
+            "isWindows",
+            "isWeb",
+            "isEdge",
+            "isFirefox",
+            "isChrome",
+            "isSafari"
+          ]
+        },
+        {
+          "module": "module-0001",
+          "bindings": [
+            "localize"
+          ]
+        },
+        {
+          "module": "module-0035",
+          "bindings": [
+            "Scanner"
+          ]
+        },
+        {
+          "module": "module-0020",
+          "bindings": [
+            "isFalsyOrWhitespace"
+          ]
+        },
+        {
+          "module": "module-0023",
+          "bindings": [
+            "createDecorator"
+          ]
+        }
+      ],
+      "sha256": "51f1f3bf2fffbcc7069e5540b3730477561453c1e262f1620b75b41434f1b233"
+    },
+    {
+      "modulePath": "src/vs/platform/log/common/log.ts",
+      "file": "module-0037.mjs",
+      "exportedBindings": [
+        "LogLevelToString",
+        "ILogService",
+        "ILoggerService",
+        "CONTEXT_LOG_LEVEL"
+      ],
+      "imports": [
+        {
+          "module": "module-0023",
+          "bindings": [
+            "createDecorator"
+          ]
+        },
+        {
+          "module": "module-0036",
+          "bindings": [
+            "RawContextKey"
+          ]
+        }
+      ],
+      "sha256": "f2fc93e090f2b887325e26632ce35087b266405eb5f80ee6c6d2397f5384fb3a"
+    },
+    {
+      "modulePath": "src/vs/platform/profiling/common/profilingTelemetrySpec.ts",
+      "file": "module-0038.mjs",
+      "exportedBindings": [
+        "reportSample",
+        "PerformanceError"
+      ],
+      "imports": [
+        {
+          "module": "module-0006",
+          "bindings": [
+            "errorHandler"
+          ]
+        }
+      ],
+      "sha256": "962d9ce246ca939ac1e0ea87a1be0a5382b0a8ab1a85c45a67628ec60dc18fca"
+    },
+    {
+      "modulePath": "src/vs/platform/telemetry/common/telemetry.ts",
+      "file": "module-0039.mjs",
+      "exportedBindings": [
+        "ITelemetryService",
+        "ICustomEndpointTelemetryService"
+      ],
+      "imports": [
+        {
+          "module": "module-0023",
+          "bindings": [
+            "createDecorator"
+          ]
+        }
+      ],
+      "sha256": "fa25d0e7ab6ab8a8aaf65f3b7005d5b08d1076637386ff2bf793096fc044199e"
+    },
+    {
+      "modulePath": "src/vs/platform/profiling/electron-browser/profileAnalysisWorkerService.ts",
+      "file": "module-0040.mjs",
+      "exportedBindings": [
+        "IProfileAnalysisWorkerService",
+        "ProfileAnalysisWorkerService"
+      ],
+      "imports": [
+        {
+          "module": "module-0023",
+          "bindings": [
+            "createDecorator"
+          ]
+        },
+        {
+          "module": "module-0026",
+          "bindings": [
+            "WebWorkerDescriptor"
+          ]
+        },
+        {
+          "module": "module-0033",
+          "bindings": [
+            "FileAccess"
+          ]
+        },
+        {
+          "module": "module-0038",
+          "bindings": [
+            "reportSample"
+          ]
+        },
+        {
+          "module": "module-0000",
+          "bindings": [
+            "__decorateClass",
+            "__decorateParam"
+          ]
+        },
+        {
+          "module": "module-0039",
+          "bindings": [
+            "ITelemetryService"
+          ]
+        },
+        {
+          "module": "module-0037",
+          "bindings": [
+            "ILogService"
+          ]
+        },
+        {
+          "module": "module-0029",
+          "bindings": [
+            "IWebWorkerService"
+          ]
+        },
+        {
+          "module": "module-0028",
+          "bindings": [
+            "registerSingleton"
+          ]
+        }
+      ],
+      "sha256": "7a4eb26ab06e03228f535c2e40d87928e3e7811f13bf10a9517612180d32b948"
+    },
+    {
+      "modulePath": "src/vs/platform/profiling/electron-browser/profileAnalysisWorker.ts",
+      "file": "module-0041.mjs",
+      "exportedBindings": [
+        "create",
+        "isSpecial",
+        "printCallFrameShort",
+        "printCallFrameStackLike",
+        "getHeaviestLocationIds",
+        "bottomUp",
+        "ProfileAnalysisWorker"
+      ],
+      "imports": [
+        {
+          "module": "module-0024",
+          "bindings": [
+            "Utils"
+          ]
+        },
+        {
+          "module": "module-0025",
+          "bindings": [
+            "buildModel",
+            "BottomUpNode",
+            "processNode"
+          ]
+        },
+        {
+          "module": "module-0021",
+          "bindings": [
+            "TernarySearchTree"
+          ]
+        },
+        {
+          "module": "module-0022",
+          "bindings": [
+            "URI"
+          ]
+        },
+        {
+          "module": "module-0004",
+          "bindings": [
+            "basename"
+          ]
+        }
+      ],
+      "sha256": "5c597d409d7a6788191a30bba00e045f937a02209d144514a942687384cb4c63"
+    },
+    {
+      "modulePath": "src/vs/base/common/worker/webWorker.ts",
+      "file": "module-0042.mjs",
+      "exportedBindings": [
+        "propertyIsEvent",
+        "propertyIsDynamicEvent",
+        "DEFAULT_CHANNEL",
+        "INITIALIZE",
+        "RequestMessage",
+        "ReplyMessage",
+        "SubscribeEventMessage",
+        "EventMessage",
+        "UnsubscribeEventMessage",
+        "WebWorkerProtocol",
+        "WebWorkerServer"
+      ],
+      "imports": [
+        {
+          "module": "module-0016",
+          "bindings": [
+            "Emitter"
+          ]
+        },
+        {
+          "module": "module-0006",
+          "bindings": [
+            "transformErrorForSerialization"
+          ]
+        },
+        {
+          "module": "module-0020",
+          "bindings": [
+            "isUpperAsciiLetter"
+          ]
+        }
+      ],
+      "sha256": "c7a21eef504cb14c717076ddc6fc98fe658efb1eb5c005757ecf2ce4713d488d"
+    },
+    {
+      "modulePath": "src/vs/base/common/worker/webWorkerBootstrap.ts",
+      "file": "module-0043.mjs",
+      "exportedBindings": [
+        "initialize",
+        "bootstrapWebWorker",
+        "initialized"
+      ],
+      "imports": [
+        {
+          "module": "module-0042",
+          "bindings": [
+            "WebWorkerServer"
+          ]
+        }
+      ],
+      "sha256": "5fa0599f42a421ff403ec1c5d97964a78aded962c61fda0cda14a40642e2ac22"
+    },
+    {
+      "modulePath": "src/vs/platform/profiling/electron-browser/profileAnalysisWorkerMain.ts",
+      "file": "module-0044.mjs",
+      "exportedBindings": [],
+      "imports": [
+        {
+          "module": "module-0043",
+          "bindings": [
+            "bootstrapWebWorker"
+          ]
+        },
+        {
+          "module": "module-0041",
+          "bindings": [
+            "create"
+          ]
+        }
+      ],
+      "sha256": "5b782d9b09abf3b99f7a0cce8b51e074af6ace2d7d212126e41ebcbc3f04ccfd"
+    }
+  ],
+  "publicExports": [],
+  "topLevelBindings": 398,
+  "crossModuleWriteCount": 0,
+  "typescriptVersion": "6.0.3",
+  "directExportFix": true
+}

@@ -1,0 +1,205 @@
+{
+  "generatorVersion": 2,
+  "bundle": "004-bootstrap-fork.js",
+  "artifactPath": "resources/app/out/bootstrap-fork.js",
+  "status": "generated-not-validated",
+  "modules": [
+    {
+      "modulePath": "<bundle-preamble>",
+      "file": "module-0000.mjs",
+      "exportedBindings": [
+        "__extends",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension",
+        "extendStatics",
+        "__assign",
+        "__createBinding",
+        "__setModuleDefault",
+        "ownKeys",
+        "_SuppressedError"
+      ],
+      "imports": [],
+      "sha256": "eaa9318e56c5da4951e7ab7591ef9aa48834324e2ef1b5f6adc7ee6b88c035d7",
+      "directExportFix": [
+        "__extends",
+        "__assign",
+        "__rest",
+        "__decorate",
+        "__param",
+        "__esDecorate",
+        "__runInitializers",
+        "__propKey",
+        "__setFunctionName",
+        "__metadata",
+        "__awaiter",
+        "__generator",
+        "__createBinding",
+        "__exportStar",
+        "__values",
+        "__read",
+        "__spread",
+        "__spreadArrays",
+        "__spreadArray",
+        "__await",
+        "__asyncGenerator",
+        "__asyncDelegator",
+        "__asyncValues",
+        "__makeTemplateObject",
+        "__importStar",
+        "__importDefault",
+        "__classPrivateFieldGet",
+        "__classPrivateFieldSet",
+        "__classPrivateFieldIn",
+        "__addDisposableResource",
+        "__disposeResources",
+        "__rewriteRelativeImportExtension"
+      ]
+    },
+    {
+      "modulePath": "src/vs/base/common/performance.ts",
+      "file": "module-0001.mjs",
+      "exportedBindings": [
+        "_definePolyfillMarks",
+        "_define",
+        "_factory",
+        "perf",
+        "mark",
+        "clearMarks",
+        "getMarks"
+      ],
+      "imports": [],
+      "sha256": "3ff02e556f921fc10ac3175304bbf04227c1fb6b6619e01cc613d58e1a54dbbe"
+    },
+    {
+      "modulePath": "src/bootstrap-node.ts",
+      "file": "module-0002.mjs",
+      "exportedBindings": [
+        "setupCurrentWorkingDirectory",
+        "enableASARSupport",
+        "devInjectNodeModuleLookupPath",
+        "removeGlobalNodeJsModuleLookupPaths",
+        "path",
+        "Buffer",
+        "createRequire",
+        "require2",
+        "isWindows"
+      ],
+      "imports": [],
+      "sha256": "570fdea760872cf84fac9eea3147b8489b22dc4287dddfdc523d884e158c7e8a"
+    },
+    {
+      "modulePath": "src/bootstrap-esm.ts",
+      "file": "module-0003.mjs",
+      "exportedBindings": [
+        "enableASARSupport2",
+        "setupNLS",
+        "doSetupNLS",
+        "bootstrapESM",
+        "fs",
+        "createRequire3",
+        "isBuiltin",
+        "registerHooks",
+        "dirname2",
+        "join2",
+        "fileURLToPath",
+        "pathToFileURL",
+        "setupNLSResult"
+      ],
+      "imports": [
+        {
+          "module": "module-0004",
+          "bindings": [
+            "product",
+            "pkg"
+          ]
+        },
+        {
+          "module": "module-0001",
+          "bindings": [
+            "mark"
+          ]
+        }
+      ],
+      "sha256": "c7ea6d06a58ef9fd90f60bd63f5119901052f7cb9a9e402fb23aac5afd601a62"
+    },
+    {
+      "modulePath": "src/bootstrap-meta.ts",
+      "file": "module-0004.mjs",
+      "exportedBindings": [
+        "createRequire2",
+        "require3",
+        "productObj",
+        "pkgObj",
+        "productOverridesObj",
+        "product",
+        "pkg"
+      ],
+      "imports": [],
+      "sha256": "5dbdf763387415afa149c5812b59abbd2c98635cdd6ae7a808bfb2364e86db37"
+    },
+    {
+      "modulePath": "src/bootstrap-fork.ts",
+      "file": "module-0005.mjs",
+      "exportedBindings": [
+        "pipeLoggingToParent",
+        "handleExceptions",
+        "terminateWhenParentTerminates",
+        "configureCrashReporter"
+      ],
+      "imports": [
+        {
+          "module": "module-0001",
+          "bindings": [
+            "mark"
+          ]
+        },
+        {
+          "module": "module-0002",
+          "bindings": [
+            "removeGlobalNodeJsModuleLookupPaths",
+            "devInjectNodeModuleLookupPath"
+          ]
+        },
+        {
+          "module": "module-0003",
+          "bindings": [
+            "bootstrapESM"
+          ]
+        }
+      ],
+      "sha256": "b791077fae6f26416359e87ad36679324787be7d9f2cd6869fff66c91133a97c"
+    }
+  ],
+  "publicExports": [],
+  "topLevelBindings": 76,
+  "crossModuleWriteCount": 0,
+  "typescriptVersion": "6.0.3",
+  "directExportFix": true
+}

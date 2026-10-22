@@ -1,0 +1,416 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/vs/workbench/workbench.desktop.main.js
+// Original module marker: src/vs/workbench/contrib/chat/common/model/objectMutationLog.ts
+import { isUndefinedOrNull } from "./module-0010.mjs";
+import { VSBuffer } from "./module-0038.mjs";
+import { assertNever } from "./module-0009.mjs";
+
+
+// src/vs/workbench/contrib/chat/common/model/objectMutationLog.ts
+function prefixError(e, prefix) {
+  e.message = prefix + e.message;
+  if (e.stack) {
+    const nlIdx = e.stack.indexOf("\n");
+    e.stack = nlIdx !== -1 ? `${e.name}: ${e.message}${e.stack.slice(nlIdx)}` : `${e.name}: ${e.message}`;
+  }
+}
+
+function rethrowWithPathSegment(e, segment) {
+  if (e instanceof Error) {
+    const part = typeof segment === "number" ? `[${segment}]` : `.${segment}`;
+    const needsSep = !e.message.startsWith("[") && !e.message.startsWith(".");
+    prefixError(e, part + (needsSep ? ": " : ""));
+  }
+  throw e;
+}
+
+function key(comparator) {
+  return {
+    kind: 0 /* Key */,
+    extract: (from) => from,
+    equals: comparator ?? ((a, b) => a === b)
+  };
+}
+
+function value(comparator) {
+  return {
+    kind: 1 /* Primitive */,
+    extract: (from) => {
+      let value2 = from;
+      if (!!value2 && typeof value2 === "object") {
+        value2 = deepCloneWithFallback(value2);
+      }
+      return value2;
+    },
+    equals: comparator ?? ((a, b) => a === b)
+  };
+}
+
+function array2(schema10) {
+  return {
+    kind: 2 /* Array */,
+    itemSchema: schema10,
+    extract: (from) => from?.map((item, i2) => {
+      try {
+        return schema10.extract(item);
+      } catch (e) {
+        rethrowWithPathSegment(e, i2);
+      }
+    })
+  };
+}
+
+function object(schema10, options3) {
+  const entries2 = Object.entries(schema10).sort(([, a], [, b]) => a.kind - b.kind);
+  return {
+    kind: 3 /* Object */,
+    children: entries2,
+    sealed: options3?.sealed,
+    extract: (from) => {
+      if (isUndefinedOrNull(from)) {
+        return from;
+      }
+      const result = /* @__PURE__ */ Object.create(null);
+      for (const [key3, transform2] of entries2) {
+        try {
+          result[key3] = transform2.extract(from);
+        } catch (e) {
+          rethrowWithPathSegment(e, key3);
+        }
+      }
+      return result;
+    }
+  };
+}
+
+function t(getter, schema10) {
+  return {
+    ...schema10,
+    extract: (from) => schema10.extract(getter(from))
+  };
+}
+
+function v(getter, comparator) {
+  const inner = value(comparator);
+  return {
+    ...inner,
+    extract: (from) => inner.extract(getter(from))
+  };
+}
+
+var LF = VSBuffer.fromString("\n");
+
+var PERSIST_ENTRY_MAX_STRING_CHARS = 1 * 1024 * 1024;
+
+var PERSIST_ENTRY_MAX_TOTAL_CHARS = 100 * 1024 * 1024;
+
+var TRUNCATION_MARKER_PREFIX = "[VS Code: value truncated for persistence";
+
+var TRUNCATION_MARKER_TOTAL = `${TRUNCATION_MARKER_PREFIX}; entry exceeded size budget]`;
+
+function stringifyEntryWithFallback(entry) {
+  try {
+    return JSON.stringify(entry);
+  } catch (e) {
+    if (!(e instanceof RangeError)) {
+      throw e;
+    }
+    return JSON.stringify(entry, makeTruncatingReplacer(PERSIST_ENTRY_MAX_STRING_CHARS, PERSIST_ENTRY_MAX_TOTAL_CHARS));
+  }
+}
+
+function deepCloneWithFallback(value2) {
+  return JSON.parse(stringifyEntryWithFallback(value2));
+}
+
+function makeTruncatingReplacer(maxStringChars, maxTotalChars) {
+  let total = 0;
+  return (_key, val) => {
+    if (typeof val === "string") {
+      let emitted;
+      if (val.length > maxStringChars) {
+        emitted = `${TRUNCATION_MARKER_PREFIX}; original ${val.length} chars]`;
+      } else if (total + val.length + 2 > maxTotalChars) {
+        emitted = TRUNCATION_MARKER_TOTAL;
+      } else {
+        total += val.length + 2;
+        return val;
+      }
+      total += emitted.length + 2;
+      return emitted;
+    }
+    return val;
+  };
+}
+
+var ObjectMutationLog = class {
+  constructor(_transform, _compactAfterEntries = 512) {
+    this._transform = _transform;
+    this._compactAfterEntries = _compactAfterEntries;
+    this._entryCount = 0;
+    this._hasPendingWrite = false;
+    this._pendingEntryCount = 0;
+  }
+  /**
+   * Creates an initial log file from the given object.
+   */
+  createInitial(current) {
+    return this.createInitialFromSerialized(this._transform.extract(current));
+  }
+  /**
+   * Creates an initial log file from the serialized object.
+   *
+   * Unlike {@link write}, this commits state immediately without requiring
+   * {@link confirmWrite}. This is safe because the returned buffer contains
+   * a self-contained `Initial` entry — if it fails to persist, no
+   * incremental entries can be appended to a non-existent file.
+   */
+  createInitialFromSerialized(value2) {
+    this._previous = value2;
+    this._entryCount = 1;
+    this._clearPending();
+    const entry = { kind: 0 /* Initial */, v: value2 };
+    return VSBuffer.fromString(stringifyEntryWithFallback(entry) + "\n");
+  }
+  /**
+   * Reads and reconstructs the state from a log file.
+   */
+  read(content2) {
+    let state;
+    let lineCount = 0;
+    let start = 0;
+    const len = content2.byteLength;
+    while (start < len) {
+      let end = content2.indexOf(LF, start);
+      if (end === -1) {
+        end = len;
+      }
+      if (end > start) {
+        const line = content2.slice(start, end);
+        if (line.byteLength > 0) {
+          lineCount++;
+          const entry = JSON.parse(line.toString());
+          switch (entry.kind) {
+            case 0 /* Initial */:
+              state = entry.v;
+              break;
+            case 1 /* Set */:
+              if (state === void 0) {
+                throw new Error("Log file is missing an initial entry");
+              }
+              this._applySet(state, entry.k, entry.v);
+              break;
+            case 2 /* Push */:
+              if (state === void 0) {
+                throw new Error("Log file is missing an initial entry");
+              }
+              this._applyPush(state, entry.k, entry.v, entry.i);
+              break;
+            case 3 /* Delete */:
+              if (state === void 0) {
+                throw new Error("Log file is missing an initial entry");
+              }
+              this._applySet(state, entry.k, void 0);
+              break;
+            default:
+              assertNever(entry);
+          }
+        }
+      }
+      start = end + 1;
+    }
+    if (lineCount === 0) {
+      throw new Error("Empty log file");
+    }
+    this._previous = state;
+    this._entryCount = lineCount;
+    this._clearPending();
+    return state;
+  }
+  /**
+   * Writes updates to the log. Returns the operation type and data to write.
+   * The caller **must** invoke {@link confirmWrite} after the data is
+   * successfully persisted to commit the internal state. Without confirmation,
+   * the next write is computed against the last confirmed state, and will only
+   * produce a full initial entry when no confirmed state exists, preventing
+   * corrupted log files when a write fails.
+   */
+  write(current) {
+    const currentValue = this._transform.extract(current);
+    if (!this._previous || this._entryCount > this._compactAfterEntries) {
+      this._hasPendingWrite = true;
+      this._pendingPrevious = currentValue;
+      this._pendingEntryCount = 1;
+      const entry = { kind: 0 /* Initial */, v: currentValue };
+      return { op: "replace", data: VSBuffer.fromString(stringifyEntryWithFallback(entry) + "\n") };
+    }
+    const entries2 = [];
+    const path = [];
+    try {
+      this._diff(this._transform, path, this._previous, currentValue, entries2);
+    } catch (e) {
+      if (e instanceof Error) {
+        const pathStr = path.map((s) => typeof s === "number" ? `[${s}]` : `.${s}`).join("") || "<root>";
+        prefixError(e, `error diffing at ${pathStr}: `);
+      }
+      throw e;
+    }
+    if (entries2.length === 0) {
+      this._clearPending();
+      return { op: "append", data: VSBuffer.fromString("") };
+    }
+    this._hasPendingWrite = true;
+    this._pendingEntryCount = this._entryCount + entries2.length;
+    this._pendingPrevious = currentValue;
+    let data = "";
+    for (const e of entries2) {
+      data += stringifyEntryWithFallback(e) + "\n";
+    }
+    return { op: "append", data: VSBuffer.fromString(data) };
+  }
+  /**
+   * Commits the internal state after a successful write to disk.
+   */
+  confirmWrite() {
+    if (this._hasPendingWrite) {
+      this._previous = this._pendingPrevious;
+      this._entryCount = this._pendingEntryCount;
+      this._clearPending();
+    }
+  }
+  _clearPending() {
+    this._hasPendingWrite = false;
+    this._pendingPrevious = void 0;
+    this._pendingEntryCount = 0;
+  }
+  _applySet(state, path, value2) {
+    if (path.length === 0) {
+      return;
+    }
+    let current = state;
+    for (let i2 = 0; i2 < path.length - 1; i2++) {
+      current = current[path[i2]];
+    }
+    current[path[path.length - 1]] = value2;
+  }
+  _applyPush(state, path, values, startIndex) {
+    let current = state;
+    for (let i2 = 0; i2 < path.length - 1; i2++) {
+      current = current[path[i2]];
+    }
+    const arrayKey = path[path.length - 1];
+    const arr = current[arrayKey] || [];
+    if (startIndex !== void 0) {
+      arr.length = startIndex;
+    }
+    if (values && values.length > 0) {
+      arr.push(...values);
+    }
+    current[arrayKey] = arr;
+  }
+  _diff(transform2, path, prev, curr, entries2) {
+    if (transform2.kind === 0 /* Key */ || transform2.kind === 1 /* Primitive */) {
+      if (!transform2.equals(prev, curr)) {
+        entries2.push({ kind: 1 /* Set */, k: path.slice(), v: curr });
+      }
+    } else if (isUndefinedOrNull(prev) || isUndefinedOrNull(curr)) {
+      if (prev !== curr) {
+        if (curr === void 0) {
+          entries2.push({ kind: 3 /* Delete */, k: path.slice() });
+        } else if (curr === null) {
+          entries2.push({ kind: 1 /* Set */, k: path.slice(), v: null });
+        } else {
+          entries2.push({ kind: 1 /* Set */, k: path.slice(), v: curr });
+        }
+      }
+    } else if (transform2.kind === 2 /* Array */) {
+      this._diffArray(transform2, path, prev, curr, entries2);
+    } else if (transform2.kind === 3 /* Object */) {
+      this._diffObject(transform2.children, path, prev, curr, entries2, transform2.sealed);
+    } else {
+      throw new Error(`Unknown transform kind ${JSON.stringify(transform2)}`);
+    }
+  }
+  _diffObject(children, path, prev, curr, entries2, sealed) {
+    const prevObj = prev;
+    const currObj = curr;
+    let i2 = 0;
+    for (; i2 < children.length; i2++) {
+      const [key3, transform2] = children[i2];
+      if (transform2.kind !== 0 /* Key */) {
+        break;
+      }
+      if (!transform2.equals(prevObj?.[key3], currObj[key3])) {
+        entries2.push({ kind: 1 /* Set */, k: path.slice(), v: curr });
+        return;
+      }
+    }
+    if (sealed && sealed(prev, true) && sealed(curr, false)) {
+      return;
+    }
+    for (; i2 < children.length; i2++) {
+      const [key3, transform2] = children[i2];
+      path.push(key3);
+      this._diff(transform2, path, prevObj?.[key3], currObj[key3], entries2);
+      path.pop();
+    }
+  }
+  _diffArray(transform2, path, prev, curr, entries2) {
+    const prevArr = prev || [];
+    const currArr = curr || [];
+    const itemSchema = transform2.itemSchema;
+    const minLen = Math.min(prevArr.length, currArr.length);
+    if (itemSchema.kind === 3 /* Object */) {
+      const childEntries = itemSchema.children;
+      for (let i2 = 0; i2 < minLen; i2++) {
+        const prevItem = prevArr[i2];
+        const currItem = currArr[i2];
+        if (this._hasKeyMismatch(childEntries, prevItem, currItem)) {
+          const newItems = currArr.slice(i2);
+          entries2.push({ kind: 2 /* Push */, k: path.slice(), v: newItems.length > 0 ? newItems : void 0, i: i2 });
+          return;
+        }
+        path.push(i2);
+        this._diffObject(childEntries, path, prevItem, currItem, entries2, itemSchema.sealed);
+        path.pop();
+      }
+      if (currArr.length > prevArr.length) {
+        entries2.push({ kind: 2 /* Push */, k: path.slice(), v: currArr.slice(prevArr.length) });
+      } else if (currArr.length < prevArr.length) {
+        entries2.push({ kind: 2 /* Push */, k: path.slice(), i: currArr.length });
+      }
+    } else {
+      let firstMismatch = -1;
+      for (let i2 = 0; i2 < minLen; i2++) {
+        if (!itemSchema.equals(prevArr[i2], currArr[i2])) {
+          firstMismatch = i2;
+          break;
+        }
+      }
+      if (firstMismatch === -1) {
+        if (currArr.length > prevArr.length) {
+          entries2.push({ kind: 2 /* Push */, k: path.slice(), v: currArr.slice(prevArr.length) });
+        } else if (currArr.length < prevArr.length) {
+          entries2.push({ kind: 2 /* Push */, k: path.slice(), i: currArr.length });
+        }
+      } else {
+        const newItems = currArr.slice(firstMismatch);
+        entries2.push({ kind: 2 /* Push */, k: path.slice(), v: newItems.length > 0 ? newItems : void 0, i: firstMismatch });
+      }
+    }
+  }
+  _hasKeyMismatch(children, prev, curr) {
+    const prevObj = prev;
+    const currObj = curr;
+    for (const [key3, transform2] of children) {
+      if (transform2.kind !== 0 /* Key */) {
+        break;
+      }
+      if (!transform2.equals(prevObj?.[key3], currObj[key3])) {
+        return true;
+      }
+    }
+    return false;
+  }
+};
+export { prefixError, rethrowWithPathSegment, key, value, array2, object, t, v, stringifyEntryWithFallback, deepCloneWithFallback, makeTruncatingReplacer, LF, PERSIST_ENTRY_MAX_STRING_CHARS, PERSIST_ENTRY_MAX_TOTAL_CHARS, TRUNCATION_MARKER_PREFIX, TRUNCATION_MARKER_TOTAL, ObjectMutationLog };

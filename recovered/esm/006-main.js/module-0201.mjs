@@ -1,0 +1,33 @@
+// Recovered JavaScript implementation; original TS types are not recovered.
+// Artifact: resources/app/out/main.js
+// Original module marker: src/vs/platform/update/common/update.ts
+import { __esm } from "./module-0000.mjs";
+import { init_types, upcast } from "./module-0016.mjs";
+import { createDecorator, init_instantiation } from "./module-0039.mjs";
+
+
+// src/vs/platform/update/common/update.ts
+var State, IUpdateService;
+
+var init_update = __esm({
+  "src/vs/platform/update/common/update.ts"() {
+    init_types();
+    init_instantiation();
+    State = {
+      Uninitialized: upcast({ type: "uninitialized" /* Uninitialized */ }),
+      Disabled: (reason) => ({ type: "disabled" /* Disabled */, reason }),
+      Idle: (updateType, error, notAvailable) => ({ type: "idle" /* Idle */, updateType, error, notAvailable }),
+      CheckingForUpdates: (explicit) => ({ type: "checking for updates" /* CheckingForUpdates */, explicit }),
+      AvailableForDownload: (update, canInstall) => ({ type: "available for download" /* AvailableForDownload */, update, canInstall }),
+      Downloading: (update, explicit, overwrite, downloadedBytes, totalBytes, startTime) => ({ type: "downloading" /* Downloading */, update, explicit, overwrite, downloadedBytes, totalBytes, startTime }),
+      Downloaded: (update, explicit, overwrite) => ({ type: "downloaded" /* Downloaded */, update, explicit, overwrite }),
+      Updating: (update, explicit, currentProgress, maxProgress) => ({ type: "updating" /* Updating */, update, explicit, currentProgress, maxProgress }),
+      Ready: (update, explicit, overwrite) => ({ type: "ready" /* Ready */, update, explicit, overwrite }),
+      Overwriting: (update, explicit) => ({ type: "overwriting" /* Overwriting */, update, explicit }),
+      Cancelling: upcast({ type: "cancelling" /* Cancelling */ }),
+      Restarting: (update) => ({ type: "restarting" /* Restarting */, update })
+    };
+    IUpdateService = createDecorator("updateService");
+  }
+});
+export { State, IUpdateService, init_update };
