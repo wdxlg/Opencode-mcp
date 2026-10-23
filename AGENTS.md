@@ -1,3 +1,26 @@
-# Maintenance boundaries
+# 恢复工程维护规则
 
-This is recovered JavaScript, not the original TypeScript repository. Preserve legal notices and integrity checks. Maintain shared modules in recovered/shared and synchronize entry variants. Do not commit profiles, credentials, Skills, build output or installed dependencies. Do not claim tests that were not performed.
+1. 本工程是可构建的JavaScript源码恢复版，不是完整原始TypeScript仓库。不要抹去类型/历史/原生依赖的恢复边界。
+2. 正式`E:\OpenCode`、原ZIP、真实用户配置、Skills、现有维护工程及D盘项目不作为写入/删除目标。
+3. 优先修改`recovered/esm/`、`recovered/standalone/`和`assets/`。`baseline/`固定不改；`generated/`才是构建输出。
+4. 同一原模块在不同入口有多个变体，必须核对模块索引。保留导入导出、惰性初始化、原独立版禁用策略及许可证。
+5. 使用增量构建，不把旧的120套测试作为每次更新的默认流程。`npm run build`不会启动程序或运行功能测试。
+6. 本次用户已明确授权依赖安装、编译和隔离验收，并要求**安装前检查电脑是否已有依赖**。不要因此推导出真实业务发送、登录、付款、删除数据或重启现有实例的权限。
+7. 测试必须使用新建的独立用户目录、HOME、扩展目录与工作区。只终止本次创建且确认属于恢复测试的进程。
+8. 原软件自身账号/授权/付费链不得重新接回。模型提供方密钥和第三方MCP认证是另外的安全机制，不应误删。
+9. 原生Agents窗口在当前基线被明确禁用；保留主窗口Bridge路线，不为让测试通过而开启被禁用功能。
+10. 保持产品完整性校验，修改产物后生成真实校验值，禁止通过关闭完整性机制掩盖变化。
+11. 先确认最新`build-verification.json`、`test-suite.json`和源码输入哈希，再打包。源码包不得包含测试用户配置或传输凭据。
+12. 最终报告区分已编译、已运行的验收范围和未验证的业务集成；禁止宣称穷尽行为等价或原始TS类型全部恢复。
+
+13. 本地Git先记录源码，再发布；不配置远端、不push。修改前基线保留，不重写历史。报告/测试用户数据/密钥/运行目录不进入Git。
+14. 正常更新执行npm run build或npm run update；运行目录固定opencode/。生成阶段不自动启动或测试；需要测试时沿用明确授权与独立profile。
+15. recovered/shared/为共享维护代码真源，运行sync-shared.cjs同步到入口变体，禁止只改某一个复制件。
+16. 公平调度、取消、文件跨进程锁、真实命令预算和REA身份隔离必须回归；不要将MCP响应结束当作进程已结束。
+17. 默认资产保持路径可迁移，不写入本机账号凭据、Bridge令牌、真实聊天；用户已有Skill和REA配置优先。REA工作目录应位于活动profile，而不是依赖目录。
+18. 发布仅覆盖托管文件，保留data/、.recovery-profile/及用户非托管文件。目标运行时拒绝更新，不擅自杀实例。遗留锁需检查PID/日志/备份，禁止超时强抢。
+19. 工具预算不能约束任意shell私自脱离的后代进程；文件锁不能覆盖非合作编辑器、跨主机或业务语义冲突。如实说明这些边界，不以安全优化宣称全系统事务隔离。
+20. Python构建/打包脚本读写JSON和文本必须显式使用UTF-8，不能依赖Windows的GBK默认编码；发布清单含中文路径。
+21. 便携ZIP的product.json不得携带安装版target或versioned-layout标记，否则底座会关闭VSCODE_PORTABLE。搬迁验收必须测试未设置VSCODE_PORTABLE、未传--user-data-dir的正常data自动检测，并携带已初始化data跨盘改名验证自定义提示词/Skills/REA。
+
+22. 用户最新运行版约定：唯一交付目录是本源码根目录 opencode/，已有则覆盖构建清单中的同名文件；禁止创建 packages/、版本号运行目录或运行版ZIP。build/update/package/generate:* 均遵循此约定。generated/source-build/仅为编译暂存，不作为交付位置。保留data/、.recovery-profile/及无关用户文件；目标正在运行则报告阻碍，不杀实例。历史独立打包说明不再适用。

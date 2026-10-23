@@ -9022,6 +9022,10 @@
     {
       "file": "shared-skills-paths.mjs",
       "modulePath": "maintained/shared/shared-skills-paths.mjs"
+    },
+    {
+      "file": "project-memory.mjs",
+      "modulePath": "maintained/shared/project-memory.mjs"
     }
   ],
   "publicExports": [],

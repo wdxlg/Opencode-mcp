@@ -145,11 +145,7 @@ registerAction2(class extends ViewAction {
       f1: false,
       menu: {
         id: MenuId.SCMHistoryTitle,
-        when: ContextKeyExpr.and(
-          ContextKeyExpr.has("scm.providerCount"),
-          ContextKeyExpr.greater("scm.providerCount", 1),
-          ContextKeyExpr.equals("config.scm.repositories.selectionMode", "multiple")
-        ),
+        when: ContextKeyExpr.false(),
         group: "navigation",
         order: 0
       }
@@ -1507,10 +1503,7 @@ var SCMHistoryViewPane = class extends ViewPane {
   }
   createActionViewItem(action, options3) {
     if (action.id === PICK_REPOSITORY_ACTION_ID) {
-      const repository = this._treeViewModel?.repository.get();
-      if (repository) {
-        return new SCMRepositoryActionViewItem(repository, action, options3);
-      }
+      return void 0;
     } else if (action.id === PICK_HISTORY_ITEM_REFS_ACTION_ID) {
       const repository = this._treeViewModel?.repository.get();
       const historyItemsFilter = this._treeViewModel?.getHistoryItemsFilter();

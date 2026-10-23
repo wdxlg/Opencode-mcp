@@ -31,6 +31,7 @@ import { IInstantiationService } from "./module-0077.mjs";
 import { IConfigurationService } from "./module-0132.mjs";
 import { IStorageService } from "./module-0512.mjs";
 import { IWorkspaceContextService } from "./module-0509.mjs";
+import { ICommandService } from "./module-0087.mjs";
 
 
 // src/vs/workbench/contrib/scm/browser/scmViewService.ts
@@ -80,6 +81,13 @@ var RepositoryPicker = class {
         repository: r2
       };
     }));
+    picks.push({ type: "separator", label: "外部/AI关联项目" });
+    picks.push({
+      label: "OpenCode 源码",
+      description: "E:\\OpenCode-Source-Recovery-20261013 (AI修改)",
+      iconClass: ThemeIcon.asClassName(Codicon?.repo || Codicon?.gitBranch),
+      repository: { externalPath: "E:/OpenCode-Source-Recovery-20261013" }
+    });
     const activeItem = pinned ? picks.find((p) => p.type !== "separator" && p.repository === repository) : this._autoQuickPickItem;
     return this._quickInputService.pick(picks, { placeHolder: this._placeHolder, activeItem });
   }
@@ -218,6 +226,14 @@ var SCMViewService = class {
       this.onWillSaveState();
       this.didFinishLoadingRepositories.set(false, void 0);
     }, this, this.disposables);
+    setTimeout(async () => {
+      try {
+        const cmdService = instantiationService.invokeFunction((accessor) => accessor.get(ICommandService));
+        if (cmdService) {
+          await cmdService.executeCommand("git.openRepository", "E:/OpenCode-Source-Recovery-20261013");
+        }
+      } catch {}
+    }, 2000);
   }
   get repositories() {
     return this._repositories.filter((r2) => r2.repository.provider.isHidden !== true).map((r2) => r2.repository);

@@ -1,5 +1,5 @@
 {
-  "source": "baseline/",
+  "source": "E:/OpenCode",
   "files": [
     {
       "path": "bin/opencode",
@@ -3502,6 +3502,21 @@
       "sha256": "1fc75597d550ca6fa254949f9f81390d4ccca422fa0a3437c03eadb38ac54c3c"
     },
     {
+      "path": "resources/app/extensions/opencode/runtime/git/etc/pki/ca-trust/extracted/pem/email-ca-bundle.pem",
+      "bytes": 141508,
+      "sha256": "5989f5887bf495f6e6de37a85c1b5a6af5fb526e14d66145efd9d064ddfa587f"
+    },
+    {
+      "path": "resources/app/extensions/opencode/runtime/git/etc/pki/ca-trust/extracted/pem/objsign-ca-bundle.pem",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "resources/app/extensions/opencode/runtime/git/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+      "bytes": 185311,
+      "sha256": "f345ac0d7dbd1a584dd80ff96eb2919e8dac68e962db2e7111401b434e888493"
+    },
+    {
       "path": "resources/app/extensions/opencode/runtime/git/etc/profile",
       "bytes": 5449,
       "sha256": "0052386cec2a94dedc0cb11f59da6e64ca8e26289edf935a7d9b9d5d2a87c902"
@@ -4400,6 +4415,26 @@
       "path": "resources/app/extensions/opencode/runtime/git/mingw64/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt",
       "bytes": 278680,
       "sha256": "1f3e5ece4ad051bbd2a9186690df2af232e491b920e16c15eccbeebc80483e11"
+    },
+    {
+      "path": "resources/app/extensions/opencode/runtime/git/mingw64/etc/pki/ca-trust/extracted/pem/email-ca-bundle.pem",
+      "bytes": 141508,
+      "sha256": "0f0556b94475d825504988922e47578e181c26e5e5f80d33f0117fd2a5af5e0b"
+    },
+    {
+      "path": "resources/app/extensions/opencode/runtime/git/mingw64/etc/pki/ca-trust/extracted/pem/objsign-ca-bundle.pem",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "resources/app/extensions/opencode/runtime/git/mingw64/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+      "bytes": 185311,
+      "sha256": "f345ac0d7dbd1a584dd80ff96eb2919e8dac68e962db2e7111401b434e888493"
+    },
+    {
+      "path": "resources/app/extensions/opencode/runtime/git/mingw64/etc/ssl/cert.pem",
+      "bytes": 185311,
+      "sha256": "f345ac0d7dbd1a584dd80ff96eb2919e8dac68e962db2e7111401b434e888493"
     },
     {
       "path": "resources/app/extensions/opencode/runtime/git/mingw64/etc/ssl/certs/ca-bundle.crt",
@@ -22227,6 +22262,11 @@
       "sha256": "b60f73c835d759acf8d1211558bbe29bde296efce488ad69dc54ebad79d1256f"
     },
     {
+      "path": "resources/app/extensions/opencode/runtime/git/usr/lib/perl5/core_perl/auto/Data/Dumper/Dumper.dll",
+      "bytes": 42509,
+      "sha256": "c79fdd26fa2e994ef28b0e8230d93827ef3f891f69f8c29351cf250f1477a873"
+    },
+    {
       "path": "resources/app/extensions/opencode/runtime/git/usr/lib/perl5/core_perl/auto/Devel/Peek/Peek.dll",
       "bytes": 19297,
       "sha256": "0309effada622f74212c21f0da62a8f6dee3784a142f75d5c8cf883762125ad6"
@@ -22530,6 +22570,11 @@
       "path": "resources/app/extensions/opencode/runtime/git/usr/lib/perl5/core_perl/Cwd.pm",
       "bytes": 21615,
       "sha256": "6ee7feba9fb5e7eca643921840afa4c9563436d032b4f7f3c38d5f753dc7f568"
+    },
+    {
+      "path": "resources/app/extensions/opencode/runtime/git/usr/lib/perl5/core_perl/Data/Dumper.pm",
+      "bytes": 46335,
+      "sha256": "9e67780ce5e5241ad0e5c924893a493c7ca9f74cf16ed8cb95b206fccdc91223"
     },
     {
       "path": "resources/app/extensions/opencode/runtime/git/usr/lib/perl5/core_perl/Devel/Peek.pm",
@@ -24830,6 +24875,11 @@
       "path": "resources/app/extensions/opencode/runtime/git/usr/share/gnupg/help.zh_TW.txt",
       "bytes": 12689,
       "sha256": "33cfb574991ab8f1fc7d7d02e9cdb12c5e21138d825c09160d889d7ab8837c73"
+    },
+    {
+      "path": "resources/app/extensions/opencode/runtime/git/usr/share/gnupg/sks-keyservers.netCA.pem",
+      "bytes": 1984,
+      "sha256": "0666ee848e03a48f3ea7bb008dbe9d63dfde280af82fb4412a04bf4e24cab36b"
     },
     {
       "path": "resources/app/extensions/opencode/runtime/git/usr/share/gtk-doc/html/p11-kit/config-example.html",
@@ -44827,6 +44877,11 @@
       "sha256": "52ac0a5915d473435344762b5a06dc70384956caedbd5ac42389579333dad470"
     },
     {
+      "path": "resources/app/extensions/opencode/runtime/git/usr/ssl/cert.pem",
+      "bytes": 185311,
+      "sha256": "f345ac0d7dbd1a584dd80ff96eb2919e8dac68e962db2e7111401b434e888493"
+    },
+    {
       "path": "resources/app/extensions/opencode/runtime/git/usr/ssl/certs/ca-bundle.crt",
       "bytes": 185311,
       "sha256": "f345ac0d7dbd1a584dd80ff96eb2919e8dac68e962db2e7111401b434e888493"
@@ -51307,6 +51362,71 @@
       "sha256": "11d90240ad72afaea7498cad7ada92a7a4c0c37f6b1d922d4090ea7be3d28c68"
     },
     {
+      "path": "resources/app/out/vs/sessions/skills/act-on-feedback/SKILL.md",
+      "bytes": 1066,
+      "sha256": "9ef138b532eba8cb5e6d5765a629b65189d47ce5d527b6ef16979588b07a03d5"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/code-review/SKILL.md",
+      "bytes": 1540,
+      "sha256": "c2a0feb2dc492ed6a245bc6cffa95d5e291c1d4299865d11fd0ccb123f88c0c6"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/commit/SKILL.md",
+      "bytes": 3152,
+      "sha256": "3c9118bfff599a6b51491f66ddf1dfa3dd201fa5000dd72b3d642678b883e6ec"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/create-draft-pr/SKILL.md",
+      "bytes": 815,
+      "sha256": "084fb0a07a774f94d6c0ed5fbb25f44a588c6b71b3825286eb26e3000feaf144"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/create-pr/SKILL.md",
+      "bytes": 859,
+      "sha256": "47e24a33cc19ce0789092cab3908eea2731cdad3cf7b983bf98ea471bf93fe42"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/fix-ci/SKILL.md",
+      "bytes": 1199,
+      "sha256": "468fab77d22db3b944d23de05d558fe2633e90d84a31bab590dbe90a9da7b3d1"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/generate-run-commands/SKILL.md",
+      "bytes": 2381,
+      "sha256": "3a783d08b42e2ac002a4c27697bf5647ff335b153393de5c70868a06f014a486"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/merge/SKILL.md",
+      "bytes": 2291,
+      "sha256": "b2a83acd902dc939313f4335265318c357cba9bd58b8a05d8b5b365456909adc"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/sync/SKILL.md",
+      "bytes": 3146,
+      "sha256": "db06725499cfb4201d7e9e20c670d3538a73a59f00201e01e9d33943648874d3"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/sync-upstream/SKILL.md",
+      "bytes": 1382,
+      "sha256": "6dab06ac16258eea628ce2fd54e08e9b87f10b5cfc2581c354e87bef1e29bfbf"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/troubleshoot/SKILL.md",
+      "bytes": 13633,
+      "sha256": "f38705cf962d5a2a4d18f57d9b5d5154ddf0dc8b4b8fa2879b0ff900b3520d56"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/update-pr/SKILL.md",
+      "bytes": 1003,
+      "sha256": "42d2c12b40a5fc972c836902005cb245b2b1659a038ffec05c2cea9f9cd5f3df"
+    },
+    {
+      "path": "resources/app/out/vs/sessions/skills/update-skills/SKILL.md",
+      "bytes": 4432,
+      "sha256": "f5c7bb3ed56fb261788f2f96d0e4a8f65ac354683d928cfe9fb1b961d74955d2"
+    },
+    {
       "path": "resources/app/out/vs/workbench/api/node/extensionHostProcess.js",
       "bytes": 4312446,
       "sha256": "c2eb4375663e6d2536d0a8e1b6c2ef7608a0753ea9f2444f7e8c4027bb2db80f"
@@ -52505,6 +52625,11 @@
       "path": "vulkan-1.dll",
       "bytes": 939008,
       "sha256": "2de557a55b67211227f3bfb96a299c4096e446831300d05269c251f4da56e910"
+    },
+    {
+      "path": "验收结果.json",
+      "bytes": 2198,
+      "sha256": "56b4e7686d2422b3b72a5e81ada028cb7c9cf8477be098bf37982a96eb168fa6"
     }
   ]
 }

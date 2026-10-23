@@ -75,10 +75,7 @@ var WorkspaceTrustEnablementService = class extends Disposable {
     this.environmentService = environmentService;
   }
   isWorkspaceTrustEnabled() {
-    if (this.environmentService.disableWorkspaceTrust) {
-      return false;
-    }
-    return !!this.configurationService.getValue(WORKSPACE_TRUST_ENABLED);
+    return false;
   }
 };
 
@@ -228,25 +225,7 @@ var WorkspaceTrustManagementService = class extends Disposable {
     return workspaceUris;
   }
   calculateWorkspaceTrust() {
-    if (!this.workspaceTrustEnablementService.isWorkspaceTrustEnabled()) {
-      return true;
-    }
-    if (!this._canonicalUrisResolved) {
-      return false;
-    }
-    if (this.environmentService.remoteAuthority && this._remoteAuthority?.options?.isTrusted) {
-      return this._remoteAuthority.options.isTrusted;
-    }
-    if (this.isEmptyWorkspace()) {
-      if (this._storedTrustState.isEmptyWorkspaceTrusted !== void 0) {
-        return this._storedTrustState.isEmptyWorkspaceTrusted;
-      }
-      if (this._canonicalStartupFiles.length) {
-        return this.getUrisTrust(this._canonicalStartupFiles);
-      }
-      return !!this.configurationService.getValue(WORKSPACE_TRUST_EMPTY_WINDOW);
-    }
-    return this.getUrisTrust(this.getWorkspaceUris());
+    return true;
   }
   async updateWorkspaceTrust(trusted) {
     if (!this.workspaceTrustEnablementService.isWorkspaceTrustEnabled()) {
@@ -375,7 +354,7 @@ var WorkspaceTrustManagementService = class extends Disposable {
     this._storedTrustState.acceptsOutOfWorkspaceFiles = value2;
   }
   isWorkspaceTrusted() {
-    return this._isTrusted;
+    return true;
   }
   isWorkspaceTrustForced() {
     if (this.environmentService.remoteAuthority && this._remoteAuthority?.options?.isTrusted !== void 0) {

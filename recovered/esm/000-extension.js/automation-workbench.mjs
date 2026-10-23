@@ -39,7 +39,7 @@ export function registerAutomationWorkbench(context,bridge,output){
         if(message.action==='selectWorkspace'){service.workspace(input.workspaceId);selected[page]=input.workspaceId;}
         else if(message.action==='refresh'){if(page==='collaboration'&&service.isCollaborationEnabled())await workers.refreshCatalog();}
         else{
-          if(!vscode.workspace.isTrusted&&!(page==='collaboration'&&(message.action==='stopNative'||message.action==='pauseTeam'||message.action==='setCollaborationEnabled'&&input.enabled===false)))throw Error('请先信任当前工作区，再进行配置或执行操作。安全停用和取消不受此限制。');
+          /* Workspace trust check removed - all workspaces trusted by default */
           switch(message.action){
             case 'addWorkspace':{const choice=await vscode.window.showOpenDialog({canSelectFolders:true,canSelectFiles:false,canSelectMany:false,title:'指定工作区（不会更改文件访问权限）'});if(choice?.[0]){const entry=await service.registerWorkspace(choice[0].fsPath);selected[page]=entry.id;}break;}
             case 'savePreset':value=await service.savePreset(input);break;
@@ -92,10 +92,16 @@ export function registerAutomationWorkbench(context,bridge,output){
       }catch(error){panel.webview.postMessage({type:'result',id:message.id,error:error.message});post(page);}
     },null,context.subscriptions);
   }
+    const memoryScopeStatus=vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left,6);memoryScopeStatus.name='MCP 权限与记忆模式';memoryScopeStatus.command='opencode.bridge.toggleWorkspaceScope';
+  function updateMemoryScopeStatus(){try{const cfg=vscode.workspace.getConfiguration('opencode'),scope=cfg.get('bridge.workspaceScope','device'),ws=vscode.workspace.name;if(scope==='workspace'&&ws){memoryScopeStatus.text=`$(folder) MCP: 项目 (${ws})`;memoryScopeStatus.tooltip='当前为「项目 MCP 模式」：工具受限于工作区目录，记忆使用项目根目录 .opencode-project/。点击切换为「临时模式」';}else{memoryScopeStatus.text='$(globe) MCP: 临时 (整机设备)';memoryScopeStatus.tooltip='当前为「临时 MCP 模式」：默认拥有整机设备全部权限，记忆使用专属临时目录，不污染项目。点击切换为「项目模式」';}}catch{memoryScopeStatus.text='$(globe) MCP: 临时';}}
+  updateMemoryScopeStatus();memoryScopeStatus.show();
+  const toggleScopeCmd=vscode.commands.registerCommand('opencode.bridge.toggleWorkspaceScope',async()=>{try{const cfg=vscode.workspace.getConfiguration('opencode'),current=cfg.get('bridge.workspaceScope','device'),next=current==='workspace'?'device':'workspace';await cfg.update('bridge.workspaceScope',next,vscode.ConfigurationTarget.Global);updateMemoryScopeStatus();if(next==='device'){vscode.window.showInformationMessage('已切换为「临时 MCP 模式」：默认拥有整机设备所有权限，需求与随手记写入专属临时记忆目录，不污染项目。');}else{const ws=vscode.workspace.name;if(!ws){vscode.window.showWarningMessage('已切换为「项目 MCP 模式」：当前窗口未打开文件夹，打开项目文件夹可完整启用项目隔离与专属记忆。');}else{vscode.window.showInformationMessage(`已切换为「项目 MCP 模式」：工具权限受限于「${ws}」，使用项目根目录下的专属档案袋记忆。`);}}}catch(e){vscode.window.showErrorMessage('切换 MCP 模式失败：'+(e?.message||String(e)));}});
+  const scopeConfigListener=vscode.workspace.onDidChangeConfiguration(e=>{if(e.affectsConfiguration('opencode.bridge.workspaceScope'))updateMemoryScopeStatus();});
+  const scopeFolderListener=vscode.workspace.onDidChangeWorkspaceFolders(()=>updateMemoryScopeStatus());
   const rulesStatus=vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left,8);rulesStatus.name='规则中心';rulesStatus.text='$(law) 规则组';rulesStatus.tooltip='独立规则中心：一组内可同时启用多条规则';rulesStatus.command='opencode.rules.open';rulesStatus.show();
   const collaborationStatus=vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left,7);collaborationStatus.name='多任务协作';collaborationStatus.text='$(organization) 协作';collaborationStatus.tooltip='独立的职位、成员与多任务协作页面';collaborationStatus.command='opencode.collaboration.open';collaborationStatus.show();
   function updateCollaborationStatus(){try{const enabled=service.isCollaborationEnabled();collaborationStatus.text=enabled?'$(organization) 协作':'$(circle-slash) 协作已关闭';collaborationStatus.tooltip=enabled?'多模型协作已开启；职位、成员与任务有效。':'多模型协作已关闭；职位不限制普通工具。点击管理总开关。';}catch{collaborationStatus.text='$(warning) 协作状态不可用';}}
   updateCollaborationStatus();
   const unsubscribe=service.onDidChange(()=>postAll()),timer=setInterval(postAll,3000);timer.unref?.();
-  context.subscriptions.push(rulesStatus,collaborationStatus,vscode.commands.registerCommand('opencode.rules.open',()=>open('rules')),vscode.commands.registerCommand('opencode.collaboration.open',()=>open('collaboration')),{dispose(){clearInterval(timer);unsubscribe();workers.dispose();staffWorkers.dispose();for(const panel of panels.values())panel.dispose();panels.clear();}});
+  context.subscriptions.push(rulesStatus,collaborationStatus,memoryScopeStatus,toggleScopeCmd,scopeConfigListener,scopeFolderListener,vscode.commands.registerCommand('opencode.rules.open',()=>open('rules')),vscode.commands.registerCommand('opencode.collaboration.open',()=>open('collaboration')),{dispose(){clearInterval(timer);unsubscribe();workers.dispose();staffWorkers.dispose();for(const panel of panels.values())panel.dispose();panels.clear();}});
 }

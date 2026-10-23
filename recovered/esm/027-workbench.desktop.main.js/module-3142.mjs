@@ -40,7 +40,8 @@ import { IConfigurationService } from "./module-0132.mjs";
 import { Iterable } from "./module-0011.mjs";
 import { ViewAction, ViewPane } from "./module-1335.mjs";
 import { Codicon } from "./module-0085.mjs";
-import { RepositoryContextKeys } from "./module-3140.mjs";
+import { RepositoryContextKeys, getRepositoryName2 } from "./module-3140.mjs";
+import { IWorkspaceContextService } from "./module-0509.mjs";
 import { Emitter, Event2 } from "./module-0017.mjs";
 import { ResourceLabels } from "./module-1323.mjs";
 import { observableConfigValue } from "./module-0444.mjs";
@@ -1221,7 +1222,15 @@ var SCMViewPane = class extends ViewPane {
       this.viewSortKey = this.getViewSortKey();
       this.storeTreeViewState();
     }, this, this.disposables);
-    Event2.any(this.scmService.onDidAddRepository, this.scmService.onDidRemoveRepository)(() => this._onDidChangeViewWelcomeState.fire(), this, this.disposables);
+    this.workspaceContextService = this.instantiationService.invokeFunction((accessor) => accessor.get(IWorkspaceContextService));
+    this.notificationService = this.instantiationService.invokeFunction((accessor) => accessor.get(INotificationService));
+    this._isUpdatingProjectPicker = false;
+    this.projectPickerContainer = null;
+    this.projectPickerSelect = null;
+    Event2.any(this.scmService.onDidAddRepository, this.scmService.onDidRemoveRepository)(() => {
+      this._onDidChangeViewWelcomeState.fire();
+      this.updateProjectPickerOptions();
+    }, this, this.disposables);
     this.disposables.add(this.revealResourceThrottler);
     this.disposables.add(this.updateChildrenThrottler);
   }
@@ -1266,11 +1275,60 @@ var SCMViewPane = class extends ViewPane {
     this.layoutCache.height = height;
     this.layoutCache.width = width2;
     this._onDidLayout.fire();
-    this.treeContainer.style.height = `${height}px`;
-    this.tree.layout(height, width2);
+    const pickerHeight = this.projectPickerContainer ? (this.projectPickerContainer.offsetHeight || 36) : 0;
+    const treeHeight = Math.max(0, height - pickerHeight);
+    this.treeContainer.style.height = `${treeHeight}px`;
+    this.tree.layout(treeHeight, width2);
   }
   renderBody(container3) {
     super.renderBody(container3);
+    this.projectPickerContainer = append(container3, $(".scm-project-picker-bar"));
+    this.projectPickerContainer.style.display = "flex";
+    this.projectPickerContainer.style.alignItems = "center";
+    this.projectPickerContainer.style.padding = "4px 8px 6px 8px";
+    this.projectPickerContainer.style.gap = "6px";
+    this.projectPickerContainer.style.borderBottom = "1px solid var(--vscode-sideBarSectionHeader-border, rgba(128,128,128,0.2))";
+    this.projectPickerContainer.style.boxSizing = "border-box";
+    this.projectPickerContainer.style.height = "36px";
+    this.projectPickerContainer.style.minHeight = "36px";
+    this.projectPickerContainer.style.flexShrink = "0";
+
+    const label = append(this.projectPickerContainer, $("span.scm-project-picker-label"));
+    label.textContent = "项目:";
+    label.style.fontWeight = "600";
+    label.style.fontSize = "11px";
+    label.style.letterSpacing = "0.5px";
+    label.style.color = "var(--vscode-sideBarTitle-foreground, #bbbbbb)";
+    label.style.whiteSpace = "nowrap";
+
+    this.projectPickerSelect = append(this.projectPickerContainer, $("select.scm-project-picker-select"));
+    this.projectPickerSelect.style.flex = "1";
+    this.projectPickerSelect.style.height = "24px";
+    this.projectPickerSelect.style.fontSize = "12px";
+    this.projectPickerSelect.style.background = "var(--vscode-dropdown-background, #252526)";
+    this.projectPickerSelect.style.color = "var(--vscode-dropdown-foreground, #cccccc)";
+    this.projectPickerSelect.style.border = "1px solid var(--vscode-dropdown-border, #3c3c3c)";
+    this.projectPickerSelect.style.borderRadius = "3px";
+    this.projectPickerSelect.style.padding = "0 6px";
+    this.projectPickerSelect.style.outline = "none";
+    this.projectPickerSelect.style.cursor = "pointer";
+    this.projectPickerSelect.style.width = "100%";
+
+    this.projectPickerSelect.addEventListener("change", () => this.onProjectPickerChanged());
+
+    const refreshBtn = append(this.projectPickerContainer, $("div.scm-project-picker-refresh"));
+    refreshBtn.style.cursor = "pointer";
+    refreshBtn.style.display = "flex";
+    refreshBtn.style.alignItems = "center";
+    refreshBtn.style.justifyContent = "center";
+    refreshBtn.style.padding = "2px 4px";
+    refreshBtn.style.borderRadius = "3px";
+    refreshBtn.title = "扫描工作区子仓库 / 刷新项目";
+    append(refreshBtn, $("span.codicon.codicon-refresh"));
+    refreshBtn.addEventListener("click", () => this.scanAndRefreshProjects());
+
+    this.updateProjectPickerOptions();
+
     this.treeContainer = append(container3, $(".scm-view.show-file-icons"));
     this.treeContainer.classList.add("file-icon-themable-tree");
     this.treeContainer.classList.add("show-file-icons");
@@ -1529,6 +1587,7 @@ var SCMViewPane = class extends ViewPane {
     }
     this.updateChildren();
     this.onDidActiveEditorChange();
+    this.updateProjectPickerOptions();
   }
   onListContextMenu(e) {
     if (!e.element) {
@@ -1798,6 +1857,163 @@ var SCMViewPane = class extends ViewPane {
       });
     });
   }
+  updateProjectPickerOptions() {
+    if (!this.projectPickerSelect) {
+      return;
+    }
+    this._isUpdatingProjectPicker = true;
+    try {
+      const select = this.projectPickerSelect;
+      clearNode(select);
+
+      const allOpt = append(select, $("option"));
+      allOpt.value = "__ALL__";
+      allOpt.textContent = "全部项目 (汇总)";
+
+      const loadedRepos = [...this.scmService.repositories];
+      const loadedFsPaths = new Set();
+
+      for (const repo of loadedRepos) {
+        let name = "仓库";
+        try {
+          name = getRepositoryName2(this.workspaceContextService, repo);
+        } catch {
+          name = repo.provider.label || "仓库";
+        }
+        const fsPath = repo.provider.rootUri ? (repo.provider.rootUri.fsPath || repo.provider.rootUri.path) : "";
+        if (fsPath) {
+          loadedFsPaths.add(fsPath.toLowerCase().replace(/\\/g, "/"));
+        }
+        let isWorkspace = true;
+        try {
+          isWorkspace = repo.provider.rootUri ? !!this.workspaceContextService.getWorkspaceFolder(repo.provider.rootUri) : true;
+        } catch {}
+
+        const opt = append(select, $("option"));
+        const repoKey = repo.provider.rootUri ? repo.provider.rootUri.toString() : repo.provider.id;
+        opt.value = "repo:" + repoKey;
+        opt.textContent = (isWorkspace ? "📁 " : "🤖 ") + name + (isWorkspace ? "" : " (外部/AI修改)");
+      }
+
+      const knownExternalProjects = [
+        { name: "OpenCode 源码", path: "E:/OpenCode-Source-Recovery-20261013" }
+      ];
+      try {
+        const customProjectsJson = this.storageService.get("opencode.scm.aiTouchedRepos", 0 /* GLOBAL */, "[]");
+        const customProjects = JSON.parse(customProjectsJson);
+        if (Array.isArray(customProjects)) {
+          for (const cp of customProjects) {
+            if (cp && cp.path && !knownExternalProjects.some(x => x.path.toLowerCase() === cp.path.toLowerCase())) {
+              knownExternalProjects.push(cp);
+            }
+          }
+        }
+      } catch {}
+      try {
+        if (typeof localStorage !== "undefined") {
+          const lsJson = localStorage.getItem("opencode.scm.aiTouchedRepos");
+          if (lsJson) {
+            const lsProjects = JSON.parse(lsJson);
+            if (Array.isArray(lsProjects)) {
+              for (const lp of lsProjects) {
+                if (lp && lp.path && !knownExternalProjects.some(x => x.path.toLowerCase() === lp.path.toLowerCase())) {
+                  knownExternalProjects.push(lp);
+                }
+              }
+            }
+          }
+        }
+      } catch {}
+
+      for (const ep of knownExternalProjects) {
+        const normalized = ep.path.toLowerCase().replace(/\\/g, "/");
+        if (!loadedFsPaths.has(normalized)) {
+          const opt = append(select, $("option"));
+          opt.value = "external:" + ep.path;
+          opt.textContent = "🤖 " + ep.name + " (外部/AI修改 - 点击载入)";
+        }
+      }
+
+      const visible = this.scmViewService.visibleRepositories;
+      if (visible.length === 1) {
+        const singleRepo = visible[0];
+        const singleKey = "repo:" + (singleRepo.provider.rootUri ? singleRepo.provider.rootUri.toString() : singleRepo.provider.id);
+        select.value = singleKey;
+      } else {
+        select.value = "__ALL__";
+      }
+    } catch (e) {
+      console.error("[SCMProjectPicker] update error:", e);
+    } finally {
+      this._isUpdatingProjectPicker = false;
+    }
+  }
+
+  async onProjectPickerChanged() {
+    if (this._isUpdatingProjectPicker || !this.projectPickerSelect) {
+      return;
+    }
+    const value = this.projectPickerSelect.value;
+    if (value === "__ALL__") {
+      this.scmViewService.visibleRepositories = [...this.scmService.repositories];
+      return;
+    }
+    if (value.startsWith("repo:")) {
+      const key = value.substring(5);
+      const targetRepo = [...this.scmService.repositories].find((r) => {
+        const rKey = r.provider.rootUri ? r.provider.rootUri.toString() : r.provider.id;
+        return rKey === key;
+      });
+      if (targetRepo) {
+        this.scmViewService.visibleRepositories = [targetRepo];
+        this.scmViewService.focus(targetRepo);
+      }
+      return;
+    }
+    if (value.startsWith("external:")) {
+      const externalPath = value.substring(9);
+      try {
+        if (this.notificationService) {
+          this.notificationService.info(`正在载入外部项目仓库: ${externalPath}...`);
+        }
+        await this.commandService.executeCommand("git.openRepository", externalPath);
+        setTimeout(() => {
+          const normalized = externalPath.toLowerCase().replace(/\\/g, "/");
+          const targetRepo = [...this.scmService.repositories].find((r) => {
+            const fsPath = r.provider.rootUri ? (r.provider.rootUri.fsPath || r.provider.rootUri.path) : "";
+            return fsPath.toLowerCase().replace(/\\/g, "/") === normalized;
+          });
+          if (targetRepo) {
+            this.scmViewService.visibleRepositories = [targetRepo];
+            this.scmViewService.focus(targetRepo);
+          }
+          this.updateProjectPickerOptions();
+        }, 800);
+      } catch (err) {
+        if (this.notificationService) {
+          this.notificationService.error(`无法打开外部仓库: ${err?.message || err}`);
+        }
+      }
+    }
+  }
+
+  async scanAndRefreshProjects() {
+    try {
+      const folders = this.workspaceContextService?.getWorkspaceFolders() || [];
+      for (const folder of folders) {
+        const folderFsPath = (folder.uri.fsPath || folder.uri.path).replace(/\\/g, "/");
+        await this.commandService.executeCommand("git.openRepository", folderFsPath);
+        await this.commandService.executeCommand("git.openRepository", folderFsPath + "/" + folder.name);
+        await this.commandService.executeCommand("git.openRepository", folderFsPath + "/Arena模型助手");
+      }
+      await this.commandService.executeCommand("git.openRepository", "E:/OpenCode-Source-Recovery-20261013");
+      if (this.notificationService) {
+        this.notificationService.info("已刷新工作区及项目仓库列表");
+      }
+    } catch {}
+    this.updateProjectPickerOptions();
+  }
+
   dispose() {
     this._onDidChangeViewMode.dispose();
     this._onDidChangeViewSortKey.dispose();

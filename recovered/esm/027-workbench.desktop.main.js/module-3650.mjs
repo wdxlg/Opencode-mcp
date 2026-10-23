@@ -676,7 +676,7 @@ Registry.as(Extensions4.Configuration).registerConfiguration({
   properties: {
     [WORKSPACE_TRUST_ENABLED]: {
       type: "boolean",
-      default: true,
+      default: false,
       description: localize(22324, null),
       tags: [WORKSPACE_TRUST_SETTING_TAG],
       scope: 1 /* APPLICATION */

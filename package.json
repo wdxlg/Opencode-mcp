@@ -1,6 +1,6 @@
 {
   "name": "opencode-source-recovery",
-  "version": "1.0.0-recovered.24",
+  "version": "1.0.0-recovered.25",
   "private": true,
   "description": "Buildable recovered JavaScript application sources; original TypeScript types are not restored",
   "engines": {
