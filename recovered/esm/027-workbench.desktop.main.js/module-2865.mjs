@@ -96,7 +96,6 @@ import { ChatQuotaNotificationContribution } from "./module-2775.mjs";
 import { ChatPromoNotificationContribution } from "./module-2772.mjs";
 import { ChatExpNotificationContribution } from "./module-2774.mjs";
 import { HasByokModelsContribution } from "./module-2795.mjs";
-import { ChatStatusBarEntry } from "./module-2788.mjs";
 import { BuiltinToolsContribution } from "./module-2519.mjs";
 import { ClientToolSetsContribution } from "./module-2632.mjs";
 import { UsagesToolContribution } from "./module-2636.mjs";
@@ -3110,7 +3109,7 @@ registerWorkbenchContribution2(HasByokModelsContribution.ID, HasByokModelsContri
 
 registerWorkbenchContribution2(ChatTeardownContribution.ID, ChatTeardownContribution, WorkbenchPhase.AfterRestored);
 
-registerWorkbenchContribution2(ChatStatusBarEntry.ID, ChatStatusBarEntry, WorkbenchPhase.BlockRestore);
+// OpenCode deliberately omits the bundled Copilot status-bar icon and dashboard.
 
 registerWorkbenchContribution2(BuiltinToolsContribution.ID, BuiltinToolsContribution, WorkbenchPhase.Eventually);
 

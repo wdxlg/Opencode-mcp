@@ -25,42 +25,16 @@ var BridgeTaskViewState = class {
     this.inactive = inactive;
   }
 };
-var BRIDGE_TASK_DISPLAY_HISTORY_MS = 60 * 6e4;
+var BRIDGE_TASK_DISPLAY_HISTORY_MS = Number.POSITIVE_INFINITY;
 function isBridgeTaskDisplayInactive(state) {
-  return state !== void 0 && state !== "running" && state !== "waiting_plan";
+  return state !== void 0 && state !== "running" && state !== "waiting_plan" && state !== "awaiting_user";
 }
 function isBridgeTaskDisplayExpired(task, now = Date.now()) {
-  return isBridgeTaskDisplayInactive(task.state) && Number.isFinite(task.updatedAt) && task.updatedAt > 0 && now - task.updatedAt >= BRIDGE_TASK_DISPLAY_HISTORY_MS;
+  return false;
 }
 function partitionBridgeTaskDisplay(tasks2, now = Date.now()) {
-  const retained = tasks2.filter((task) => !isBridgeTaskDisplayExpired(task, now));
-  const candidates = retained.filter((task) => !["awaiting_sync", "blocked", "cancelled", "interrupted", "cleared"].includes(task.state));
-  const slots = candidates.filter((task) => !task.createdAt || !Number.isFinite(task.createdAt));
-  const dated = candidates.filter((task) => !!task.createdAt && Number.isFinite(task.createdAt)).sort((a, b) => a.createdAt - b.createdAt || tasks2.indexOf(b) - tasks2.indexOf(a));
-  for (const task of dated) {
-    let oldest = -1;
-    const finishedSlots = [];
-    for (let index2 = 0; index2 < slots.length; index2++) {
-      const previous = slots[index2];
-      if (previous.state === "completed" && Number.isFinite(previous.updatedAt) && previous.updatedAt > 0 && previous.updatedAt < task.createdAt) {
-        finishedSlots.push(index2);
-        if (oldest < 0 || previous.updatedAt < slots[oldest].updatedAt) {
-          oldest = index2;
-        }
-      }
-    }
-    if (oldest >= 0) {
-      slots[oldest] = task;
-      for (const index2 of finishedSlots.reverse()) {
-        if (index2 !== oldest) {
-          slots.splice(index2, 1);
-        }
-      }
-    } else {
-      slots.push(task);
-    }
-  }
-  const slotIds = new Set(slots.map((task) => task.id));
-  return { slots, history: retained.filter((task) => !slotIds.has(task.id)) };
+  const all = [...tasks2].sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+  const slots = all.filter((task) => ["running", "waiting_plan", "awaiting_sync", "awaiting_user"].includes(task.state));
+  return { slots, history: all.filter((task) => !slots.includes(task)) };
 }
 export { BridgeTaskViewState, BRIDGE_TASK_DISPLAY_HISTORY_MS, isBridgeTaskDisplayInactive, isBridgeTaskDisplayExpired, partitionBridgeTaskDisplay };

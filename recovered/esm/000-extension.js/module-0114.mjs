@@ -410,6 +410,16 @@ var BridgeManager = class {
       } : void 0,
       log: (message2) => this.output.appendLine(message2)
     }, resolveBridgeToolConcurrency(vscode9.workspace.getConfiguration("opencode").get(BRIDGE_TOOL_CONCURRENCY_SETTING)));
+    // Keep a complete task history for this workspace across extension-host restarts.
+    // The durable files live in the extension's user-data directory, outside the project.
+    try {
+      this.dispatcher.taskStore.configurePersistence(
+        context.globalStorageUri.fsPath,
+        vscode9.workspace.workspaceFolders?.[0]?.uri.fsPath
+      );
+    } catch (error) {
+      this.output.appendLine(`[bridge] task history unavailable (original file preserved): ${error.message}`);
+    }
     this.mcpTransport = new BridgeMcpTransport({
       resolveAssistantSource: request => this.assistantSources.resolveRequest(request, this.getStatus().publicUrl),
       recordAssistantConnection: binding => this.assistantSources.recordConnection(binding).catch(() => this.output.appendLine('[bridge] Connection receipt unavailable; no inferred reconnect reminder.')),
@@ -932,6 +942,11 @@ ${custom}` : builtIn;
   clearTasks(requests, allowAttention = false) {
     const removed = this.dispatcher.clearTasks(requests, allowAttention);
     this.output.appendLine(`[bridge] locally confirmed task cleanup: ${removed} record(s); activity log retained`);
+    return this.getStatus();
+  }
+  /** A local task-card interaction, never exposed through MCP as an answer submitter. */
+  answerTaskQuestion(taskId, questionId, optionId, customText) {
+    this.dispatcher.answerTaskQuestion(taskId, questionId, optionId, customText);
     return this.getStatus();
   }
   /** Invoked only after the local extension command warns; this does not cancel external work. */

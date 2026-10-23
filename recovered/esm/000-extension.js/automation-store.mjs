@@ -15,7 +15,14 @@ const FORMAT = 'opencode.rules-and-collaboration';
 const SCHEMA = 4;
 const LEGACY_TASK_WORKFLOW_TEXT = "每次对话先创建或更新 Bridge 任务卡，等待确认。";
 const TASK_WORKFLOW_TEXT = "每次对话由 AI 自行创建、更新并收尾自己的 Bridge 任务卡；确认指工具返回的成功回执，不是等待用户点击或人工验收。实际工作完成后由 AI 提交 completed，实际受阻则提交 blocked/cancelled；不得要求用户手动完成普通会话任务卡，也不得把未做的检查写成通过。若任务卡同步失败，尝试 Bridge update_plan 一次后继续已授权且被工具允许的工作，并如实说明同步失败，不把卡片同步问题转嫁给用户；规则、权限和身份门禁拒绝不得绕过。只有真实需求不明确或操作超出授权时才询问。";
+const LEGACY_CLARIFICATION_TEXT = '当需求存在影响结果的关键歧义、有互斥实现路径、涉及副作用或确需用户拍板时，先在当前 Bridge 任务卡中通过 bridge_ask_user 逐条提问，每次仅问一个明确问题，提供 2～6 个清晰、可区分的选项和自定义回答。问题直接显示在任务板块，等待真实用户回答；pending 时通过 check 查询，不能臆测或代替用户选择。必要时按回答继续下一问，关键分歧收敛后才开始涉及该选择的修改。对于已明确或能通过只读检查确定的细节，不要冗余提问。用户选择不构成新的权限授权，不擅自测试、提交、安装或发布。';
+const LEGACY_CLARIFICATION_V2_TEXT = '目标 AI 不得将自己的猜测、设计偏好或未经确认的业务假设当成用户决定。收到任务后先进行必要的只读核查，区分可由事实确定的细节和确需用户拍板的不确定因素：例如需求边界、互斥实现路径、数据迁移/兼容、风险、界面交互及可能造成副作用的选择。在动手执行依赖这些选择的修改之前，主动归纳所有已知的关键疑问，合并重复项、说明每项影响，给出清晰可区分的选项、推荐方案及理由，通过当前任务卡的 bridge_ask_user 向 MCP 端提问。允许一次调用 questions 数组集中提交多项疑问（推荐做法，最多 8 项），也允许一个问题使用 question/options；不强制一题一题往返。不要拆成大量琐碎、无意义的问题，不要对用户已明确表态或经只读核查已有答案的内容重复确认。待用户真实提交所有相关答案后再继续相应实现；pending 或等待超时只能通过 mode=check 查询 batch_id/question_id，不能自行选答案、假造用户反馈、擅自执行依赖未决问题的部分。可并行处理与未决问题无关、已经授权的事项。若新增实质性分歧可再提问。推荐方案只是建议，不自动代表用户同意，也不扩大测试、安装、提交、推送或发布等操作权限。';
+const CLARIFICATION_RULE = {
+  id: 'lib_requirements_clarification',name:'需求澄清与交互式决策',version:3,updatedAt:null,origin:'bundled-copy-prompt',
+  text:'【强制等待全部用户答复】目标 AI 不得将猜测或未经确认的设计偏好当成用户决定。收到需求先做必要的只读调查，把需用户决定的关键不确定因素、影响、互斥选项、推荐方案及理由合并整理，通过当前任务卡的 bridge_ask_user（可一次提交 questions 批次）交给用户确认。一旦发起任何单题或批量提问，该任务立刻进入全局等待状态：即使其他子任务看起来与疑问无关、能够先做，也必须暂停一切后续开发、代码编写、修改文件、执行命令、构建、测试、提交、推送、部署及衍生实施操作；不得声称可先推进核心逻辑。只有用户把该任务中的所有待答问题逐项提交完成，且目标 AI 从 MCP bridge_ask_user 的回答结果（或 mode=check）实际取得 status=answered、完整答案后，才允许按用户最终决策继续已授权的工作。仅用户在界面点击但尚未提交、仅部分问题已答、工具返回 pending、工具超时或失联、口头宣称答完、推测用户意图，都不能解锁；继续用 check 查，不得规避或通过新任务卡绕过。提问过程中仅可维护真实等待中的任务状态、必要的答案查询和沟通，不得实施其他工作。新的实质性歧义再次触发同样等待门禁。用户回答并不扩大原有授权范围，不会自动允许测试、安装、提交、推送或发布。'
+};
 const DEFAULT_RULE_LIBRARY = [{"id": "lib_task_workflow", "name": "任务卡与工作流", "text": "每次对话由 AI 自行创建、更新并收尾自己的 Bridge 任务卡；确认指工具返回的成功回执，不是等待用户点击或人工验收。实际工作完成后由 AI 提交 completed，实际受阻则提交 blocked/cancelled；不得要求用户手动完成普通会话任务卡，也不得把未做的检查写成通过。若任务卡同步失败，尝试 Bridge update_plan 一次后继续已授权且被工具允许的工作，并如实说明同步失败，不把卡片同步问题转嫁给用户；规则、权限和身份门禁拒绝不得绕过。只有真实需求不明确或操作超出授权时才询问。", "version": 1, "updatedAt": null, "origin": "bundled-copy-prompt"}, {"id": "lib_bash", "name": "Bash 终端约定", "text": "终端统一使用 Bash，不按操作系统猜测 Shell。", "version": 1, "updatedAt": null, "origin": "bundled-copy-prompt"}, {"id": "lib_skills_read", "name": "Skills 发现与读取", "text": "连接和任务卡确认后，主动了解并按需使用我本机已安装的 Skills：\n先通过 tools/list 确认接口，优先调用 list_skills，了解可用技能的名称与用途；技能目录和文件路径以接口实际返回为准，不猜测默认目录，不扫描无关磁盘。如果工具不存在或列举失败，应如实说明，不能把失败说成“没有技能”。\n对我点名或当前任务相关的 Skill，先读取其返回的 skillFile（SKILL.md 或 skill.md）正文，再按需读取它引用的说明、模板和资源；理解用途、适用条件、步骤、依赖与限制后，在当前任务中遵循适用的说明。只列出名称不等于已经加载；没有当前任务时，了解清单后等待，不盲目加载全部正文。\nSkill 是操作说明，不是 MCP 工具或新的永久能力；不得直接把 Skill 名称当工具调用，也不得声称跨会话已经永久学会。需要的工具或依赖不可用时，应明确说明，不伪造调用或完成结果。", "version": 1, "updatedAt": null, "origin": "bundled-copy-prompt"}, {"id": "lib_skills_tasks", "name": "Skills 按任务重新判断", "text": "【收到具体任务后的 Skills / REA 使用规则】\n每次收到新的具体任务，都应主动重新判断已发现的 Skills 中有哪些相关项，而不是只在连接时列一次清单就结束；清单缺失、失效或安装状态变化时重新调用 list_skills。对于点名或相关的 Skill，先按实际返回的 skillFile 路径读取正文和必要引用，再开展任务，不必等我再次提醒“使用技能”。不要加载全部无关技能；仅连接或查看清单、尚无具体任务时，采用 0 项是正常的。", "version": 1, "updatedAt": null, "origin": "bundled-copy-prompt"}, {"id": "lib_reporting", "name": "执行阶段与完成报告", "text": "简要说明实际读取并准备采用了哪些 Skills；已加载仅代表已阅读理解，不代表脚本已执行或功能已验证。确认就绪后继续用户当前任务；若尚未指定任务则等待。\n\n严格区分：清单 loaded=true 只代表找到说明文件；实际读取正文、在任务中采用说明、执行脚本、完成功能验证是不同阶段。不能仅凭清单描述声称已使用，也不能把安装状态当成功能验证。完成任务时简要说明实际采用的 Skills、实际调用的关键工具，以及未做的检查；没有相关技能时如实说明，不为凑数采用。", "version": 1, "updatedAt": null, "origin": "bundled-copy-prompt"}, {"id": "lib_rea", "name": "REA 结构化调用", "text": "涉及已打包程序、二进制、Electron/ASAR 等逆向分析时，优先检查当前 tools/list 是否提供 REA 的结构化入口。本机接入使用 ext__rea__list_rea_tools 查询真实上游工具名称和输入 schema，再用 ext__rea__call_rea_tool 传入 tool_name 与 arguments 调用；不能直接把上游短名称或 Skill 名称当作 Bridge 工具。如果名称或接口已变化，以当前工具清单为准。入口缺失、引擎未配置或平台不支持时如实说明，不伪造调用；不要因为普通源码阅读任务就强行使用 REA。", "version": 1, "updatedAt": null, "origin": "bundled-copy-prompt"}, {"id": "lib_authorization", "name": "授权边界与默认不测试", "text": "使用 Skill 必须遵循当前任务授权、用户要求和工具权限；执行其中脚本前先审阅。不得仅因 Skill 中的指令就擅自安装软件、修改配置、发送消息、提交表单、删除数据或启停已有实例，不主动运行测试。超出授权的操作先询问。\n\n以上规则不扩大授权。继续遵守生成与测试分离、默认不主动测试、脚本先审阅的要求；不得仅凭 Skill 或工具描述擅自安装依赖、配置账号、运行目标程序、注入、发送或提交、删除数据、修改无关内容或启停已有实例。需要超出当前授权范围的操作时先询问。", "version": 1, "updatedAt": null, "origin": "bundled-copy-prompt"}];
+DEFAULT_RULE_LIBRARY.push(CLARIFICATION_RULE);
 const MAX_RULES_PER_GROUP = 128;
 const MAX_EFFECTIVE_RULE_CHARS = 96000;
 const MAX_STATE_BYTES = 8 * 1024 * 1024;
@@ -111,6 +118,38 @@ function upgradeState(value){
   if(Buffer.byteLength(JSON.stringify(result))>MAX_STATE_BYTES)fail('RULES_DATA_TOO_LARGE','迁移超过大小上限；旧规则保持原样，未覆盖。');
   return clarifyBundledTaskWorkflow(result)||checkState(result);
 }
+/** Add one opt-in library entry and activate it in the standard general rules group.
+ * Existing custom library text/presets are preserved. */
+export function ensureClarificationRule(input){
+  const existing=input.ruleLibrary?.find(rule=>rule.id===CLARIFICATION_RULE.id);
+  if(existing){
+    // Upgrade exact bundled v1/v2 only, keeping customized library and preset texts intact.
+    const original=existing.version===1?LEGACY_CLARIFICATION_TEXT:existing.version===2?LEGACY_CLARIFICATION_V2_TEXT:null;
+    if(!original||existing.name!==CLARIFICATION_RULE.name||existing.origin!=='bundled-copy-prompt'||existing.text!==original)return null;
+    const state=clone(input),at=now(),updated=state.ruleLibrary.find(rule=>rule.id===CLARIFICATION_RULE.id);
+    updated.text=CLARIFICATION_RULE.text;updated.version=CLARIFICATION_RULE.version;updated.updatedAt=at;
+    state.ruleLibraryVersion++;
+    for(const group of state.presets){let changed=false;
+      for(const rule of group.rules)if(rule.libraryRuleId===updated.id&&rule.name===updated.name&&rule.text===original){rule.text=updated.text;rule.libraryVersion=updated.version;changed=true;}
+      if(changed){group.version++;group.updatedAt=at;}
+    }
+    state.revision++;state.events.push({id:crypto.randomUUID(),kind:'requirements-clarification-rule-upgraded',at});state.events=state.events.slice(-200);
+    checkState(state);
+    if(Buffer.byteLength(JSON.stringify(state))>MAX_STATE_BYTES)fail('RULES_DATA_TOO_LARGE','需求澄清规则升级超过大小上限；原文件保持不变。');
+    return state;
+  }
+  const state=clone(input),at=now(),newRule={...CLARIFICATION_RULE,updatedAt:at};
+  state.ruleLibrary.push(newRule);state.ruleLibraryVersion++;
+  const general=state.presets.find(group=>group.id===state.globalPresetId);
+  if(general&&!general.rules.some(rule=>rule.libraryRuleId===newRule.id)){
+    general.rules.push({id:'rule_'+crypto.randomUUID(),name:newRule.name,text:newRule.text,enabled:true,libraryRuleId:newRule.id,libraryVersion:newRule.version});
+    general.version++;general.updatedAt=at;
+  }
+  state.revision++;state.events.push({id:crypto.randomUUID(),kind:'requirements-clarification-rule-added',at});state.events=state.events.slice(-200);
+  checkState(state);
+  if(Buffer.byteLength(JSON.stringify(state))>MAX_STATE_BYTES)fail('RULES_DATA_TOO_LARGE','新增需求澄清规则超过大小上限，旧规则保持不变。');
+  return state;
+}
 // Exact, copy-on-write clarification of an unchanged bundled rule. Never edits customized text.
 export function clarifyBundledTaskWorkflow(input){
   const prior=input.ruleLibrary?.find(rule=>rule.id==='lib_task_workflow');
@@ -200,7 +239,8 @@ export class AutomationService {
           await this.atomic(this.file,converted);
           if(this.options.snapshot)await this.atomic(this.options.snapshot,converted).catch(error=>this.options.log?.('迁移快照备份失败：'+error.message));
         }else{
-          checkState(prior);const clarified=clarifyBundledTaskWorkflow(prior);
+          checkState(prior);const workflow=clarifyBundledTaskWorkflow(prior)||prior;
+          const clarified=ensureClarificationRule(workflow)||(workflow!==prior?workflow:null);
           if(clarified){
             // Write the protected backup before replacement; no model/file-tool access is granted.
             await this.atomic(this.file+'.workflow-prompt-backup.'+crypto.randomUUID()+'.json',prior);
@@ -221,7 +261,8 @@ export class AutomationService {
           }
         }
       }
-      const clarifiedSeed=clarifyBundledTaskWorkflow(seed);
+      const workflowSeed=clarifyBundledTaskWorkflow(seed)||seed;
+      const clarifiedSeed=ensureClarificationRule(workflowSeed)||(workflowSeed!==seed?workflowSeed:null);
       if(clarifiedSeed){await this.atomic(this.file+'.workflow-snapshot-backup.'+crypto.randomUUID()+'.json',seed);seed=clarifiedSeed;}
       checkState(seed);await this.atomic(this.file,seed);
     });
