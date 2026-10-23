@@ -36663,8 +36663,9 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
 .opencode-bridge-todos-summary {
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 7px;
+  grid-template-rows: auto auto;
+  align-items: start;
+  gap: 2px 7px;
   min-height: 30px;
   padding: 4px 7px;
   list-style: none;
@@ -36687,13 +36688,25 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   font-size: 12px;
   font-weight: 600;
 }
+.opencode-bridge-todos-summary > .opencode-bridge-todos-icon {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+}
 .opencode-bridge-task-summary-labels {
   display: flex;
   min-width: 0;
-  flex-direction: column;
-  gap: 2px;
+  grid-column: 2;
+  grid-row: 1;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
 }
 .opencode-bridge-task-summary-detail {
+  grid-column: 2 / -1;
+  grid-row: 2;
+  min-width: 0;
   overflow: hidden;
   color: var(--vscode-descriptionForeground);
   text-overflow: ellipsis;
@@ -36701,6 +36714,10 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   font-size: 11px;
 }
 .opencode-bridge-task-pill {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: start;
+  white-space: nowrap;
   padding: 2px 10px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--vscode-button-background) 22%, transparent);

@@ -403,6 +403,20 @@ async function activate(context) {
       await bridgeReady;
       return bridge.checkHealth();
     }),
+    vscode22.commands.registerCommand("opencode.bridge.answerTaskQuestion", async (input) => {
+      await bridgeReady;
+      const args = input && typeof input === "object" && !Array.isArray(input) ? input : {};
+      if (typeof args.taskId !== "string" || typeof args.questionId !== "string" ||
+          (args.optionId !== undefined && typeof args.optionId !== "string") ||
+          (args.customText !== undefined && typeof args.customText !== "string")) {
+        throw new Error("无效的任务提问回答。");
+      }
+      const task = (bridge.getStatus().tasks ?? []).find((item) => item.id === args.taskId);
+      if (!task?.questions?.some((q) => q.id === args.questionId && q.status === "pending")) {
+        throw new Error("任务问题已失效；请刷新任务板块。");
+      }
+      return bridge.answerTaskQuestion(args.taskId, args.questionId, args.optionId, args.customText);
+    }),
     vscode22.commands.registerCommand("opencode.bridge.clearActivityLog", async () => {
       await bridgeReady;
       return bridge.clearActivityLog();

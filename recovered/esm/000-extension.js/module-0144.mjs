@@ -3,6 +3,9 @@
 // Original module marker: src/bridge-task-store.ts
 import { init_define_OPENCODE_BUILD_INFO } from "./module-0000.mjs";
 import { parseBridgeTodos } from "./module-0145.mjs";
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
 
 
 // src/bridge-task-store.ts
@@ -13,6 +16,9 @@ var import_node_crypto20 = require("node:crypto");
 // src/bridge-task-store.ts
 var BRIDGE_TASK_AWAITING_SYNC_MS = 20 * 6e4;
 var BRIDGE_TASK_CLEANUP_BATCH_LIMIT = 1e4;
+// A pending MCP call stays open; this interval checks for a complete answer
+// without returning a premature `pending` result to the target AI.
+var BRIDGE_QUESTION_POLL_MS = 3e3;
 var copyTodos = (todos) => todos.map((t) => ({ ...t }));
 var record2 = (value) => value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
 var isTerminal = (state) => state === "completed" || state === "cancelled" || state === "cleared";
@@ -31,6 +37,58 @@ var BridgeTaskStore = class {
   /** Session hints are untrusted; namespace them by the authenticated task owner. */
   overviewBySession = /* @__PURE__ */ new Map();
   selectedId;
+  persistenceFile;
+  workspaceKey;
+  questionWaiters = new Map();
+  batchWaiters = new Map();
+  /** Persist every task card in the extension's user-data directory, not in the Git workspace. */
+  configurePersistence(dataDirectory, workspaceRoot) {
+    if (!dataDirectory || !workspaceRoot) return;
+    const key = crypto.createHash("sha256").update(path.resolve(workspaceRoot).replaceAll("\\", "/").toLowerCase()).digest("hex");
+    const directory = path.join(dataDirectory, "bridge-task-history");
+    fs.mkdirSync(directory, { recursive: true });
+    const file = path.join(directory, key + ".json");
+    if (!fs.existsSync(file)) {
+      this.workspaceKey = key;this.persistenceFile = file;return;
+    }
+    const saved = JSON.parse(fs.readFileSync(file, "utf8"));
+    if (saved.format !== "opencode-bridge-tasks-v1" || saved.workspaceKey !== key || !Array.isArray(saved.tasks)) {
+      throw new Error("Bridge task history format or workspace identity is invalid; file retained unchanged.");
+    }
+    for (const task of saved.tasks) {
+      if (!task || typeof task.id !== "string" || typeof task.owner !== "string" ||
+          !Number.isSafeInteger(task.revision) || !Array.isArray(task.todos) || !Array.isArray(task.history) ||
+          !["running", "waiting_plan", "blocked", "interrupted", "completed", "cancelled", "cleared"].includes(task.state)) {
+        throw new Error("Bridge task history has an invalid record; file retained unchanged.");
+      }
+    }
+    let upgradedPending = false;
+    for (const task of saved.tasks) {
+      for (const question of task.questions ?? []) {
+        // Previously persisted unanswered questions require the same MCP receipt gate.
+        // Historical answered questions are already considered delivered by v2.
+        if (question.status === "pending" && question.requiresMcpAck !== true) {
+          question.requiresMcpAck = true;
+          upgradedPending = true;
+        }
+      }
+      this.tasks.set(task.id, task);
+    }
+    this.selectedId = this.tasks.has(saved.selectedId) ? saved.selectedId : [...this.tasks.keys()].at(-1);
+    this.workspaceKey = key;this.persistenceFile = file;
+    // Remote owner handles are never reclaimed automatically on a new process.
+    this.currentByOwner.clear();
+    if (upgradedPending) this.persist();
+  }
+  persist() {
+    if (!this.persistenceFile) return;
+    const content = JSON.stringify({ format: "opencode-bridge-tasks-v1", workspaceKey: this.workspaceKey,
+      selectedId: this.selectedId, tasks: [...this.tasks.values()] });
+    const temporary = this.persistenceFile + "." + process.pid + ".tmp";
+    fs.writeFileSync(temporary, content, { encoding: "utf8", mode: 0o600 });
+    try { fs.renameSync(temporary, this.persistenceFile); }
+    finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
+  }
   /** Kept as a compatibility hook; task history is never implicitly pruned. */
   pruneTerminal() {
     return 0;
@@ -52,6 +110,7 @@ var BridgeTaskStore = class {
     }
     for (const { id } of requests) this.forget(id);
     if (!this.selectedId) this.selectedId = [...this.tasks.keys()].at(-1);
+    this.persist();
     return requests.length;
   }
   /** Local UI only: mark confirmed, genuinely stale work interrupted without deleting its task card. */
@@ -75,6 +134,7 @@ var BridgeTaskStore = class {
       task.updatedAt = at;
       task.history = [...task.history, { revision: task.revision, at, state: task.state, completed: task.todos.filter((t) => t.status === "completed").length, total: task.todos.length, removed: [] }].slice(-this.maxHistory);
     }
+    this.persist();
     return tasks.length;
   }
   resolve(owner, value) {
@@ -86,13 +146,41 @@ var BridgeTaskStore = class {
     if (task && task.owner !== owner) throw new Error("task_id belongs to a different client session; start a new task instead of adopting it.");
     return task;
   }
+  /** Waiting is owned by the real task owner, not by a replaceable task card ID. */
+  outstandingForOwner(owner) {
+    for (const task of this.tasks.values()) {
+      if (task.owner !== owner) continue;
+      const questions = task.questions ?? [];
+      const outstanding = questions.filter((q) => q.status !== "answered" || (q.requiresMcpAck === true && !q.deliveredAt));
+      if (outstanding.length) return { taskId: task.id, pending: outstanding.filter((q) => q.status === "pending").length,
+        undelivered: outstanding.filter((q) => q.status === "answered").length,
+        batchId: outstanding[0].batchId ?? null, questionId: outstanding[0].id };
+    }
+    return null;
+  }
+  /** Only call after a complete `status=answered` result is ready for MCP delivery. */
+  markAnswersDelivered(owner, taskId, ids) {
+    const task = this.resolve(owner, { task_id: taskId });
+    if (!task || !Array.isArray(ids) || !ids.length) throw new Error("没有可确认回传的回答。");
+    const questions = ids.map((id) => task.questions?.find((q) => q.id === id));
+    if (questions.some((q) => !q || q.status !== "answered" || !q.answer)) {
+      throw new Error("仍有问题未回答，不能解除等待门禁。");
+    }
+    const before = questions.map((q) => q.deliveredAt);
+    const at = this.now();
+    for (const q of questions) q.deliveredAt = at;
+    try { this.persist(); }
+    catch (error) { questions.forEach((q, i) => { if (before[i] === void 0) delete q.deliveredAt; else q.deliveredAt = before[i]; }); throw error; }
+  }
   update(owner, todos, value) {
     const input = record2(value);
     if (input.new_task !== void 0 && typeof input.new_task !== "boolean") throw new Error("new_task must be boolean.");
     if (input.new_task && (input.task_id !== void 0 || input.expected_revision !== void 0)) throw new Error("new_task cannot resume or revise an existing task.");
+    if (input.new_task && this.outstandingForOwner(owner)) throw new Error("WAITING_FOR_USER_ANSWERS: 当前会话仍有未完整回传的用户决策，不能创建新任务绕过等待。");
     if (input.mode !== void 0 && input.mode !== "replace" && input.mode !== "patch") throw new Error("mode must be replace or patch.");
     if (input.lifecycle !== void 0 && !["running", "completed", "blocked", "cancelled"].includes(String(input.lifecycle))) throw new Error("Invalid task lifecycle.");
     if (input.source_label !== void 0 && (typeof input.source_label !== "string" || input.source_label.length > 80)) throw new Error("source_label must be at most 80 characters.");
+    if (input.task_title !== void 0 && (typeof input.task_title !== "string" || !input.task_title.trim() || input.task_title.length > 160)) throw new Error("task_title must contain 1-160 characters.");
     for (const key of ["overview_model", "overview_provider"]) {
       if (input[key] !== void 0 && (typeof input[key] !== "string" || input[key].length > 80)) throw new Error(`${key} must be at most 80 characters.`);
     }
@@ -120,6 +208,9 @@ var BridgeTaskStore = class {
     }
     todos = parseBridgeTodos({ todos }, this.maxTodos);
     const complete = todos.length > 0 && todos.every((t) => t.status === "completed");
+    if (this.outstandingForOwner(owner) && (complete || input.lifecycle === "completed")) {
+      throw new Error("WAITING_FOR_USER_ANSWERS: 必须收到全部用户回答的 MCP 结果才能标记任务完成。");
+    }
     if (input.lifecycle === "completed" && !complete) throw new Error("Completion requires a non-empty, fully completed snapshot.");
     if (previous && isTerminal(previous.state)) {
       const unchanged = todos.length === previous.todos.length && todos.every((todo, index) => todo.id === previous.todos[index].id && todo.title === previous.todos[index].title && todo.status === previous.todos[index].status);
@@ -143,6 +234,7 @@ var BridgeTaskStore = class {
         previous.history = [...previous.history, { revision: revision2, at: at2, state: "cleared", completed: 0, total: 0, removed: removed2 }].slice(-this.maxHistory);
         if (this.currentByOwner.get(owner) === previous.id) this.currentByOwner.delete(owner);
         if (this.selectedId === previous.id) this.selectedId = void 0;
+        this.persist();
       }
       return void 0;
     }
@@ -166,6 +258,8 @@ var BridgeTaskStore = class {
       overviewSessionId: sessionId,
       ...overview ? { overview } : {},
       ...label ? { source: { label, verified: false } } : {},
+      title: input.task_title?.trim() ?? previous?.title ?? todos[0]?.title ?? "当前任务",
+      questions: previous?.questions ?? [],
       state,
       todos: copyTodos(todos),
       history: [...previous?.history ?? [], { revision, at, state, completed: todos.filter((t) => t.status === "completed").length, total: todos.length, removed: copyTodos(removed) }].slice(-this.maxHistory)
@@ -179,6 +273,7 @@ var BridgeTaskStore = class {
       this.overviewBySession.set(sessionKey, overview);
     }
     this.selectedId = task.id;
+    this.persist();
     return this.publicTask(task);
   }
   /** Transient progress may link by capability, but cannot claim completion or steal selection. */
@@ -221,12 +316,162 @@ var BridgeTaskStore = class {
   disconnect(_owner) {
     return false;
   }
+  buildQuestion(input, batchId) {
+    const text = typeof input.question === "string" ? input.question.trim() : "";
+    if (!text || text.length > 1000) throw new Error("问题正文需要 1-1000 个字符。");
+    const options = input.options;
+    if (!Array.isArray(options) || options.length < 2 || options.length > 8 ||
+        options.some((option) => !option || typeof option.id !== "string" || !/^[a-z0-9_-]{1,40}$/i.test(option.id) ||
+          typeof option.label !== "string" || !option.label.trim() || option.label.length > 180 ||
+          (option.description !== void 0 && (typeof option.description !== "string" || option.description.length > 400))) ||
+        new Set(options.map((option) => option.id)).size !== options.length) throw new Error("需要 2-8 个不同的有效选项。");
+    const recommendation = input.recommendation;
+    if (recommendation !== void 0 && (typeof recommendation !== "string" || recommendation.length > 600)) throw new Error("推荐说明最多 600 字符。");
+    if (input.recommended_option_id !== void 0 && !options.some((option) => option.id === input.recommended_option_id)) {
+      throw new Error("推荐选项必须是当前问题的已有选项。");
+    }
+    if (input.allow_custom !== void 0 && typeof input.allow_custom !== "boolean") throw new Error("allow_custom 必须是布尔值。");
+    return { id: crypto.randomUUID(), text,
+      options: options.map((option) => ({ id: option.id, label: option.label.trim(), description: option.description ?? "" })),
+      ...batchId ? { batchId } : {},
+      ...recommendation ? { recommendation } : {},
+      ...input.recommended_option_id ? { recommendedOptionId: input.recommended_option_id } : {},
+      allowCustom: input.allow_custom !== false, status: "pending", requiresMcpAck: true, createdAt: this.now() };
+  }
+  askQuestion(owner, input) {
+    const task = this.resolve(owner, input);
+    if (!task || isTerminal(task.state)) throw new Error("请先创建正在进行的任务卡，再在任务中提问。");
+    if (this.outstandingForOwner(owner)?.undelivered) throw new Error("请先通过 MCP 接收此前全部回答，再提出新问题。");
+    const question = this.buildQuestion(input);
+    const previous = task.questions?.at(-1);
+    if (previous?.status === "pending") {
+      if (previous.text === question.text && !previous.batchId) return { task, question: previous };
+      throw new Error("前一个问题尚未得到用户回答；必须先处理，不能覆盖。");
+    }
+    task.questions = [...task.questions ?? [], question];
+    task.updatedAt = this.now();
+    this.persist();
+    return { task, question };
+  }
+  askQuestions(owner, input) {
+    const task = this.resolve(owner, input);
+    if (!task || isTerminal(task.state)) throw new Error("请先创建正在进行的任务卡，再在任务中提问。");
+    if (this.outstandingForOwner(owner)?.undelivered) throw new Error("请先通过 MCP 接收此前全部回答，再发起新批次。");
+    if (!Array.isArray(input.questions) || input.questions.length < 2 || input.questions.length > 8) throw new Error("一次可提交 2-8 道问题。");
+    if (task.questions?.some((question) => question.status === "pending")) throw new Error("当前任务仍有未回答的疑问，请先完成或通过 check 查询之前的批次。");
+    const batchId = crypto.randomUUID();
+    // Validate the entire batch before changing task state or writing to disk.
+    const questions = input.questions.map((question) => this.buildQuestion(question, batchId));
+    task.questions = [...task.questions ?? [], ...questions];
+    task.updatedAt = this.now();
+    this.persist();
+    return { task, batchId, questions };
+  }
+  batchStatus(taskId, batchId) {
+    const task = this.tasks.get(taskId);
+    const questions = task?.questions?.filter((question) => question.batchId === batchId) ?? [];
+    if (!questions.length) throw new Error("找不到对应的提问批次，请核对 batch_id。");
+    return { status: questions.every((question) => question.status === "answered") ? "answered" : "pending",
+      batch_id: batchId, total: questions.length,
+      answered: questions.filter((question) => question.status === "answered").length,
+      questions: questions.map((question) => ({ question_id: question.id, question: question.text, status: question.status,
+        ...question.answer ? { answer: { ...question.answer } } : {} })) };
+  }
+  answerQuestion(taskId, questionId, optionId, customText) {
+    const task = this.tasks.get(taskId);
+    const question = task?.questions?.find((item) => item.id === questionId);
+    if (!question || question.status !== "pending") throw new Error("该提问已结束或不属于当前任务，请刷新任务板块。");
+    const selection = question.options.find((option) => option.id === optionId);
+    const custom = typeof customText === "string" ? customText.trim() : "";
+    if (!selection && !(question.allowCustom && custom)) throw new Error("请选择一个选项或填写自定义回答。");
+    if (custom.length > 2000) throw new Error("自定义回答不能超过 2000 个字符。");
+    question.status = "answered";
+    question.answer = { optionId: selection?.id ?? null, label: selection?.label ?? "自定义回答", text: custom || selection?.label, at: this.now() };
+    task.updatedAt = this.now();
+    this.persist();
+    const key = taskId + ":" + questionId;
+    for (const resolve of this.questionWaiters.get(key) ?? []) resolve(question.answer);
+    this.questionWaiters.delete(key);
+    if (question.batchId) {
+      const batch = this.batchStatus(taskId, question.batchId);
+      if (batch.status === "answered") {
+        const batchKey = taskId + ":batch:" + question.batchId;
+        for (const resolve of this.batchWaiters.get(batchKey) ?? []) resolve(batch);
+        this.batchWaiters.delete(batchKey);
+      }
+    }
+    return question.answer;
+  }
+  /** Hold the original MCP request open; check every three seconds and wake
+   * immediately on the answer event. An explicit timeout remains optional for
+   * older clients. Caller cancellation always releases timers and listeners. */
+  waitForAnswerStatus(key, waiters, read, options = {}) {
+    const current = read();
+    if (current.status === "answered") return Promise.resolve(current);
+    const { signal, timeoutMs } = options;
+    if (signal?.aborted) return Promise.reject(Object.assign(new Error("Bridge 提问等待已由 MCP 客户端取消；答案仍保留，可重新查询。"), { name: "AbortError" }));
+    return new Promise((resolve, reject) => {
+      const listeners = waiters.get(key) ?? new Set();
+      let interval;
+      let timer;
+      let settled = false;
+      const cleanup = () => {
+        clearInterval(interval);
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
+        listeners.delete(check);
+        if (!listeners.size && waiters.get(key) === listeners) waiters.delete(key);
+      };
+      const settle = (error, result) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        if (error) reject(error);
+        else resolve(result);
+      };
+      const check = () => {
+        try {
+          const result = read();
+          if (result.status === "answered") settle(null, result);
+        } catch (error) { settle(error); }
+      };
+      const onAbort = () => settle(Object.assign(new Error("MCP 客户端已取消提问等待；回答仍保留。"), { name: "AbortError" }));
+      listeners.add(check);
+      waiters.set(key, listeners);
+      interval = setInterval(check, BRIDGE_QUESTION_POLL_MS);
+      interval.unref?.();
+      if (Number.isFinite(timeoutMs)) {
+        timer = setTimeout(() => {
+          try { settle(null, read()); } catch (error) { settle(error); }
+        }, Math.max(1e3, timeoutMs));
+      }
+      signal?.addEventListener("abort", onAbort, { once: true });
+      if (signal?.aborted) onAbort();
+      else check(); // Closes the race between the first read and subscribing.
+    });
+  }
+  waitForBatch(taskId, batchId, options = {}) {
+    return this.waitForAnswerStatus(taskId + ":batch:" + batchId, this.batchWaiters,
+      () => this.batchStatus(taskId, batchId), options);
+  }
+  waitForQuestion(taskId, questionId, options = {}) {
+    const read = () => {
+      const question = this.tasks.get(taskId)?.questions?.find((item) => item.id === questionId);
+      if (!question) throw new Error("问题不存在或已失效。");
+      return question.status === "answered" ? { status: "answered", answer: question.answer }
+        : { status: "pending", question_id: questionId };
+    };
+    return this.waitForAnswerStatus(taskId + ":" + questionId, this.questionWaiters, read, options);
+  }
   publicTask(task) {
     let assistantSource=null;try{assistantSource=this.sourceIdentityReader?.(task.owner)||null;}catch{}
-    const state = isActive(task.state) && this.now() - task.updatedAt >= BRIDGE_TASK_AWAITING_SYNC_MS ? "awaiting_sync" : task.state;
+    const state = task.questions?.some((question) => question.status === "pending" || (question.requiresMcpAck === true && !question.deliveredAt)) ? "awaiting_user"
+      : isActive(task.state) && this.now() - task.updatedAt >= BRIDGE_TASK_AWAITING_SYNC_MS ? "awaiting_sync" : task.state;
     const progress = state === "running" && task.progress && task.progress.taskRevision === task.revision && this.now() - task.progress.at < 5 * 6e4 && (!task.progress.todoId || task.todos.some((todo) => todo.id === task.progress?.todoId && todo.status === "in_progress")) ? { ...task.progress } : null;
     return {
       id: task.id,
+      title: task.title ?? task.todos[0]?.title ?? "当前任务",
+      questions: (task.questions ?? []).map((question) => ({ ...question, options: question.options.map((option) => ({ ...option })) })),
       revision: task.revision,
       updatedAt: task.updatedAt,
       originKind: task.owner.startsWith("native-chat:") ? "chat" : "bridge",

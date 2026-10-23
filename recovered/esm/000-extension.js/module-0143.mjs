@@ -108,6 +108,12 @@ var BridgeToolDispatcher = class {
     if (removed) this.revision_++;
     return removed;
   }
+  /** Only the local task board can submit an answer. */
+  answerTaskQuestion(taskId, questionId, optionId, customText) {
+    const answer = this.taskStore.answerQuestion(taskId, questionId, optionId, customText);
+    this.revision_++;
+    return answer;
+  }
   /** Local UI only; never exposed as an MCP cancellation tool. */
   interruptStaleTasks(requests) {
     const interrupted = this.taskStore.interruptStaleTasks(requests);
@@ -224,8 +230,20 @@ var BridgeToolDispatcher = class {
   async handleToolCall(rawToolName, args, extra) {
     const resolvedToolName = resolveBridgeToolName(rawToolName, (name) => BRIDGE_TOOL_DEFINITIONS.some(tool => tool.name === name) || name === SET_TODOS_TOOL.name || name === UPDATE_PLAN_TOOL.name || name === REPORT_PROGRESS_TOOL.name || isFileToolName(name) || isFileToolCompatibilityAlias(name) || !BRIDGE_EXCLUDED_TOOL_NAMES.has(name) && getIdeToolDefinition(name) !== void 0 || name === CONFIGURE_MCP_TOOL.name || this.findCustomToolSafe(name) !== void 0 || this.deps.externalMcp?.hasBinding(name) === true);
     const toolName = rawToolName.startsWith("ext__") && !this.findCustomToolSafe(rawToolName) && !this.deps.externalMcp?.hasBinding(rawToolName) ? rawToolName : normalizeFileToolName(resolvedToolName);
+    const taskOwnerId = extra.taskOwnerId ?? extra.commandOwnerId;
+    const waiting = this.taskStore.outstandingForOwner(taskOwnerId);
+    // Owner-scoped, server-side fail-closed gate. Only checking user answers,
+    // communicating wait status, reading rules and cancelling unsafe commands remain available.
+    const waitingExceptions = new Set(["bridge_ask_user", "report_progress",
+      "bridge_get_effective_rules", "bridge_acknowledge_rules", "cancel_command"]);
+    if (waiting && !waitingExceptions.has(toolName)) {
+      const message = `WAITING_FOR_USER_ANSWERS: 本任务有 ${waiting.pending} 道未回答、${waiting.undelivered} 道尚未经 MCP 回传的决策。全部回答并通过 bridge_ask_user(mode=check, task_id=${waiting.taskId}, ${waiting.batchId ? `batch_id=${waiting.batchId}` : `question_id=${waiting.questionId}`}) 取得 status=answered 后才允许继续；当前工具 ${toolName} 已拒绝执行。`;
+      return { isError: true, content: [{ type: "text", text: message }],
+        structuredContent: { error: { code: "WAITING_FOR_USER_ANSWERS", message }, task_id: waiting.taskId,
+          pending: waiting.pending, undelivered: waiting.undelivered } };
+    }
     const publicDefinition = BRIDGE_TOOL_DEFINITIONS.find((tool) => tool.name === toolName);
-    if (toolName === SET_TODOS_TOOL.name || toolName === UPDATE_PLAN_TOOL.name || toolName === REPORT_PROGRESS_TOOL.name) {
+    if (toolName === SET_TODOS_TOOL.name || toolName === UPDATE_PLAN_TOOL.name || toolName === REPORT_PROGRESS_TOOL.name || toolName === "bridge_ask_user") {
       if (publicDefinition) {
         try {
           validateToolInput(publicDefinition.name, publicDefinition.inputSchema, args);
@@ -241,6 +259,55 @@ var BridgeToolDispatcher = class {
         if (taskOwnerId !== extra.commandOwnerId) this.rememberTaskCommandOwner(taskOwnerId, extra.commandOwnerId);
         if (toolName === SET_TODOS_TOOL.name) {
           return this.handleSetTodos(args, taskOwnerId);
+        }
+        if (toolName === "bridge_ask_user") {
+          const input = args ?? {};
+          const existing = input.mode === "check";
+          if (existing && (input.questions !== void 0 || input.question !== void 0 || input.options !== void 0)) {
+            throw new Error("check 模式只能传入 task_id + batch_id 或 question_id，不能再次提交问题。");
+          }
+          if (existing && Boolean(input.batch_id) === Boolean(input.question_id)) {
+            throw new Error("check 模式须且仅须指定 batch_id 或 question_id。");
+          }
+          if (!existing && (input.batch_id !== void 0 || input.question_id !== void 0 ||
+              (input.questions !== void 0 && (input.question !== void 0 || input.options !== void 0)))) {
+            throw new Error("ask 模式请提交 questions 数组或单题 question/options，不能混合两种形式或指定现有问题编号。");
+          }
+          if (input.questions !== void 0 || input.batch_id !== void 0) {
+            const submitted = existing ? { task: this.taskStore.resolve(taskOwnerId, input), batchId: input.batch_id }
+              : this.taskStore.askQuestions(taskOwnerId, input);
+            if (!submitted.task || !submitted.batchId) throw new Error("找不到当前会话的批量提问。");
+            if (!existing) this.revision_++;
+            // Keep the original MCP request open and poll the saved answers every
+            // 3 seconds. Do not return a premature pending result after 90 seconds:
+            // many assistants finish their turn and will never call check again.
+            const result = input.wait_seconds === 0 ? this.taskStore.batchStatus(submitted.task.id, submitted.batchId)
+              : await this.taskStore.waitForBatch(submitted.task.id, submitted.batchId, {
+                  signal: extra.signal,
+                  ...input.wait_seconds !== void 0 ? { timeoutMs: input.wait_seconds * 1e3 } : {}
+                });
+            if (result.status === "answered") this.taskStore.markAnswersDelivered(taskOwnerId, submitted.task.id, result.questions.map((q) => q.question_id));
+            return { structuredContent: { task_id: submitted.task.id, ...result }, content: [{ type: "text",
+              text: result.status === "answered"
+                ? `用户已经确认全部 ${result.total} 项需求：${result.questions.map((q, i) => `${i + 1}. ${q.question} → ${q.answer.text}`).join("；")}。请按照实际回答推进，勿将建议视为授权。`
+                : `批量提问 ${result.answered}/${result.total} 项已回答，尚未全部确定。batch_id=${result.batch_id}。使用 bridge_ask_user 的 check 模式查询，不能擅自代答或先实施依赖未决项的修改。` }] };
+          }
+          const { task, question } = existing
+            ? { task: this.taskStore.resolve(taskOwnerId, input), question: this.taskStore.resolve(taskOwnerId, input)?.questions?.find((item) => item.id === input.question_id) }
+            : this.taskStore.askQuestion(taskOwnerId, input);
+          if (!task || !question) throw new Error("找不到当前会话的提问，请使用有效的 task_id / question_id。");
+          if (!existing) this.revision_++;
+          const result = question.status === "answered" ? { status: "answered", answer: question.answer }
+            : input.wait_seconds === 0 ? { status: "pending", question_id: question.id }
+            : await this.taskStore.waitForQuestion(task.id, question.id, {
+                signal: extra.signal,
+                ...input.wait_seconds !== void 0 ? { timeoutMs: input.wait_seconds * 1e3 } : {}
+              });
+          if (result.status === "answered") this.taskStore.markAnswersDelivered(taskOwnerId, task.id, [question.id]);
+          return { structuredContent: { task_id: task.id, question_id: question.id, ...result },
+            content: [{ type: "text", text: result.status === "answered"
+              ? `用户已在任务板回答：${result.answer.text}。请继续按回答收敛需求；该回答不等于额外操作授权。`
+              : `问题已在当前任务板显示，等待用户回答。下次使用 bridge_ask_user 的 check 模式查询，禁止猜测。question_id=${question.id}` }] };
         }
         if (toolName === UPDATE_PLAN_TOOL.name) {
           return this.handleUpdatePlan(args, taskOwnerId);

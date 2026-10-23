@@ -93,6 +93,7 @@ var SET_TODOS_TOOL = {
       expected_revision: { type: "integer", minimum: 1, description: "Last acknowledged task_revision. Required with task_id or patch to reject stale writes." },
       new_task: { type: "boolean", description: "Start a distinct job/turn without clearing another task. Do not combine with task_id or expected_revision." },
       source_label: { type: "string", maxLength: 80, description: "Optional client self-reported display label. Unverified; never used for authorization or task ownership." },
+      task_title: { type: "string", minLength: 1, maxLength: 160, description: "当前任务主标题，与模型名称分开显示，完成后保留。" },
       lifecycle: { type: "string", enum: ["running", "completed", "blocked", "cancelled"], description: "Explicit task state. Before final reply send completed only if every step is complete; otherwise send blocked/cancelled truthfully." },
       mode: { type: "string", enum: ["replace", "patch"], description: "replace (default) replaces the full plan. patch merges stable IDs, requires expected_revision, and preserves omitted steps." },
       overview_session_id: { type: "string", pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$", description: "Random UUID v4 generated per conversation and repeated on its task updates. Unverified grouping hint; never infer from client, MCP connection or task owner. Omit if unavailable." },
@@ -272,10 +273,34 @@ var CONFIGURE_MCP_TOOL = {
     openWorldHint: true
   }
 };
+var BRIDGE_ASK_USER_OPTION_SCHEMA = { type: "object", additionalProperties: false, required: ["id", "label"], properties: {
+  id: { type: "string", minLength: 1, maxLength: 40 }, label: { type: "string", minLength: 1, maxLength: 180 }, description: { type: "string", maxLength: 400 }
+} };
+var BRIDGE_ASK_USER_QUESTION_SCHEMA = { type: "object", additionalProperties: false, required: ["question", "options"], properties: {
+  question: { type: "string", minLength: 1, maxLength: 1000 },
+  options: { type: "array", minItems: 2, maxItems: 8, items: BRIDGE_ASK_USER_OPTION_SCHEMA },
+  recommendation: { type: "string", maxLength: 600, description: "推荐方案与简要理由，仅供参考，不代表用户同意。" },
+  recommended_option_id: { type: "string", minLength: 1, maxLength: 40 },
+  allow_custom: { type: "boolean" }
+} };
+var BRIDGE_ASK_USER_TOOL = {
+  name: "bridge_ask_user", title: "在任务板交互式提问",
+  description: "遇到需求歧义或多种方案，先整理全部关键疑问、选项及推荐，一次 ask 可以通过 questions 提交 2-8 题，任务板以折叠项逐项确认；单题可用 question/options。提问后暂停所有开发，必须等待全部用户答复。Bridge 在同一 MCP 调用中每 3 秒检查答案，提交后也会立即触发检查；默认持续等待到 status=answered，不会在 90 秒后自动返回 pending。客户端取消/断线后，答案仍持久保留；如客户端恢复执行，则用 check + batch_id/question_id 查询。只有显式设置 wait_seconds 才启用等待上限，0 表示立即查询一次。未取得完整回答不能执行开发；AI 推荐不等于用户授权。",
+  inputSchema: { type: "object", additionalProperties: false, properties: {
+    mode: { type: "string", enum: ["ask", "check"] }, task_id: { type: "string", minLength: 1, maxLength: 80 },
+    batch_id: { type: "string", minLength: 1, maxLength: 80, description: "批量问答回执中的批次编号。check 模式查询整个批次的进度和全部回答。" },
+    questions: { type: "array", minItems: 2, maxItems: 8, items: BRIDGE_ASK_USER_QUESTION_SCHEMA, description: "预先整理所有关键不确定因素；每题给出选项、建议及理由，由用户逐项决定。与顶层单题 question/options 不能混用。" },
+    question_id: { type: "string", minLength: 1, maxLength: 80 }, question: { type: "string", minLength: 1, maxLength: 1000 },
+    options: { type: "array", minItems: 2, maxItems: 8, items: BRIDGE_ASK_USER_OPTION_SCHEMA },
+    recommendation: { type: "string", maxLength: 600 }, recommended_option_id: { type: "string", minLength: 1, maxLength: 40 },
+    allow_custom: { type: "boolean" }, wait_seconds: { type: "integer", minimum: 0, maximum: 120, description: "可选的兼容等待上限；默认不设上限，Bridge 每 3 秒轮询并保持 MCP 调用直到全部回答；0 仅查询即时状态。客户端可能仍有自己的调用超时。" }
+  } }, annotations: { title: "在任务板交互式提问", readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
+};
 var BRIDGE_TOOL_DEFINITIONS = [
   ...FILE_TOOL_DEFINITIONS,
   ...IDE_TOOL_DEFINITIONS.filter((tool) => !BRIDGE_EXCLUDED_TOOL_NAMES.has(tool.name)),
   SET_TODOS_TOOL,
+  BRIDGE_ASK_USER_TOOL,
   UPDATE_PLAN_TOOL,
   REPORT_PROGRESS_TOOL,
   LIST_SKILLS_TOOL,
@@ -284,6 +309,7 @@ var BRIDGE_TOOL_DEFINITIONS = [
 ];
 var CHAT_BRIDGE_CONTROL_TOOL_NAMES = /* @__PURE__ */ new Set([
   "set_todos",
+  "bridge_ask_user",
   "update_plan",
   "report_progress",
   "list_skills",

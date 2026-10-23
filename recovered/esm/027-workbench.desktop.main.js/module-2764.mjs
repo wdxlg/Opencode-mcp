@@ -80,6 +80,7 @@ var OpenCodeBridgeSessionView = class extends Disposable {
     this.taskShelfCollapsed = false;
     this.cardStates = /* @__PURE__ */ new Map();
     this.taskDisplayInfo = /* @__PURE__ */ new Map();
+    this.questionDrafts = /* @__PURE__ */ new Map();
     this.pinnedTaskIds = /* @__PURE__ */ new Set();
     this.hiddenTaskIds = /* @__PURE__ */ new Set();
     this.taskCleanupBusy = false;
@@ -469,8 +470,8 @@ var OpenCodeBridgeSessionView = class extends Disposable {
     this.taskShelf.hidden = !this.visible || tasks2.length === 0;
     this.taskShelfTitle.textContent = localizeBridge("opencodeBridgeSession.unifiedTasks", "\u4EFB\u52A1");
     const selected = visibleTasks.find((task) => task.id === status2.taskId);
-    const active = [...visibleTasks].filter((task) => task.state === "running" || task.state === "waiting_plan").sort((a, b) => b.updatedAt - a.updatedAt)[0];
-    this.taskSnapshot = selected && (selected.state === "running" || selected.state === "waiting_plan" || !active || selected.updatedAt >= active.updatedAt) ? selected : active ?? selected ?? visibleTasks[0];
+    const active = [...visibleTasks].filter((task) => task.state === "running" || task.state === "waiting_plan" || task.state === "awaiting_user").sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    this.taskSnapshot = selected && (selected.state === "running" || selected.state === "waiting_plan" || selected.state === "awaiting_user" || !active || selected.updatedAt >= active.updatedAt) ? selected : active ?? selected ?? visibleTasks[0];
     if (this.editingTaskId && !visibleTasks.some((task) => task.id === this.editingTaskId)) {
       this.closeLocalTaskEditor(false);
     }
@@ -985,6 +986,96 @@ var OpenCodeBridgeSessionView = class extends Disposable {
     const number = Math.max(1, related.findIndex((entry) => entry.id === task.id) + 1);
     return kind === "chat" ? `\u5BF9\u8BDD ${number}` : related.length > 1 ? `\u4EFB\u52A1 ${number}` : "\u4EFB\u52A1\u8FDB\u5EA6";
   }
+  /** Compact accordion: one visible decision at a time, even for a preplanned batch. */
+  renderTaskQuestions(card, task) {
+    if (!task?.questions?.length) return;
+    const questions = task.questions;
+    const pending = questions.filter((q) => q.status === "pending");
+    const active = pending[0];
+    const current = active?.batchId ? questions.filter((q) => q.batchId === active.batchId) : active ? [active] : [];
+    const historical = questions.filter((q) => !current.includes(q) && q.status === "answered");
+    const wrapper = append(card, $("section.opencode-bridge-task-questions"));
+    wrapper.style.cssText = "margin:8px 10px;padding:8px 10px;border:1px solid var(--vscode-panel-border);border-radius:7px;background:var(--vscode-editorWidget-background,var(--vscode-sideBar-background))";
+    if (!pending.length && questions.some((q) => q.requiresMcpAck === true && !q.deliveredAt)) {
+      append(wrapper, $("div", void 0, "所有问题已提交，等待 MCP 将完整答复返回目标 AI；返回前暂停后续开发。"))
+        .style.cssText = "font-size:12px;color:var(--vscode-descriptionForeground);padding:4px 0 8px;white-space:normal";
+    }
+    if (current.length) {
+      const completed = current.filter((q) => q.status === "answered").length;
+      append(wrapper, $("div", void 0, `需求确认 ${completed}/${current.length} · 每次展开一项`)).style.cssText = "font-size:12px;font-weight:600;color:var(--vscode-descriptionForeground);margin-bottom:6px";
+      const accordions = [];
+      for (const [index, q] of current.entries()) {
+        const item = append(wrapper, $("details.opencode-bridge-question-item"));
+        item.style.cssText = "border-top:1px solid var(--vscode-panel-border);padding:4px 0";
+        item.open = q.id === active?.id;
+        accordions.push(item);
+        const summary = append(item, $("summary", void 0, `${index + 1}. ${q.text} ${q.status === "answered" ? "✓" : ""}`));
+        summary.style.cssText = "font-size:12px;cursor:pointer;padding:4px 0;white-space:normal;overflow-wrap:anywhere";
+        summary.title = q.text;
+        item.addEventListener("toggle", () => { if (item.open) for (const other of accordions) if (other !== item) other.open = false; });
+        if (q.status === "answered") {
+          append(item, $("div", void 0, `已确认：${q.answer?.text ?? "已回答"}`)).style.cssText = "font-size:12px;color:var(--vscode-descriptionForeground);padding:3px 6px 9px;white-space:pre-wrap";
+          continue;
+        }
+        const content = append(item, $("div"));
+        content.style.cssText = "padding:5px 3px 9px";
+        if (q.recommendation) {
+          append(content, $("div", void 0, `建议：${q.recommendation}`)).style.cssText = "font-size:12px;padding:6px 8px;margin-bottom:8px;border-left:2px solid var(--vscode-focusBorder);color:var(--vscode-descriptionForeground);white-space:pre-wrap";
+        }
+        const group = append(content, $("div.opencode-bridge-question-options"));
+        group.setAttribute("role", "radiogroup");group.setAttribute("aria-label", q.text);
+        const draft = this.questionDrafts.get(q.id) ?? { selected: "", text: "" };
+        let selected = draft.selected;
+        const submit = $("button", void 0, pending.length > 1 ? "确认并进入下一项" : "确认并完成本轮提问");
+        submit.type = "button";submit.disabled = !selected && !draft.text.trim();
+        submit.style.cssText = "margin-top:9px;padding:6px 12px;border:0;border-radius:5px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);cursor:pointer";
+        for (const option of q.options) {
+          const label = append(group, $("label"));
+          label.style.cssText = "display:flex;gap:8px;align-items:flex-start;margin:4px 0;padding:6px;border:1px solid var(--vscode-panel-border);border-radius:5px;cursor:pointer";
+          const input = append(label, $("input"));
+          input.type = "radio";input.name = "bridge-question-" + q.id;input.value = option.id;
+          input.checked = selected === option.id;
+          input.addEventListener("change", () => {selected = option.id;draft.selected = selected;this.questionDrafts.set(q.id, draft);submit.disabled = false;});
+          const optionBody = append(label, $("span"));
+          append(optionBody, $("strong", void 0, option.label));
+          if (option.description) append(optionBody, $("div", void 0, option.description)).style.cssText = "margin-top:3px;color:var(--vscode-descriptionForeground);font-size:12px";
+        }
+        let custom;
+        if (q.allowCustom) {
+          custom = append(content, $("textarea"));
+          custom.placeholder = "其他想法或补充说明";custom.setAttribute("aria-label", "自定义回答");custom.rows = 2;custom.maxLength = 2000;
+          custom.value = draft.text;
+          custom.style.cssText = "box-sizing:border-box;width:100%;margin-top:7px;padding:7px;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border,var(--vscode-panel-border));border-radius:5px;resize:vertical";
+          custom.addEventListener("input", () => {draft.text = custom.value;this.questionDrafts.set(q.id,draft);submit.disabled = !selected && !custom.value.trim();});
+        }
+        append(content, submit);
+        const feedback = append(content, $("div"));feedback.setAttribute("role", "status");
+        submit.addEventListener("click", async () => {
+          submit.disabled = true;feedback.textContent = "正在提交回答…";
+          try {
+            const status = await this.commandService.executeCommand("opencode.bridge.answerTaskQuestion", {
+              taskId: task.id, questionId: q.id, optionId: selected || void 0, customText: custom?.value || ""
+            });
+            this.questionDrafts.delete(q.id);
+            this.lastStatus = status;this.render(status, true);
+          } catch (error) {
+            feedback.textContent = `提交失败：${error.message ?? String(error)}`;submit.disabled = false;
+          }
+        });
+      }
+      append(wrapper, $("div", void 0, "只有用户的真实选择才会反馈给 AI；推荐方案不会自动选中。"))
+        .style.cssText = "font-size:11px;color:var(--vscode-descriptionForeground);margin-top:7px";
+    }
+    if (historical.length) {
+      const archive = append(wrapper, $("details"));archive.style.marginTop = current.length ? "10px" : "0";
+      append(archive, $("summary", void 0, `历史问答 (${historical.length})`));
+      for (const q of historical) {
+        const row = append(archive, $("div"));row.style.cssText = "padding:7px 0;border-bottom:1px solid var(--vscode-panel-border)";
+        append(row, $("strong", void 0, q.text));
+        append(row, $("div", void 0, q.answer?.text ?? "已回答")).style.color = "var(--vscode-descriptionForeground)";
+      }
+    }
+  }
   renderOrigin(summary, task) {
     const kind = task.originKind === "chat" ? "chat" : "bridge";
     const label3 = append(summary, $("span.opencode-bridge-task-origin", void 0, kind === "chat" ? "Chat" : "Bridge"));
@@ -1005,7 +1096,8 @@ var OpenCodeBridgeSessionView = class extends Disposable {
     const labels2 = append(summary, $(".opencode-bridge-task-summary-labels"));
     this.renderOrigin(labels2, task);
     const taskTitle = append(labels2, $("strong.opencode-bridge-task-title", void 0, this.taskDisplayTitle(task)));
-    append(labels2, $("span.opencode-bridge-task-summary-detail", void 0, localizeBridge("opencodeBridgeSession.noPlanYet", "\u5C1A\u672A\u4E0A\u62A5\u4EFB\u52A1\u8BA1\u5212")));
+    const detail = append(summary, $("span.opencode-bridge-task-summary-detail", void 0, localizeBridge("opencodeBridgeSession.noPlanYet", "\u5C1A\u672A\u4E0A\u62A5\u4EFB\u52A1\u8BA1\u5212")));
+    detail.title = detail.textContent ?? "";
     append(summary, $("span.opencode-bridge-task-pill", void 0, localizeBridge("opencodeBridgeSession.noPlanBadge", "\u65E0\u8BA1\u5212")));
     append(taskTitle, $("span.opencode-bridge-task-state-pill", void 0, this.taskStateLabel(task.state)));
     this.renderTaskLocalControls(this.taskMenuBody, task);
@@ -1014,6 +1106,7 @@ var OpenCodeBridgeSessionView = class extends Disposable {
       const detail2 = card.querySelector(".opencode-bridge-task-summary-detail");
       if (detail2) {
         detail2.textContent = localizeBridge("opencodeBridgeSession.clearedTaskDetail", "Task plan was cleared");
+        detail2.title = detail2.textContent ?? "";
       }
       const pill = card.querySelector(".opencode-bridge-task-pill");
       if (pill) {
@@ -1021,6 +1114,7 @@ var OpenCodeBridgeSessionView = class extends Disposable {
       }
     }
     this.todosRegion.classList.toggle("opencode-bridge-task-pending", task.state === "awaiting_sync" || task.state === "waiting_plan");
+    this.renderTaskQuestions(card, task);
   }
   /** Lifecycle wording is deliberately explicit: interrupted or stale is never shown as complete. */
   taskStateLabel(state) {
@@ -1039,6 +1133,8 @@ var OpenCodeBridgeSessionView = class extends Disposable {
         return localizeBridge("opencodeBridgeSession.stateInterrupted", "\u5DF2\u4E2D\u65AD");
       case "waiting_plan":
         return localizeBridge("opencodeBridgeSession.stateWaitingPlan", "\u89C4\u5212\u4E2D");
+      case "awaiting_user":
+        return "等待用户确认";
       default:
         return localizeBridge("opencodeBridgeSession.stateCleared", "\u5DF2\u6E05\u9664");
     }
@@ -1131,8 +1227,9 @@ var OpenCodeBridgeSessionView = class extends Disposable {
       void 0,
       task ? this.taskDisplayTitle(task) : localizeBridge("opencodeBridgeSession.taskProgress", "\u4EFB\u52A1\u8FDB\u5EA6")
     ));
-    const summaryDetail = taskSummary.currentTodo ? localizeBridge("opencodeBridgeSession.currentTaskSummary", "\u7B2C {0} / {1} \u6B65 \xB7 {2}", taskSummary.currentIndex + 1, taskSummary.totalCount, taskSummary.currentTodo.title) : presentation2.remaining ? localizeBridge("opencodeBridgeSession.pendingTaskSummary", "\u5DF2\u5B8C\u6210 {0} / {1} \u6B65 \xB7 \u5F85\u5904\u7406 {2} \u6B65", taskSummary.completedCount, taskSummary.totalCount, presentation2.remaining) : localizeBridge("opencodeBridgeSession.completedTaskSummary", "\u5DF2\u5B8C\u6210 {0} / {1} \u6B65", taskSummary.completedCount, taskSummary.totalCount);
-    append(summaryLabels, $("span.opencode-bridge-task-summary-detail", void 0, summaryDetail));
+    const summaryDetail = taskSummary.currentTodo ? localizeBridge("opencodeBridgeSession.currentTaskSummary", "\u7B2C {0} / {1} \u6B65 \xB7 {2}", taskSummary.currentIndex + 1, taskSummary.totalCount, taskSummary.currentTodo.title) : presentation2.remaining ? localizeBridge("opencodeBridgeSession.pendingTaskSummary", "\u5DF2\u5B8C\u6210 {0} / {1} \u6B65 \xB7 \u5F85\u5904\u7406 {2} \u6B65", taskSummary.completedCount, taskSummary.totalCount, presentation2.remaining) : localizeBridge("opencodeBridgeSession.completedTaskSummary", "\u5DF2\u5B8C\u6210 {0} / {1} \u6B65", taskSummary.completedCount, taskSummary.totalCount) + (task?.title ? ` · ${task.title}` : "");
+    const detail = append(summary, $("span.opencode-bridge-task-summary-detail", void 0, summaryDetail));
+    detail.title = summaryDetail;
     append(summary, $("span.opencode-bridge-task-pill", void 0, taskSummary.currentTodo ? localizeBridge("opencodeBridgeSession.stepBadge", "\u7B2C {0}/{1} \u6B65", taskSummary.currentIndex + 1, taskSummary.totalCount) : presentation2.remaining ? localizeBridge("opencodeBridgeSession.remainingStepsBadge", "\u5F85\u5904\u7406 {0} \u6B65", presentation2.remaining) : localizeBridge("opencodeBridgeSession.doneBadge", "\u5DF2\u5B8C\u6210 {0}/{1}", taskSummary.completedCount, taskSummary.totalCount)));
     if (task) {
       append(taskTitle, $("span.opencode-bridge-task-state-pill", void 0, this.taskStateLabel(task.state)));
@@ -1165,6 +1262,7 @@ var OpenCodeBridgeSessionView = class extends Disposable {
       const labels2 = append(row, $(".opencode-bridge-todo-labels"));
       append(labels2, $("span.opencode-bridge-todo-title", void 0, todo.title));
     }
+    this.renderTaskQuestions(card, task);
   }
   summarizeTaskProgress(todos, latestProgressByTodo) {
     const completedCount = todos.filter((todo) => todo.status === "completed").length;
