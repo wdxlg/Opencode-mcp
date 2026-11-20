@@ -1,0 +1,62 @@
+{
+  "id": "seo-audit",
+  "sourceName": "seo-audit",
+  "title": "SEO审查",
+  "category": "写作营销",
+  "repo": "coreyhaines31/marketingskills",
+  "commit": "1efedbc5148b54b2f0f6c6c9fe0be62e151c7fff",
+  "sourcePath": "skills/seo-audit/",
+  "sourceUrl": "https://github.com/coreyhaines31/marketingskills/tree/1efedbc5148b54b2f0f6c6c9fe0be62e151c7fff/skills/seo-audit",
+  "license": "MIT",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "社区技能；需要实际站点或用户提供材料；分析平台账号、爬取及外部服务未配置，不伪造指标。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "f79aebc633d5fcf53d67fd4d39ea6210577485f2a5e46125b3bd757e03baa634"
+    },
+    {
+      "path": "_provenance/REPOSITORY_LICENSE",
+      "upstreamSha256": "b70d71e24e40fce5da8f4b6f9cd862096a048e433db7f3c8cac5e348e6d34591"
+    },
+    {
+      "path": "evals/evals.json",
+      "upstreamSha256": "1524e98916ab53abb894fb80827a8d0e1815041adca2ee2023b89916d68f22b2"
+    },
+    {
+      "path": "references/ai-writing-detection.md",
+      "upstreamSha256": "f1e273f56ce7e2215ff218bf903680ddcec0fd026ab90c3ebfb3439ed0edfaa4"
+    },
+    {
+      "path": "references/international-seo.md",
+      "upstreamSha256": "850c5253b2e41ff1430fac31f02a7e9aaa026fea5390b918a9cb3a134e24b87b"
+    },
+    {
+      "path": "references/local-seo-pages-and-measurement.md",
+      "upstreamSha256": "20607ef91c4b8b37346f42130a6f51ed4ce64dc2731b6e1328b5b14f16917fe3"
+    },
+    {
+      "path": "references/local-seo-profile-and-citations.md",
+      "upstreamSha256": "83b1b63eb6083e7aab1f56c4928335ea2a235e837861a9e9e8043b6af162a1f3"
+    },
+    {
+      "path": "references/local-seo.md",
+      "upstreamSha256": "d2666d9c225bc36f9737ce612894abbe7e263b5974e2db7c1efc50f6010bb376"
+    },
+    {
+      "path": "references/rankings-push.md",
+      "upstreamSha256": "2a51fa3569e00c10353526bfa98ca1faccccf9c37be78f5f229c72116f5d2154"
+    },
+    {
+      "path": "references/title-tags.md",
+      "upstreamSha256": "c40b3c6af3600ca15670db8eb81000c7ca6fa25265a6550ccc630f53db3fcf51"
+    }
+  ]
+}

@@ -513,6 +513,12 @@ var ModalEditorPart = class {
       const availableHeight = Math.max(containerDimension.height - titleBarOffset, 0);
       const targetWidth = containerDimension.width * 0.8;
       const targetHeight = availableHeight * 0.8;
+      // OpenCode ctxframe1825: 编辑器可通过 getModalEditorOptions().preferredSize 指定模态框默认大小（如「添加上下文」窗口），其余窗口不变
+      const activeForSize = editorPart.activeGroup?.activeEditor;
+      const preferredSize = isModalEditorOptionsProvider(activeForSize) ? activeForSize.getModalEditorOptions()?.preferredSize : void 0;
+      if (preferredSize && preferredSize.width > 0 && preferredSize.height > 0) {
+        return new Dimension(Math.min(Math.max(preferredSize.width, MODAL_MIN_WIDTH), containerDimension.width), Math.min(Math.max(preferredSize.height, MODAL_MIN_HEIGHT), availableHeight));
+      }
       const width2 = Math.min(targetWidth, MODAL_MAX_DEFAULT_WIDTH, containerDimension.width);
       const height = Math.min(targetHeight, MODAL_MAX_DEFAULT_HEIGHT, availableHeight);
       return new Dimension(width2, height);

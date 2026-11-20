@@ -13,11 +13,11 @@ import { NEW_WINDOW_COMMAND_ID, OPEN_FOLDER_COMMAND_ID, newWindowTooltip, openFo
 import { OpenCodeBridgeStatusMessage } from "./module-2689.mjs";
 import { OpenCodeBridgePublicUrlField, encodeMcpAddressForDisplay } from "./module-2685.mjs";
 import { ThemeIcon } from "./module-0086.mjs";
-import { BRIDGE_QUICK_LINKS_SETTING, DEFAULT_QUICK_LINKS, QUICK_LINK_MAX_NAME_LENGTH, QUICK_LINK_MAX_URL_LENGTH, isValidQuickLinkUrl, readQuickLinks } from "./module-2683.mjs";
 import { describeBridgeStartupFailure } from "./module-2690.mjs";
 import { bridgeSettingWriteTarget, isBridgeSettingProjectOverride } from "./module-2680.mjs";
 import { AICustomizationManagementEditorInput } from "./module-2647.mjs";
 import { runBridgeStartupFailureAction } from "./module-2691.mjs";
+import { OpenCodeTunnelProxySection } from "./opencode-tunnel-proxy-section.mjs";
 import { __decorateClass, __decorateParam } from "./module-0000.mjs";
 import { ICommandService } from "./module-0087.mjs";
 import { IClipboardService } from "./module-0487.mjs";
@@ -46,6 +46,7 @@ var BRIDGE_STOP = "opencode.bridge.stop";
 var BRIDGE_CLEANUP_PROCESSES = "opencode.bridge.cleanupProcesses";
 
 var BRIDGE_CHECK_TUNNEL = "opencode.bridge.checkTunnel";
+var BRIDGE_CONNECT_TAILSCALE = "opencode.bridge.connectTailscale";
 
 var BRIDGE_INSTALL_CLOUDFLARED = "opencode.bridge.installCloudflared";
 
@@ -57,7 +58,7 @@ var BRIDGE_PERSISTENT_MODE = "opencode.bridge.persistentMode";
 
 var NGROK_VIDEO_TUTORIAL_URL = "https://www.bilibili.com/video/BV1NMt36yEZt/";
 
-var DEFAULT_ARENA_PROMPT = "使用上方 MCP_URL_BASE64 接入 MCP，完成 initialize 与 initialized 握手，先通过 tools/list 阅读工具规则并创建或更新 Bridge 任务卡。接入时必须完整读取已设置的全部已启用规则：调用 bridge_get_effective_rules，再调用 bridge_acknowledge_rules 确认当前哈希。未读取和确认规则，不执行工作区操作；工具不可用时如实说明，不能假装已经读取。";
+import { DEFAULT_TASK_MCP_PROMPT as DEFAULT_ARENA_PROMPT, buildMcpConnectionPrompt } from "./task-handoff-prompts.mjs";
 
 var BRIDGE_COPY_PROMPT_SETTING = "opencode.bridge.copyPromptText";
 
@@ -83,8 +84,6 @@ var OpenCodeBridgeWidget = class extends Disposable {
     this.providerChoiceStacks = /* @__PURE__ */ new Map();
     this.cleaningTunnel = false;
     this.lastDefaultPromptIndex = -1;
-    this.quickLinkButtons = [];
-    this.quickLinkRowButtons = [];
     this.busy = false;
     this.statusRequestVersion = 0;
     this.statusRefreshInFlight = false;
@@ -153,8 +152,6 @@ var OpenCodeBridgeWidget = class extends Disposable {
     this.cleanupButton.label = `$(${Codicon.trash.id}) ${localizeBridge("opencodeBridge.cleanup", "Clean up processes")}`;
     this.cleanupButton.setTitle(localizeBridge("opencodeBridge.cleanupDetail", "Terminate only tunnel processes left behind by a crashed previous session. The running Bridge is not stopped; other windows, editors, proxy tools and tunnels are not affected."));
     this._register(this.cleanupButton.onDidClick(() => this.cleanupTunnel()));
-    this.quickLinkButtonsContainer = append(heroControls, $(".opencode-bridge-quick-links"));
-    this.renderQuickLinkButtons();
     const securityNote = append(heroCard, $(".opencode-bridge-security-note"));
     const warningIcon3 = append(securityNote, $("span"));
     warningIcon3.classList.add(...ThemeIcon.asClassNameArray(Codicon.warning));
@@ -243,11 +240,24 @@ var OpenCodeBridgeWidget = class extends Disposable {
         run: () => this.openerService.open(URI.parse(NGROK_VIDEO_TUTORIAL_URL), { openExternal: true })
       }
     ]);
+    this.tailscaleProviderButton = this.createTunnelProviderChoice(
+      providerChoices,
+      "tailscale",
+      "Tailscale Funnel",
+      "\u56FA\u5B9A\u5730\u5740",
+      "\u7528 Tailscale \u7684 Funnel \u628A Bridge \u516C\u5F00\u5230\u56FA\u5B9A\u7684 ts.net \u5730\u5740\uFF0C\u91CD\u542F\u540E\u4E0D\u53D8\u3002",
+      [
+        "\u5730\u5740\uFF1A\u56FA\u5B9A\uFF0C\u673A\u5668\u540D.\u4F60\u7684 tailnet.ts.net",
+        "\u9650\u5236\uFF1A\u53EA\u7528 443 \u7AEF\u53E3\uFF0C\u6D41\u91CF\u6709\u672A\u516C\u5E03\u7684\u5E26\u5BBD\u4E0A\u9650",
+        "\u51C6\u5907\uFF1ATailscale \u8D26\u53F7\u767B\u5F55\uFF0C\u540E\u53F0\u5F00\u542F HTTPS \u548C Funnel\uFF1B\u652F\u6301 E:\\ai\u5DE5\u4F5C\u533A \u91CC\u7684\u514D\u5B89\u88C5\u7248"
+      ]
+    );
     append(providerField, $(
       ".opencode-bridge-help",
       void 0,
       localizeBridge("opencodeBridge.tunnelProviderHelp", "Select a mode above. Stop Bridge before switching tunnel modes.")
     ));
+    this.tunnelProxySection = this._register(new OpenCodeTunnelProxySection(configurationCard, this.commandService));
     this.domainField = this.createField(configurationCard, localizeBridge("opencodeBridge.domain", "ngrok domain"));
     this.domainInput = append(this.domainField, $("input.opencode-bridge-input"));
     this.domainInput.type = "text";
@@ -324,6 +334,7 @@ var OpenCodeBridgeWidget = class extends Disposable {
     }
     this.tunnelSetupPanel = append(configurationCard, $(".opencode-bridge-tunnel-panel"));
     const tunnelStatusRow = append(this.tunnelSetupPanel, $(".opencode-bridge-tunnel-status-row"));
+    this.tunnelStatusRow = tunnelStatusRow;
     const tunnelStatusText = append(tunnelStatusRow, $(".opencode-bridge-tunnel-status-text"));
     append(tunnelStatusText, $(
       ".opencode-bridge-label",
@@ -339,6 +350,10 @@ var OpenCodeBridgeWidget = class extends Disposable {
     this.checkButton = this._register(new Button(tunnelStatusActions, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
     this.checkButton.label = `$(${Codicon.check.id}) ${localizeBridge("opencodeBridge.checkTunnel", "Check tunnel")}`;
     this._register(this.checkButton.onDidClick(() => this.runCommand(BRIDGE_CHECK_TUNNEL)));
+    // OpenCode: Tailscale 未连接时在隧道状态里一键连接（打开登录页并等到连上）。
+    this.connectTailscaleButton = this._register(new Button(tunnelStatusActions, { ...defaultButtonStyles, supportIcons: true }));
+    this.connectTailscaleButton.element.style.display = "none";
+    this._register(this.connectTailscaleButton.onDidClick(() => this.connectTailscale()));
     this.installCloudflaredButton = this._register(new Button(tunnelStatusActions, { ...defaultButtonStyles, supportIcons: true }));
     this.installCloudflaredButton.label = `$(${Codicon.cloudDownload.id}) ${localizeBridge("opencodeBridge.installCloudflaredNow", "Install cloudflared")}`;
     this._register(this.installCloudflaredButton.onDidClick(() => this.installCloudflared()));
@@ -377,50 +392,6 @@ var OpenCodeBridgeWidget = class extends Disposable {
     this._register(this.configurationService.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(BRIDGE_PERSISTENT_MODE)) {
         this.renderPersistentModeToggle(this.configurationService.getValue(BRIDGE_PERSISTENT_MODE) === true);
-      }
-    }));
-    this.quickLinksCard = append(this.root, $("details.opencode-bridge-card.opencode-bridge-quick-links-card"));
-    this.quickLinksCard.open = false;
-    const quickLinksSummary = append(this.quickLinksCard, $("summary"));
-    append(quickLinksSummary, $("h3", void 0, localizeBridge("opencodeBridge.quickLinks", "Quick open")));
-    const quickLinksBody = append(this.quickLinksCard, $(".opencode-bridge-quick-links-body"));
-    append(quickLinksBody, $(
-      "p.opencode-bridge-help",
-      void 0,
-      localizeBridge("opencodeBridge.quickLinksHelp", "Shortcuts you add here appear as buttons at the top of this page and open in the OpenCode built-in browser.")
-    ));
-    const quickLinkForm = append(quickLinksBody, $(".opencode-bridge-quick-link-form"));
-    this.quickLinkNameInput = append(quickLinkForm, $("input.opencode-bridge-input.opencode-bridge-quick-link-name-input"));
-    this.quickLinkNameInput.type = "text";
-    this.quickLinkNameInput.spellcheck = false;
-    this.quickLinkNameInput.placeholder = localizeBridge("opencodeBridge.quickLinkNamePlaceholder", "Name");
-    this.quickLinkUrlInput = append(quickLinkForm, $("input.opencode-bridge-input.opencode-bridge-quick-link-url-input"));
-    this.quickLinkUrlInput.type = "text";
-    this.quickLinkUrlInput.spellcheck = false;
-    this.quickLinkUrlInput.placeholder = localizeBridge("opencodeBridge.quickLinkUrlPlaceholder", "https://\u2026");
-    this.quickLinkAddButton = this._register(new Button(quickLinkForm, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
-    this.quickLinkAddButton.label = `$(${Codicon.add.id}) ${localizeBridge("opencodeBridge.quickLinkAdd", "Add")}`;
-    this._register(this.quickLinkAddButton.onDidClick(() => this.addQuickLink()));
-    for (const input of [this.quickLinkNameInput, this.quickLinkUrlInput]) {
-      this._register(addDisposableListener(input, "input", () => this.updateControls()));
-      this._register(addDisposableListener(input, "keydown", (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          void this.addQuickLink();
-        }
-      }));
-    }
-    this.quickLinkMessage = append(quickLinksBody, $(".opencode-bridge-quick-link-message"));
-    this.quickLinkList = append(quickLinksBody, $(".opencode-bridge-quick-link-list"));
-    this.renderQuickLinksList();
-    const quickLinkFooter = append(quickLinksBody, $(".opencode-bridge-quick-link-footer"));
-    this.quickLinkRestoreButton = this._register(new Button(quickLinkFooter, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
-    this.quickLinkRestoreButton.label = `$(${Codicon.refresh.id}) ${localizeBridge("opencodeBridge.quickLinkRestoreDefaults", "Restore defaults")}`;
-    this._register(this.quickLinkRestoreButton.onDidClick(() => void this.restoreQuickLinksDefaults()));
-    this._register(this.configurationService.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration(BRIDGE_QUICK_LINKS_SETTING)) {
-        this.renderQuickLinkButtons();
-        this.renderQuickLinksList();
       }
     }));
     const advanced = append(this.root, $("details.opencode-bridge-card.opencode-bridge-advanced-card"));
@@ -635,6 +606,24 @@ var OpenCodeBridgeWidget = class extends Disposable {
     this.revealedSetupProvider = void 0;
     if (this.busy || this.lastStatus?.state === "running" || this.lastStatus?.state === "starting" || this.lastStatus?.tunnelProvider === provider) return;
     await this.runCommand(BRIDGE_SET_TUNNEL_PROVIDER, provider);
+    // OpenCode: 选中 Tailscale 模式后，未连接就直接连接，失败则滚到隧道连接状态。
+    if (provider === "tailscale" && this.lastStatus?.tunnelProvider === "tailscale") await this.ensureTailscaleConnected();
+  }
+  isTailscaleConnected() {
+    return this.lastStatus?.tunnelProvider === "tailscale" && this.lastStatus?.tunnelInstalled === true && this.lastStatus?.tunnelConfigValid === true;
+  }
+  /** OpenCode: Tailscale 模式下确保已连接——未检测先检测，未连接直接走一键连接；仍未连上就展开并滚到隧道连接状态。 */
+  async ensureTailscaleConnected() {
+    if (this.lastStatus?.tunnelProvider !== "tailscale") return false;
+    if (!this.isTailscaleConnected()) await this.runCommand(BRIDGE_CHECK_TUNNEL);
+    if (!this.isTailscaleConnected() && this.lastStatus?.tunnelInstalled !== false) await this.connectTailscale();
+    if (this.isTailscaleConnected()) return true;
+    this.revealTunnelStatus();
+    return false;
+  }
+  revealTunnelStatus() {
+    this.connectionCard.open = true;
+    setTimeout(() => this.tunnelStatusRow?.scrollIntoView({ block: "center", behavior: "smooth" }), 0);
   }
   createCloudflareSetupSection(parent) {
     const details = append(parent, $("details.opencode-bridge-setup"));
@@ -870,6 +859,7 @@ var OpenCodeBridgeWidget = class extends Disposable {
       return;
     }
     this.localStartupFailure = void 0;
+    if (provider === "tailscale" && !this.isTailscaleConnected() && !await this.ensureTailscaleConnected()) return;
     await this.runCommand(BRIDGE_START, provider === "ngrok" ? domain : void 0);
   }
   async installCloudflared() {
@@ -901,12 +891,9 @@ var OpenCodeBridgeWidget = class extends Disposable {
   async copyArenaPrompt() {
     const url = this.lastStatus?.publicUrl?.trim();
     const prompt = url ? this.resolveArenaPrompt() : this.configuredArenaPrompt() || DEFAULT_ARENA_PROMPT;
-    const text2 = url ? `MCP_URL_BASE64=${encodeMcpAddressForDisplay(url)}
-
-${prompt}` : prompt;
-    const httpClientInstructions = "用 Bash 工具手动实现 MCP HTTP 客户端：\n先 initialize 获取 session，再 notifications/initialized 完成握手，\n再 tools/list 确认接口并同步 Bridge 任务卡，\n立即调用 bridge_get_effective_rules 完整读取当前工作区全部已启用规则，\n再 bridge_acknowledge_rules 确认返回的 rules_hash，最后才做工作区只读验证。\n本机规则在连接握手说明中也会全文下发；规则切换后必须重新读取确认。";
-    await this.copyText(`${text2}\n\n${httpClientInstructions}`);
+    await this.copyText(buildMcpConnectionPrompt(url ? encodeMcpAddressForDisplay(url) : "", prompt));
   }
+
   async copyText(text2) {
     if (!text2) return;
     try {
@@ -952,6 +939,18 @@ ${prompt}` : prompt;
     });
     if (!result.confirmed) return;
     await this.runCommand(BRIDGE_ROTATE_ENDPOINT);
+  }
+  async connectTailscale() {
+    if (this.busy) return;
+    this.connectingTailscale = true;
+    this.tunnelState.textContent = "\u6B63\u5728\u8FDE\u63A5 Tailscale\u2026\u8BF7\u5728\u5F39\u51FA\u7684\u6D4F\u89C8\u5668\u9875\u9762\u5B8C\u6210\u767B\u5F55\uFF0C\u8FDE\u4E0A\u540E\u8FD9\u91CC\u4F1A\u81EA\u52A8\u53D8\u4E3A\u300C\u5DF2\u8FDE\u63A5\u300D\u3002";
+    try {
+      await this.runCommand(BRIDGE_CONNECT_TAILSCALE);
+    } finally {
+      this.connectingTailscale = false;
+      this.updateControls();
+    }
+    if (!this.isTailscaleConnected()) this.revealTunnelStatus();
   }
   async runCommand(command4, ...args2) {
     if (this.busy) return void 0;
@@ -1017,6 +1016,10 @@ ${prompt}` : prompt;
     const isQuick = status2.tunnelProvider === "cloudflare";
     const isNamed = status2.tunnelProvider === "cloudflare-named";
     const isNgrok = status2.tunnelProvider === "ngrok";
+    const isTailscale = status2.tunnelProvider === "tailscale";
+    this.tailscaleProviderButton?.classList.toggle("selected", isTailscale);
+    this.providerChoiceCards.get("tailscale")?.classList.toggle("selected", isTailscale);
+    this.tailscaleProviderButton?.setAttribute("aria-checked", String(isTailscale));
     this.cloudflareProviderButton.classList.toggle("selected", isQuick);
     this.providerChoiceCards.get("cloudflare")?.classList.toggle("selected", isQuick);
     this.cloudflareProviderButton.setAttribute("aria-checked", String(isQuick));
@@ -1067,29 +1070,37 @@ ${prompt}` : prompt;
       this.connectionDetails.textContent = localizeBridge("opencodeBridge.connectionChecking", "Checking tunnel settings\u2026");
     } else if (!status2.tunnelInstalled) {
       this.connectionBadge.textContent = localizeBridge("opencodeBridge.setupRequired", "Setup required");
-      this.connectionDetails.textContent = isQuick || isNamed ? localizeBridge("opencodeBridge.cloudflareNotInstalledSummary", "cloudflared is not installed") : localizeBridge("opencodeBridge.ngrokNotInstalledSummary", "ngrok is not installed");
+      this.connectionDetails.textContent = isTailscale ? "\u672A\u627E\u5230 tailscale.exe" : isQuick || isNamed ? localizeBridge("opencodeBridge.cloudflareNotInstalledSummary", "cloudflared is not installed") : localizeBridge("opencodeBridge.ngrokNotInstalledSummary", "ngrok is not installed");
     } else if (!status2.tunnelConfigValid) {
       this.connectionBadge.textContent = localizeBridge("opencodeBridge.actionRequired", "Action required");
-      this.connectionDetails.textContent = isNamed ? localizeBridge("opencodeBridge.cloudflareNamedConfigAttentionSummary", "Cloudflare Named Tunnel configuration needs attention") : localizeBridge("opencodeBridge.ngrokConfigAttentionSummary", "ngrok configuration needs attention");
+      this.connectionDetails.textContent = isTailscale ? "Tailscale \u672A\u767B\u5F55\u6216\u672A\u5C31\u7EEA" : isNamed ? localizeBridge("opencodeBridge.cloudflareNamedConfigAttentionSummary", "Cloudflare Named Tunnel configuration needs attention") : localizeBridge("opencodeBridge.ngrokConfigAttentionSummary", "ngrok configuration needs attention");
     } else if (providerDomainMissing) {
       this.connectionBadge.textContent = localizeBridge("opencodeBridge.setupRequired", "Setup required");
       this.connectionDetails.textContent = isNamed ? localizeBridge("opencodeBridge.namedHostnameMissingSummary", "Cloudflare hostname not set") : localizeBridge("opencodeBridge.domainMissingSummary", "Reserved domain not set");
     } else {
       this.connectionBadge.textContent = localizeBridge("opencodeBridge.ready", "Ready");
-      this.connectionDetails.textContent = isQuick ? localizeBridge("opencodeBridge.cloudflareReadySummary", "Cloudflare Quick Tunnel ready \xB7 temporary address changes after restart") : isNamed ? localizeBridge("opencodeBridge.cloudflareNamedReadySummary", "Cloudflare Named Tunnel ready \xB7 {0}", status2.configuredNamedDomain) : localizeBridge("opencodeBridge.connectionReadySummary", "ngrok ready \xB7 {0}", status2.configuredDomain);
+      this.connectionDetails.textContent = isTailscale ? `Tailscale \u5DF2\u8FDE\u63A5${status2.tailscaleDomain ? ` \xB7 ${status2.tailscaleDomain}` : ""}` : isQuick ? localizeBridge("opencodeBridge.cloudflareReadySummary", "Cloudflare Quick Tunnel ready \xB7 temporary address changes after restart") : isNamed ? localizeBridge("opencodeBridge.cloudflareNamedReadySummary", "Cloudflare Named Tunnel ready \xB7 {0}", status2.configuredNamedDomain) : localizeBridge("opencodeBridge.connectionReadySummary", "ngrok ready \xB7 {0}", status2.configuredDomain);
     }
     if (status2.tunnelInstalled === void 0) {
       this.tunnelState.textContent = localizeBridge("opencodeBridge.tunnelUnchecked", "The tunnel client has not been checked yet.");
     } else if (!status2.tunnelInstalled) {
-      this.tunnelState.textContent = isQuick || isNamed ? localizeBridge("opencodeBridge.cloudflareMissingAction", "cloudflared is not installed. Complete the one-time setup below.") : localizeBridge("opencodeBridge.ngrokMissingAction", "ngrok is not installed. Complete the setup below.");
+      this.tunnelState.textContent = isTailscale ? status2.lastError ?? "\u672A\u627E\u5230 tailscale.exe" : isQuick || isNamed ? localizeBridge("opencodeBridge.cloudflareMissingAction", "cloudflared is not installed. Complete the one-time setup below.") : localizeBridge("opencodeBridge.ngrokMissingAction", "ngrok is not installed. Complete the setup below.");
     } else if (!status2.tunnelConfigValid) {
-      this.tunnelState.textContent = isNamed ? localizeBridge("opencodeBridge.cloudflareNamedInvalidAction", "cloudflared is installed, but the hostname, Tunnel Token, or Service URL needs attention.") : localizeBridge("opencodeBridge.ngrokInvalidAction", "ngrok is installed, but its Authtoken or configuration needs attention.");
+      this.tunnelState.textContent = isTailscale ? status2.lastError ?? "Tailscale \u672A\u5C31\u7EEA" : isNamed ? localizeBridge("opencodeBridge.cloudflareNamedInvalidAction", "cloudflared is installed, but the hostname, Tunnel Token, or Service URL needs attention.") : localizeBridge("opencodeBridge.ngrokInvalidAction", "ngrok is installed, but its Authtoken or configuration needs attention.");
     } else if (providerDomainMissing) {
       this.tunnelState.textContent = localizeBridge("opencodeBridge.ngrokDomainMissing", "ngrok is ready. Add your reserved domain above.");
     } else {
-      const tunnelLabel = status2.tunnelVersion ?? (isQuick || isNamed ? "cloudflared" : "ngrok");
-      this.tunnelState.textContent = `${tunnelLabel} \xB7 ${localizeBridge("opencodeBridge.tunnelReady", "ready")}`;
+      const tunnelLabel = status2.tunnelVersion ?? (isTailscale ? "tailscale" : isQuick || isNamed ? "cloudflared" : "ngrok");
+      this.tunnelState.textContent = isTailscale ? `\u5DF2\u8FDE\u63A5${status2.tailscaleDomain ? ` \xB7 ${status2.tailscaleDomain}` : ""} \xB7 ${tunnelLabel}` : `${tunnelLabel} \xB7 ${localizeBridge("opencodeBridge.tunnelReady", "ready")}`;
     }
+    if (isTailscale && this.connectingTailscale) {
+      this.tunnelState.textContent = "\u6B63\u5728\u8FDE\u63A5 Tailscale\u2026\u8BF7\u5728\u5F39\u51FA\u7684\u6D4F\u89C8\u5668\u9875\u9762\u5B8C\u6210\u767B\u5F55\uFF0C\u8FDE\u4E0A\u540E\u8FD9\u91CC\u4F1A\u81EA\u52A8\u53D8\u4E3A\u300C\u5DF2\u8FDE\u63A5\u300D\u3002";
+    }
+    // OpenCode: 隧道连上后状态文字显示为绿色。
+    const tunnelConnectedNow = status2.tunnelInstalled === true && status2.tunnelConfigValid === true && !providerDomainMissing && !(isTailscale && this.connectingTailscale);
+    this.tunnelState.classList.toggle("connected", tunnelConnectedNow);
+    this.tunnelState.style.color = tunnelConnectedNow ? "var(--vscode-testing-iconPassed, #73c991)" : "";
+    this.tunnelState.style.fontWeight = tunnelConnectedNow ? "600" : "";
     const needsTunnelSetup = status2.tunnelInstalled === false || status2.tunnelConfigValid === false || providerDomainMissing;
     const visibleSetupProvider = this.revealedSetupProvider ?? status2.tunnelProvider;
     this.tunnelSetupPanel.classList.toggle("needs-attention", needsTunnelSetup);
@@ -1100,7 +1111,7 @@ ${prompt}` : prompt;
     this.cloudflareSetupSummary.textContent = needsTunnelSetup ? localizeBridge("opencodeBridge.configureCloudflare", "Install cloudflared") : localizeBridge("opencodeBridge.cloudflareConfigurationHelp", "cloudflared setup help");
     this.ngrokSetupSummary.textContent = needsTunnelSetup ? localizeBridge("opencodeBridge.configureNgrok", "Configure ngrok") : localizeBridge("opencodeBridge.ngrokConfigurationHelp", "ngrok configuration help");
     this.cloudflareNamedSetupSummary.textContent = needsTunnelSetup ? localizeBridge("opencodeBridge.configureCloudflareNamed", "Configure Cloudflare Named Tunnel") : localizeBridge("opencodeBridge.cloudflareNamedConfigurationHelp", "Cloudflare Named Tunnel setup help");
-    const activeSetupDetails = visibleSetupProvider === "cloudflare" ? this.cloudflareSetupDetails : visibleSetupProvider === "cloudflare-named" ? this.cloudflareNamedSetupDetails : this.ngrokSetupDetails;
+    const activeSetupDetails = visibleSetupProvider === "cloudflare" ? this.cloudflareSetupDetails : visibleSetupProvider === "cloudflare-named" ? this.cloudflareNamedSetupDetails : visibleSetupProvider === "ngrok" ? this.ngrokSetupDetails : {};
     const tunnelProviderChanged = this.tunnelSetupProvider !== visibleSetupProvider;
     if (needsTunnelSetup && (this.tunnelNeedsSetup !== true || tunnelProviderChanged)) {
       activeSetupDetails.open = true;
@@ -1224,6 +1235,14 @@ ${localizeBridge("opencodeBridge.workScopeProjectOverride", "This project sets i
     this.saveNamedTunnelButton.enabled = !this.busy && !running && !starting && isNamed && Boolean(this.namedTunnelDomainInput.value.trim()) && Number.isInteger(Number(this.namedTunnelPortInput.value));
     this.clearNamedTunnelTokenButton.enabled = !this.busy && !running && !starting && isNamed && this.lastStatus?.namedTunnelTokenConfigured === true;
     this.checkButton.enabled = !this.busy && !starting;
+    if (this.connectTailscaleButton) {
+      const isTailscaleMode = this.lastStatus?.tunnelProvider === "tailscale";
+      const tailscaleConnected = this.lastStatus?.tunnelInstalled === true && this.lastStatus?.tunnelConfigValid === true;
+      const showConnect = isTailscaleMode && !running && !starting && (this.connectingTailscale || this.lastStatus?.tunnelInstalled !== false && !tailscaleConnected);
+      this.connectTailscaleButton.element.style.display = showConnect ? "" : "none";
+      this.connectTailscaleButton.enabled = !this.busy && showConnect;
+      this.connectTailscaleButton.label = this.connectingTailscale ? `$(${Codicon.loading.id}~spin) \u8FDE\u63A5\u4E2D\u2026` : `$(${Codicon.plug.id}) \u4E00\u952E\u8FDE\u63A5`;
+    }
     this.installCloudflaredButton.enabled = !this.busy && !running && !starting && (isQuick || isNamed) && this.lastStatus?.tunnelInstalled !== true;
     this.installCloudflaredButton.label = this.installingCloudflared ? `$(${Codicon.loading.id}) ${localizeBridge("opencodeBridge.installingCloudflaredShort", "Installing\u2026")}` : this.lastStatus?.tunnelInstalled ? `$(${Codicon.check.id}) ${localizeBridge("opencodeBridge.cloudflaredInstalled", "Installed")}` : `$(${Codicon.cloudDownload.id}) ${localizeBridge("opencodeBridge.installCloudflaredNow", "Install cloudflared")}`;
     this.quickInstallCloudflaredShortcutButton.enabled = !this.busy && !running && !starting;
@@ -1233,7 +1252,6 @@ ${localizeBridge("opencodeBridge.workScopeProjectOverride", "This project sets i
     this.cleanupButton.enabled = !this.cleaningTunnel;
     this.persistentModeToggle.disabled = this.busy;
     this.startupPinPageToggle.disabled = this.busy;
-    this.quickLinkAddButton.enabled = !this.busy && Boolean(this.quickLinkNameInput.value.trim()) && Boolean(this.quickLinkUrlInput.value.trim());
     this.startStopButton.label = running ? `$(${Codicon.debugStop.id}) ${localizeBridge("opencodeBridge.stop", "Stop Bridge")}` : starting ? `$(${Codicon.stopCircle.id}) ${localizeBridge("opencodeBridge.cancelStart", "Cancel start")}` : `$(${Codicon.play.id}) ${localizeBridge("opencodeBridge.start", "Start Bridge")}`;
     this.startStopButton.setTitle(starting ? localizeBridge("opencodeBridge.cancelStartTitle", "Stop the start attempt and return the Bridge to stopped") : "");
   }
@@ -1241,115 +1259,6 @@ ${localizeBridge("opencodeBridge.workScopeProjectOverride", "This project sets i
     if (this.lastStatus?.tunnelProvider === "ngrok") this.domainInput.focus();
     else if (this.lastStatus?.tunnelProvider === "cloudflare-named") this.namedTunnelDomainInput.focus();
     else this.cloudflareProviderButton.focus();
-  }
-  /**
-   * The configured shortcuts, or the defaults when the setting has never been
-   * written.
-   *
-   * An unset setting must fall back: returning [] left a fresh install with no
-   * shortcut buttons at all, even though DEFAULT_QUICK_LINKS exists. An
-   * explicitly empty array is respected, so a user who deletes every shortcut
-   * keeps an empty row instead of having the defaults reappear.
-   */
-  readQuickLinks() {
-    return readQuickLinks(this.configurationService);
-  }
-  isValidQuickLinkUrl(value2) {
-    return isValidQuickLinkUrl(value2);
-  }
-  renderQuickLinkButtons() {
-    clearNode(this.quickLinkButtonsContainer);
-    this.quickLinkButtons.forEach((button) => button.dispose());
-    this.quickLinkButtons = [];
-    for (const link2 of this.readQuickLinks()) {
-      if (!this.isValidQuickLinkUrl(link2.url)) continue;
-      const button = this._register(new Button(this.quickLinkButtonsContainer, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
-      button.label = `$(${Codicon.linkExternal.id}) ${link2.name}`;
-      button.setTitle(link2.url);
-      this._register(button.onDidClick(() => this.commandService.executeCommand("simpleBrowser.show", link2.url)));
-      this.quickLinkButtons.push(button);
-    }
-  }
-  renderQuickLinksList() {
-    clearNode(this.quickLinkList);
-    this.quickLinkRowButtons.forEach((button) => button.dispose());
-    this.quickLinkRowButtons = [];
-    const links = this.readQuickLinks();
-    if (!links.length) {
-      this.quickLinkList.classList.add("empty");
-      this.quickLinkList.textContent = localizeBridge("opencodeBridge.quickLinksEmpty", "No custom shortcuts yet.");
-      return;
-    }
-    this.quickLinkList.classList.remove("empty");
-    for (const link2 of links) {
-      const row = append(this.quickLinkList, $(".opencode-bridge-quick-link-row"));
-      const text2 = append(row, $(".opencode-bridge-quick-link-text"));
-      append(text2, $(".opencode-bridge-quick-link-name-text", void 0, link2.name));
-      append(text2, $(".opencode-bridge-quick-link-url-text", void 0, link2.url));
-      const actions = append(row, $(".opencode-bridge-quick-link-actions"));
-      const openButton = this._register(new Button(actions, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
-      openButton.label = `$(${Codicon.linkExternal.id}) ${localizeBridge("opencodeBridge.quickLinkOpen", "Open")}`;
-      this._register(openButton.onDidClick(() => this.commandService.executeCommand("simpleBrowser.show", link2.url)));
-      this.quickLinkRowButtons.push(openButton);
-      const deleteButton2 = this._register(new Button(actions, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
-      deleteButton2.label = `$(${Codicon.trash.id}) ${localizeBridge("opencodeBridge.quickLinkDelete", "Delete")}`;
-      this._register(deleteButton2.onDidClick(() => this.removeQuickLink(link2)));
-      this.quickLinkRowButtons.push(deleteButton2);
-    }
-  }
-  async addQuickLink() {
-    const name = this.quickLinkNameInput.value.trim();
-    const url = this.quickLinkUrlInput.value.trim();
-    if (!name) {
-      this.renderQuickLinkMessage(localizeBridge("opencodeBridge.quickLinkNameRequired", "Enter a name for the shortcut."));
-      this.quickLinkNameInput.focus();
-      return;
-    }
-    if (!this.isValidQuickLinkUrl(url)) {
-      this.renderQuickLinkMessage(localizeBridge("opencodeBridge.quickLinkUrlInvalid", "Enter a valid http:// or https:// address."));
-      this.quickLinkUrlInput.focus();
-      return;
-    }
-    const normalizedUrl = url.slice(0, QUICK_LINK_MAX_URL_LENGTH);
-    const links = this.readQuickLinks();
-    if (links.some((link2) => link2.url.toLowerCase() === normalizedUrl.toLowerCase())) {
-      this.renderQuickLinkMessage(localizeBridge("opencodeBridge.quickLinkUrlDuplicate", "This address is already in the list."));
-      this.quickLinkUrlInput.focus();
-      return;
-    }
-    const next = [...links, { name: name.slice(0, QUICK_LINK_MAX_NAME_LENGTH), url: normalizedUrl }];
-    try {
-      await this.configurationService.updateValue(BRIDGE_QUICK_LINKS_SETTING, next, 2 /* USER */);
-      this.quickLinkNameInput.value = "";
-      this.quickLinkUrlInput.value = "";
-      this.renderQuickLinkMessage("");
-      this.updateControls();
-    } catch (error) {
-      this.renderQuickLinkMessage(error instanceof Error ? error.message : String(error));
-    }
-  }
-  async removeQuickLink(link2) {
-    const result = await this.dialogService.confirm({
-      type: "warning",
-      message: localizeBridge("opencodeBridge.quickLinkDeleteConfirm", "Delete the quick open shortcut \u201C{0}\u201D?", link2.name),
-      detail: localizeBridge("opencodeBridge.quickLinkDeleteConfirmDetail", "The button is removed from the top of this page."),
-      primaryButton: localizeBridge("opencodeBridge.quickLinkDelete", "Delete")
-    });
-    if (!result.confirmed) return;
-    const next = this.readQuickLinks().filter((candidate) => candidate.url !== link2.url || candidate.name !== link2.name);
-    try {
-      await this.configurationService.updateValue(BRIDGE_QUICK_LINKS_SETTING, next, 2 /* USER */);
-    } catch (error) {
-      this.renderQuickLinkMessage(error instanceof Error ? error.message : String(error));
-    }
-  }
-  async restoreQuickLinksDefaults() {
-    try {
-      await this.configurationService.updateValue(BRIDGE_QUICK_LINKS_SETTING, DEFAULT_QUICK_LINKS.map((link2) => ({ ...link2 })), 2 /* USER */);
-      this.renderQuickLinkMessage(localizeBridge("opencodeBridge.quickLinkRestored", "Restored the default shortcuts."));
-    } catch (error) {
-      this.renderQuickLinkMessage(error instanceof Error ? error.message : String(error));
-    }
   }
   async saveCopyPromptText() {
     const value2 = this.copyPromptInput.value.trim();
@@ -1377,10 +1286,6 @@ ${localizeBridge("opencodeBridge.workScopeProjectOverride", "This project sets i
   renderCopyPromptMessage(message) {
     this.copyPromptMessage.textContent = message;
     this.copyPromptMessage.classList.toggle("visible", Boolean(message));
-  }
-  renderQuickLinkMessage(message) {
-    this.quickLinkMessage.textContent = message;
-    this.quickLinkMessage.classList.toggle("visible", Boolean(message));
   }
   dispose() {
     this.disposed = true;

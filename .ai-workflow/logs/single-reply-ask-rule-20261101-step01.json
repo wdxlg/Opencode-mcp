@@ -1,0 +1,64 @@
+{
+  "taskId": "single-reply-ask-rule-20261101-step01",
+  "at": "2026-11-02T02:17:01.195Z",
+  "preTag": "pre/single-reply-ask-rule-20261101-step01",
+  "parentCommit": "2722df0f9023bf85238d509a0ace5cb4a4d81021",
+  "isolatedBranch": "refs/heads/task/single-reply-ask-rule-20261101",
+  "isolatedCommit": "abad1a27e7ba9b4ce378cf9f9e4fbf1d8db78aac",
+  "liveStoreSummary": {
+    "alreadyUpgraded": false,
+    "oldRevision": 113,
+    "newRevision": 115,
+    "ruleLibraryVersion": 11,
+    "presetVersion": 13
+  },
+  "sourceFiles": [
+    {
+      "path": "recovered/shared/automation-store.mjs",
+      "bytes": 128818,
+      "sha256": "bb615b44510f686a20779e6eeb8b73fe46dcdeee7b8d546bdc26154ebfb07ab4"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/automation-store.mjs",
+      "bytes": 128818,
+      "sha256": "bb615b44510f686a20779e6eeb8b73fe46dcdeee7b8d546bdc26154ebfb07ab4"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0140.mjs",
+      "bytes": 27725,
+      "sha256": "077ceafc9727e5be99b903c842288c384ef82cb9e1529c698c2ac40c5ad610a9"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0043.mjs",
+      "bytes": 14530,
+      "sha256": "fc3107df38e909abc1e651c2517e8bb8216b0f7e16ab8b1114dbfe9ca1885e6c"
+    },
+    {
+      "path": "recovered/esm/002-agent-host.js/module-0028.mjs",
+      "bytes": 14320,
+      "sha256": "cebb2eb446fa5af76c16acb190656806c5abbad4752e1a27b81f7cef39f38f76"
+    },
+    {
+      "path": "defaults/copy-prompt.txt",
+      "bytes": 5813,
+      "sha256": "e02339b9d6e59338fb864f11006584d5773dcc9530543fc222ceef737e228c2f"
+    },
+    {
+      "path": "defaults/manifest.json",
+      "bytes": 80777,
+      "sha256": "9c59b49794757a7c711c003a8c5dc4c95fc06c872217737031e66672bbb33abe"
+    }
+  ],
+  "builtArtifacts": [
+    {
+      "path": "opencode/resources/app/extensions/opencode/dist/extension.js",
+      "bytes": 3532356,
+      "sha256": "eb93ee03be1ae79095125150aac871c220e633c5325d0a4097a9b30a7a2362da"
+    },
+    {
+      "path": "opencode/resources/app/extensions/opencode/runtime/agent-host.js",
+      "bytes": 974876,
+      "sha256": "02d98c72def774fee63ac9f8fc12c08e7f6cac700b798e5d5759d7ffc0450afb"
+    }
+  ]
+}

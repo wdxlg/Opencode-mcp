@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "owner round-robin and idempotent release",
+      "passed": true
+    },
+    {
+      "name": "cancelled queue entry is removed",
+      "passed": true
+    },
+    {
+      "name": "ring bytes and offsets preserve exact tail",
+      "passed": true
+    },
+    {
+      "name": "four processes update same file without lost writes",
+      "passed": true
+    },
+    {
+      "name": "unrelated files can overlap",
+      "passed": true
+    },
+    {
+      "name": "kernel releases lock on owner process death",
+      "passed": true
+    },
+    {
+      "name": "process budget survives caller response and rejects over-capacity admission until release",
+      "passed": true
+    }
+  ],
+  "realModelRequests": false,
+  "at": "2026-10-27T13:41:49.484Z"
+}

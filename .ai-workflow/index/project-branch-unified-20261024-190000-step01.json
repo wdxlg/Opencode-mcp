@@ -1,0 +1,31 @@
+{
+  "task_id": "project-branch-unified-20261024-190000-step01",
+  "status": "completed",
+  "files": [
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/module-3136.mjs",
+      "purpose": "SCM 项目名与分支统一入口",
+      "sha256": "c93f424330ce5b64cfc7679d418553d9c0e8c1c080bcec3879f5f3b25c789725"
+    }
+  ],
+  "sourceCommit": "97bb22eb6d2cfaf12668eae06fba1f7419ce0d47",
+  "runtimeCommit": "97bb22eb6d2cfaf12668eae06fba1f7419ce0d47",
+  "records": [
+    {
+      "path": "tasks/project-branch-unified-20261024-190000-step01/task.md",
+      "purpose": "目标与验收状态"
+    },
+    {
+      "path": "tasks/project-branch-unified-20261024-190000-step01/progress.md",
+      "purpose": "恢复进度"
+    },
+    {
+      "path": ".ai-workflow/logs/project-branch-unified-20261024-190000-step01.json",
+      "purpose": "脱敏执行记录"
+    },
+    {
+      "path": ".ai-workflow/index/project-branch-unified-20261024-190000-step01.json",
+      "purpose": "文件索引"
+    }
+  ]
+}

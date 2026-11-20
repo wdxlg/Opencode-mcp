@@ -1,0 +1,142 @@
+{
+  "task_id": "opencode-remove-sound-effects-20261025-181800-step01",
+  "status": "completed",
+  "source_base": "97bb22eb6d2cfaf12668eae06fba1f7419ce0d47",
+  "snapshot": "pre/opencode-remove-sound-effects-20261025-181800-step01",
+  "branch": "task/opencode-remove-sound-effects-20261025",
+  "source_commit": "cb01ecba20b85d760b9ce2b1f7c3e38490a9d715",
+  "scope": [
+    "disable AccessibilitySignalService sound playback and loop polling in both desktop bundles while preserving text announcements and exports",
+    "set default accessibility.signals.* sound settings to off and default volume to 0 in both desktop bundles",
+    "remove QuickPick active-item sound preview call in ShowSignalSoundHelp in both desktop bundles",
+    "retire all 31 accessibilitySignal/browser/media/*.mp3 sound-effect files via reports/static-assets.json retiredArtifacts"
+  ],
+  "functional_tests": "not_run",
+  "runtimeValidation": "not_run",
+  "user_acceptance": "not_performed",
+  "user_data": "preserved",
+  "source_delivery": "completed",
+  "static_inspection": "passed",
+  "build_verification": {
+    "success": true,
+    "at": "2026-10-25T10:39:12.005Z",
+    "errors": [],
+    "warnings": 0,
+    "productIntegrityChecks": 10
+  },
+  "runtime_publication": "completed",
+  "runtime_source_commit": "cb01ecba20b85d760b9ce2b1f7c3e38490a9d715",
+  "runtime_update": {
+    "success": true,
+    "elapsedMs": 17903,
+    "hashedFiles": 10,
+    "hashingMode": "sha256-with-size-mtime-cache",
+    "destination": "E:\\OpenCode-Source-Recovery-20261013\\opencode",
+    "changedFiles": 5,
+    "unchangedFiles": 17582,
+    "removedFiles": 31,
+    "userDataPreserved": true,
+    "backup": "E:\\OpenCode-Source-Recovery-20261013/.update-backup/1792924752132-7f1feb4e",
+    "sourceCommit": "cb01ecba20b85d760b9ce2b1f7c3e38490a9d715",
+    "sourceDirty": false,
+    "at": "2026-10-25T10:39:30.035Z"
+  },
+  "runtime_marker_verified": true,
+  "receipts": {
+    "audio_scan": "cmd_fa1bdcf5f09cadba993d24fc923e86288de6cb9613c6f55a",
+    "module_index_check": "cmd_9c50ef817c5b7b7a843ee6e074bdd88f2d518a0a78a00716",
+    "snapshot": "cmd_bb94f6376891c05d11cd4c13ced19b70ad9327b18d0e6ec7",
+    "static_inspection": "cmd_60ad0861084c2e14a33d5faef4def91f398b269c1c663475",
+    "commit": "cmd_9587b48ca3a52a046628a7633e595471aae0991ae39bcedc",
+    "build_and_publish": "cmd_11414e516e515f98c0df363561bdab2ad33c0314ab3559bd",
+    "post_build_verify": "cmd_d619ff1736cb8af203d6d902882a3e7fca5c1eca197b51cf"
+  },
+  "non_source_failures": [
+    {
+      "operation": "initial read-only git log inspection",
+      "result": "default git pager opened less; exited cleanly with send_command_input q and used git --no-pager thereafter"
+    },
+    {
+      "operation": "first apply_patch validation",
+      "result": "018/module-3387.mjs context parameter was e4 instead of e; nothing written; corrected hunk and succeeded cleanly"
+    }
+  ],
+  "mandatoryReads": [
+    {
+      "path": "AGENTS.md",
+      "read": "full",
+      "sha256": "1d1d07f43c1a2487fd40211d606326517e51b4ebab307a416168963976b6590d"
+    },
+    {
+      "path": "README.md",
+      "read": "full",
+      "sha256": "d2f0e18d9d1b7406c7053feef602ce149bcf0cd3c89dcb45517ad179b361c407"
+    },
+    {
+      "path": "package.json",
+      "read": "full",
+      "sha256": "7af4d4ccd0be2a58745f996faf1c031e8eb54eee47e83cd1655cb99494c55054"
+    },
+    {
+      "path": "E:/OpenCode-Skills/shared/systematic-debugging/SKILL.md",
+      "read": "full",
+      "sha256": "9ca23bb1f392cc288ff4b0be4360bddf4b3d942830c93615ad5dc97600312e4e"
+    },
+    {
+      "path": "scripts/update.cjs",
+      "read": "full",
+      "sha256": "e5f1d5d2c2518eb3cb7e3f9c024579b1f7bbcddfd1ab5b8be61c330e7ef28d02"
+    },
+    {
+      "path": "scripts/copy-static-assets.cjs",
+      "read": "full",
+      "sha256": "763cbd33393c7fa799501ad292093e532323759f89cbef1b5971dc9cbeeda2e5"
+    },
+    {
+      "path": "scripts/verify-build.cjs",
+      "read": "full",
+      "sha256": "7a165b128b52fd6f1db34bb2aae1171a21d66e1e405ef17af07cf8988fc9efe8"
+    },
+    {
+      "path": "scripts/publish-runtime.cjs",
+      "read": "full",
+      "sha256": "eacaceec3ee0b812890be56edc3015e52e653d9bb1b2dde3669d00ddb3763724"
+    },
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/module-0445.mjs",
+      "read": "full",
+      "sha256": "34029e60a97d7142ecc46cc21106064c711aec0386521b8730e5b91bb01800c0"
+    },
+    {
+      "path": "recovered/esm/018-sessions.desktop.main.js/module-0445.mjs",
+      "read": "full",
+      "sha256": "0028cde1c2cc85c2c40542ceee5a90d8a903292f18b2f1732d1a4e96d51c5989"
+    },
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/module-1370.mjs",
+      "read": "full",
+      "sha256": "f4e7e20ec302f7959cf1ee4fd9ed0d2588aad0536adaea86a9f64fc867355a0b"
+    },
+    {
+      "path": "recovered/esm/018-sessions.desktop.main.js/module-1369.mjs",
+      "read": "full",
+      "sha256": "3d626ecb9945eb2fb5a16bf964848ed730cb84067488f56023ad2b42daa07053"
+    },
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/module-3657.mjs",
+      "read": "full",
+      "sha256": "bb95a7a19c0edde845e4f6d9d7652f5966f50ae65b36e28d5f65f7665cc64ad6"
+    },
+    {
+      "path": "recovered/esm/018-sessions.desktop.main.js/module-3387.mjs",
+      "read": "full",
+      "sha256": "fe2eedb5ccc995cdad9c46cfb97c46756fbfbc54f176ada0c569d651b5a4f48f"
+    },
+    {
+      "path": "reports/static-assets.json",
+      "read": "relevant_and_verified",
+      "sha256": "201ddcc9a7296cd0281c78205473ae694bbe90d00564f9982cc5a0124b138670"
+    }
+  ],
+  "updatedAt": "2026-10-25T10:41:00.000Z"
+}

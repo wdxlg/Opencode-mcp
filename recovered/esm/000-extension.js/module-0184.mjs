@@ -63,8 +63,6 @@ var WorkspaceHubController = class {
     this.store = new WorkspaceHubStore(workspaceHubRoot(), (0, import_node_crypto28.randomUUID)(), currentWorkspace(context));
     this.ready = this.store.initialize();
     const register3 = (name, callback) => this.subscriptions.push(vscode21.commands.registerCommand(`opencode.workspaceHub.${name}`, callback));
-    register3("open", () => this.open());
-    register3("openChats", () => this.open("chats"));
     register3("snapshot", () => this.snapshot());
     register3("beginChat", async (value) => {
       await this.ensure();
@@ -307,110 +305,6 @@ var WorkspaceHubController = class {
     }
     this.output.appendLine(`[workspace-hub] launched instance ${instanceIdentity(directory)} (${directory})${target ? ` for ${target}` : ""}`);
     return directory;
-  }
-  async open(tab = "workspaces") {
-    await this.ensure();
-    this.desiredTab = tab;
-    if (this.panel) {
-      this.panel.reveal();
-      await this.panel.webview.postMessage({ type: "tab", value: tab });
-      return;
-    }
-    const media = vscode21.Uri.joinPath(this.context.extensionUri, "media");
-    const panel = this.panel = vscode21.window.createWebviewPanel("opencode.workspaceHub", "\u5DE5\u4F5C\u533A\u4E0E\u5171\u4EAB\u804A\u5929", vscode21.ViewColumn.Active, { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [media] });
-    const nonce = (0, import_node_crypto28.randomBytes)(18).toString("base64");
-    const html = await (0, import_promises15.readFile)(vscode21.Uri.joinPath(media, "workspace-hub.html").fsPath, "utf8");
-    panel.webview.html = html.replaceAll("{{cspSource}}", panel.webview.cspSource).replaceAll("{{nonce}}", nonce).replaceAll("{{scriptUri}}", panel.webview.asWebviewUri(vscode21.Uri.joinPath(media, "workspace-hub.js")).toString()).replaceAll("{{styleUri}}", panel.webview.asWebviewUri(vscode21.Uri.joinPath(media, "workspace-hub.css")).toString());
-    panel.onDidDispose(() => {
-      if (this.panel === panel) this.panel = void 0;
-      this.selectedChat = void 0;
-      this.lastPanelSnapshot = "";
-      this.lastPanelChatRevision = "";
-    });
-    panel.webview.onDidReceiveMessage(async (message2) => {
-      try {
-        await this.ensure();
-        if (!message2 || typeof message2.type !== "string") return;
-        switch (message2.type) {
-          case "ready":
-            this.lastPanelSnapshot = "";
-            await panel.webview.postMessage({ type: "tab", value: this.desiredTab });
-            await this.refresh();
-            break;
-          case "selectChat":
-            if (typeof message2.key !== "string" || !/^[a-f0-9]{64}$/.test(message2.key)) throw new Error("Invalid chat key.");
-            this.selectedChat = message2.key;
-            this.lastPanelChatRevision = "";
-            await this.refresh();
-            break;
-          case "continueChat":
-            if (typeof message2.key === "string") {
-              await this.continueChat(message2.key);
-              await panel.webview.postMessage({ type: "notice", text: "\u5DF2\u8BF7\u6C42\u5728\u6240\u5C5E\u5DE5\u4F5C\u533A\u6253\u5F00\uFF1B\u4E0D\u4F1A\u81EA\u52A8\u53D1\u9001\u6D88\u606F\u3002" });
-            }
-            break;
-          case "deleteChat": {
-            if (typeof message2.key !== "string" || !/^[a-f0-9]{64}$/.test(message2.key)) throw new Error("Invalid chat key.");
-            const target = await this.store.readChat(message2.key);
-            if (!target || target.deleted) throw new Error("\u5171\u4EAB\u8BB0\u5F55\u4E0D\u5B58\u5728\u6216\u5DF2\u5220\u9664\u3002");
-            const pick2 = await vscode21.window.showWarningMessage(`\u5220\u9664\u5171\u4EAB\u8BB0\u5F55\u300C${target.title || "\u672A\u547D\u540D"}\u300D\uFF08${target.workspace.name}\uFF09\uFF1F\u539F\u5DE5\u4F5C\u533A\u7684\u672C\u5730\u5386\u53F2\u4E0D\u53D7\u5F71\u54CD\u3002`, { modal: true }, "\u5220\u9664");
-            if (pick2 !== "\u5220\u9664") break;
-            await this.store.deleteChatByKey(message2.key);
-            if (this.selectedChat === message2.key) {
-              this.selectedChat = void 0;
-              this.lastPanelChatRevision = "";
-            }
-            await panel.webview.postMessage({ type: "notice", text: "\u5DF2\u5220\u9664\u5171\u4EAB\u8BB0\u5F55\u3002" });
-            await this.refresh();
-            break;
-          }
-          case "copyAddress":
-            if (typeof message2.windowId === "string") {
-              const text2 = await this.copyAddress(message2.windowId);
-              await panel.webview.postMessage({ type: "notice", text: text2 });
-            }
-            break;
-          case "focusWindow": {
-            const item = (await this.store.listWindows()).find((w) => w.windowId === message2.windowId);
-            if (!item) throw new Error("\u8BE5\u7A97\u53E3\u5DF2\u4E0D\u5728\u7EBF\u3002");
-            if (item.windowId === this.store.windowId) {
-              await vscode21.commands.executeCommand("opencode.chat.focusWindow");
-              break;
-            }
-            await this.store.requestWindowAction(item, "focus");
-            break;
-          }
-          case "openWorkspace": {
-            const item = (await this.store.listWindows()).find((w) => w.windowId === message2.windowId);
-            if (!item?.workspace.uri) throw new Error("\u8BF7\u5148\u4FDD\u5B58\u5DE5\u4F5C\u533A\uFF0C\u518D\u4ECE\u5176\u4ED6\u7A97\u53E3\u6253\u5F00\u3002");
-            if (item.workspace.kind !== "folder" && item.workspace.kind !== "workspace") throw new Error("\u591A\u6839\u5DE5\u4F5C\u533A\u8BF7\u5728\u539F\u5B9E\u4F8B\u4E2D\u6253\u5F00\u3002");
-            const target = item.workspace.kind === "workspace" ? { fileUri: item.workspace.uri } : { folderUri: item.workspace.uri };
-            await this.openNewInstance(target);
-            await panel.webview.postMessage({ type: "notice", text: "\u6B63\u5728\u4EE5\u72EC\u7ACB\u5B9E\u4F8B\u6253\u5F00\u8BE5\u9879\u76EE\u3002" });
-            break;
-          }
-          case "chooseWorkspace": {
-            const selected = await vscode21.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false, openLabel: "\u5728\u65B0\u5B9E\u4F8B\u6253\u5F00" });
-            if (selected?.[0]) {
-              await this.openNewInstance({ folderUri: selected[0] });
-              await panel.webview.postMessage({ type: "notice", text: "\u5DF2\u5728\u72EC\u7ACB\u5B9E\u4F8B\u4E2D\u6253\u5F00\u8BE5\u9879\u76EE\u3002" });
-            }
-            break;
-          }
-          case "newInstance":
-            await this.openNewInstance();
-            await panel.webview.postMessage({ type: "notice", text: "\u5DF2\u542F\u52A8\u65B0\u7684 OpenCode \u5B9E\u4F8B\u3002" });
-            break;
-          case "openDataFolder":
-            await vscode21.commands.executeCommand("revealFileInOS", vscode21.Uri.file(this.store.root));
-            break;
-        }
-      } catch (e) {
-        await panel.webview.postMessage({ type: "error", text: e instanceof Error ? e.message : String(e) });
-      }
-    });
-    this.lastPanelSnapshot = "";
-    await this.refresh();
   }
   async disposeAsync() {
     if (this.disposed) return;

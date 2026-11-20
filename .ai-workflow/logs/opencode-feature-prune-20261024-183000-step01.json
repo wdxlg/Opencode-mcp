@@ -1,0 +1,81 @@
+{
+  "task_id": "opencode-feature-prune-20261024-183000-step01",
+  "status": "completed",
+  "source_base": "bcbbd14f1fd79c230581b2a147e5624cb3e234f5",
+  "snapshot": "pre/opencode-feature-prune-20261024-183000-step01",
+  "scope": [
+    "remove inactive payment and purchase helpers in two renderers",
+    "remove disabled independent Agents window implementation; preserve compatibility rejection",
+    "remove account menu UI without removing provider authentication",
+    "remove only rules status-bar UI and two chat-title contributions"
+  ],
+  "functional_tests": "not_run",
+  "user_data": "preserved",
+  "source_delivery": "completed",
+  "source_commit": "c60c0bec7a3273be94144f0ae316359ae39d1aff",
+  "branch": "task/opencode-feature-prune-20261024",
+  "static_inspection": "passed",
+  "build_verification": {
+    "success": true,
+    "at": "2026-10-24T10:34:58.953Z",
+    "errors": [],
+    "extensionWarnings": 1,
+    "warning": "CommonJS module variable in ESM; module-0023.mjs:36, outside this change"
+  },
+  "runtime_publication": "completed",
+  "runtime_source_commit": "c60c0bec7a3273be94144f0ae316359ae39d1aff",
+  "user_acceptance": "not_performed",
+  "receipts": {
+    "snapshot": "cmd_4e9472781d534f27a57ed595498172a07740e2aea4ac9bd3",
+    "static_inspection": "cmd_4072d4a26f66a0703aac6b1549cecaa549426decd5d5c434",
+    "build": "cmd_465d34b58bd120e30065b5838a389647b24e90d67129cb69",
+    "running_process_check": "cmd_5d67e3e05bbf0145177bd553e97d5430190dc318883c2cea",
+    "publication": "cmd_f7426f7a25cb36d56295ddc5828840201f3e79960ab19de3"
+  },
+  "non_source_failures": [
+    {
+      "operation": "initial patch validation",
+      "result": "duplicate path rejected; nothing written; combined hunks then succeeded"
+    },
+    {
+      "operation": "first local commit",
+      "result": "missing Git identity; succeeded with per-command maintenance identity; no global Git settings changed"
+    },
+    {
+      "operation": "publisher",
+      "result": "target runtime has active OpenCode processes; safety guard retained, no processes stopped",
+      "resolution": "User replied 已退出; guarded publisher retried successfully. No processes were stopped by assistant."
+    }
+  ],
+  "mandatoryReads": [
+    {
+      "path": "AGENTS.md",
+      "read": "full",
+      "sha256": "1d1d07f43c1a2487fd40211d606326517e51b4ebab307a416168963976b6590d",
+      "recordedAt": "2026-10-24T10:35:14.103358+00:00"
+    },
+    {
+      "path": "E:/OpenCode-Skills/shared/frontend-design/SKILL.md",
+      "read": "full",
+      "sha256": "9032bbe914526b62d57ac4d110c8f9657b821d5b334155aec08d22a58b5668b9",
+      "recordedAt": "2026-10-24T10:35:14.103358+00:00"
+    }
+  ],
+  "runtime_update": {
+    "success": true,
+    "elapsedMs": 18984,
+    "hashedFiles": 18,
+    "hashingMode": "sha256-with-size-mtime-cache",
+    "destination": "E:\\OpenCode-Source-Recovery-20261013\\opencode",
+    "changedFiles": 8,
+    "unchangedFiles": 17610,
+    "removedFiles": 0,
+    "userDataPreserved": true,
+    "backup": "E:\\OpenCode-Source-Recovery-20261013/.update-backup/1792838373214-43768f44",
+    "sourceCommit": "c60c0bec7a3273be94144f0ae316359ae39d1aff",
+    "sourceDirty": false,
+    "at": "2026-10-24T10:39:52.199Z"
+  },
+  "runtime_marker_verified": true,
+  "updatedAt": "2026-10-24T10:39:52.199Z"
+}

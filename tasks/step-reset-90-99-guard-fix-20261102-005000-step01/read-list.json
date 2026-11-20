@@ -1,0 +1,51 @@
+{
+  "task_id": "step-reset-90-99-guard-fix-20261102-005000-step01",
+  "pre_git": {
+    "head": "2722df0f9023bf85238d509a0ace5cb4a4d81021",
+    "tree": "8bcc04ff590079fa6e1a7b2867dfb48a247f83ba",
+    "commit": "422d32c6b5494fd6dd4fb45408a3ca00cf832fc1",
+    "tag": "refs/tags/pre/step-reset-90-99-guard-fix-20261102-005000-step01"
+  },
+  "pre_files": [
+    {
+      "path": "recovered/shared/automation-store.mjs",
+      "sha256": "f57a4a0489d2074eaf365c060952d4a21733212faa59bfae47730d417f61c415",
+      "bytes": 120686
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0043.mjs",
+      "sha256": "5fed062e70a36f88b462c483916a1df91f6b67b261f0aee990a722fd48ff66c2",
+      "bytes": 13008
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0140.mjs",
+      "sha256": "593e69c13612b86a8342acc01ba9df735df6434df4cc72d087460e7f3ea341d6",
+      "bytes": 27203
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0143.mjs",
+      "sha256": "81f8c05b8f4b7fcaf5a49d177800b77266c34ea1b121b403c00a93152997e792",
+      "bytes": 40001
+    },
+    {
+      "path": "recovered/esm/002-agent-host.js/module-0028.mjs",
+      "sha256": "8c80ecf05d578eac945d20bdd7cbe6ce71f3f2ac7698b97bc7b7ffeb5d63e454",
+      "bytes": 12798
+    },
+    {
+      "path": "recovered/typescript/extensions/opencode/src/bridge-constants.ts",
+      "sha256": "a7b61061dc6df06e2326bb780ebc633620853a0d130160917408b4e0b1201e63",
+      "bytes": 32434
+    },
+    {
+      "path": "defaults/copy-prompt.txt",
+      "sha256": "a54282fd18840e1278b5077b2158d316fc3086297698ccb48331c8a517aad78e",
+      "bytes": 4315
+    },
+    {
+      "path": "defaults/manifest.json",
+      "sha256": "74ad6e662144d5621a67b76c464832bdd953972ca88ee44956436aa04e2b12c9",
+      "bytes": 80777
+    }
+  ]
+}

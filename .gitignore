@@ -27,3 +27,7 @@
 !/reports/upstream-reference.json
 /.build-lock/
 /.update-lock/
+# OpenCode p36/p37: deferred publish staging and advisory edit locks
+/opencode.next*/
+/.pending-update.json*
+/.edit-locks/

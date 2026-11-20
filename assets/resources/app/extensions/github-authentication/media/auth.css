@@ -11,9 +11,9 @@
 	--vscode-textLink-foreground: #4daafc;
 
 	--vscode-filter-0: drop-shadow(0 0 0 rgba(0, 122, 204, 0));
-	--vscode-filter-50: drop-shadow(0 4px 12px rgba(0, 122, 204, 0.15));
-	--vscode-filter-70: drop-shadow(0 6px 18px rgba(0, 122, 204, 0.25));
-	--vscode-filter-100: drop-shadow(0 8px 24px rgba(0, 122, 204, 0.3));
+	--vscode-filter-50: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.10));
+	--vscode-filter-70: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.14));
+	--vscode-filter-100: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.18));
 
 	--vscode-insiders-filter-0: drop-shadow(0 0 0 rgba(36, 191, 165, 0));
 	--vscode-insiders-filter-50: drop-shadow(0 4px 12px rgba(36, 191, 165, 0.15));
@@ -94,6 +94,7 @@ a:hover, a:focus {
 	}
 }
 
+/* OpenCode auth-page-icon-step01: 登录页用当前 OpenCode（mcp）图标，去掉蓝色光晕，改成淡灰阴影。 */
 .vscode-icon {
 	width: 128px;
 	height: 128px;

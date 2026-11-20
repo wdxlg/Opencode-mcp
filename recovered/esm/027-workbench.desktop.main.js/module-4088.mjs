@@ -331,7 +331,7 @@ var OpenFileInIntegratedBrowserAction = class extends Action2 {
           id: MenuId.EditorTitle,
           group: "navigation",
           order: 99,
-          when: IS_LOCAL_HTML_FILE
+          when: ContextKeyExpr.and(ContextKeyExpr.false(), IS_LOCAL_HTML_FILE) // OpenCode: 标题栏只保留「预览/源码」一个切换按钮
         }
       ]
     });

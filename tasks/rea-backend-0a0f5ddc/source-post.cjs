@@ -1,0 +1,24 @@
+// Reviewed task-only prepare + scoped source POST. No application/backend execution.
+const fs=require('fs'),path=require('path'),crypto=require('crypto'),cp=require('child_process');
+const root=process.cwd(),dir=path.join(root,'tasks/rea-backend-0a0f5ddc'),statePath=path.join(dir,'state.json'),state=JSON.parse(fs.readFileSync(statePath,'utf8'));
+const hash=p=>fs.existsSync(p)?crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex'):null,json=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+if(path.basename(root)!=='OpenCode-Source-Recovery-20261013'||!state.resourceRepairCompleted||state.post)throw Error('Wrong state for one-time source POST');
+const fingerprints={buildVerification:hash(path.join(root,'reports/build-verification.json')),testSuite:hash(path.join(root,'reports/test-suite.json'))};
+if(fingerprints.buildVerification!=='a41f132e25b87367b3c0f81b74cf4b17e7437c460544eeacfc967730e39be5fa'||fingerprints.testSuite!=='e3295e3e4b9025e6ba9bb12dfaa2bbe7d79d38446bcce769dba75051d1d2fbc5')throw Error('Latest report changed since review; re-read before building');
+fs.writeFileSync(path.join(dir,'prebuild-inputs.json'),JSON.stringify({previousReports:fingerprints,previousExtension:json(path.join(root,'reports/build/000-extension.js.json')),currentExtensionModules:json(path.join(root,'recovered/esm/000-extension.js/modules.json')).modules.length,oldTestsReusedAsCurrentEvidence:false,testsToRun:[],functionalTestsAuthorized:false,productLaunchAuthorized:false},null,2));
+fs.copyFileSync(path.join(root,'defaults/manifest.json'),path.join(dir,'legacy-default-manifest.json'));
+for(const script of [['prepare-rea.cjs','--retire-legacy'],['sync-shared.cjs']])cp.execFileSync(process.execPath,[path.join(root,'scripts',script[0]),...script.slice(1)],{cwd:root,stdio:'inherit'});
+const shared=path.join(root,'recovered/shared/rea-integration.mjs'),variant=path.join(root,'recovered/esm/000-extension.js/rea-integration.mjs');if(hash(shared)!==hash(variant))throw Error('Shared REA variant mismatch');
+const modules=json(path.join(root,'recovered/esm/000-extension.js/modules.json'));if(!modules.modules.some(m=>m.file==='rea-integration.mjs'))throw Error('Native shared module absent from registry');
+const files=[...state.files,'recovered/rea-backend','defaults/rea-backend'];
+const git=(args,env={})=>cp.execFileSync('git',args,{cwd:root,env:{...process.env,...env},encoding:'utf8',maxBuffer:32*1024*1024}).trim();
+const head=git(['rev-parse','HEAD']),sharedIndex=hash(path.join(root,'.git/index')),index=path.join(dir,'post.index');
+const env={GIT_INDEX_FILE:index,GIT_AUTHOR_NAME:'OpenCode Local Task',GIT_AUTHOR_EMAIL:'task@local.invalid',GIT_COMMITTER_NAME:'OpenCode Local Task',GIT_COMMITTER_EMAIL:'task@local.invalid'};
+git(['read-tree',state.mistake??state.pre],env);git(['add','-A','-f','--',...files],env);
+const changed=git(['diff','--cached','--name-only','-z',state.pre],env).split('\0').filter(Boolean);if(changed.some(f=>!state.files.includes(f)&&!f.startsWith('recovered/rea-backend/')&&!f.startsWith('defaults/rea-backend/')))throw Error('POST escaped task paths');
+const post=git(['commit-tree',git(['write-tree'],env),'-p',state.mistake??state.pre,'-m','Replace REA distribution bridge with OpenCode native backend tools and necessary dependency closure'],env),postRef='refs/heads/ai/rea-backend-0a0f5ddc/post';git(['update-ref',postRef,post]);fs.unlinkSync(index);
+if(git(['rev-parse','HEAD'])!==head||hash(path.join(root,'.git/index'))!==sharedIndex)throw Error('Shared HEAD/index changed');
+Object.assign(state,{post,postRef,state:'source_post_recorded_build_pending',sourcePaths:files,postChangedPaths:changed.length,postSourceHashes:Object.fromEntries(state.files.map(f=>[f,hash(path.join(root,f))])),oldReportFingerprints:fingerprints,sourceHashesUnchanged:false,buildRun:false,productStarted:false,functionalTestsRun:false,updatedAt:new Date().toISOString()});fs.writeFileSync(statePath,JSON.stringify(state,null,2));
+fs.appendFileSync(path.join(dir,'task.md'),'\n## 原生后端源码完成，待构建\n原生 229 工具与工作流已接入现有 OpenCode 调度/规则/结果通道；不再启动 REA MCP/CLI/专用 Node。资源闭包已补足两个包内 worker 映射、Ghidra Java 与 Python/Swift 辅助脚本。私有 Zod 与根依赖版本分别保留；必要依赖内容有锁定哈希。旧默认资产仅按原 manifest 和当前文件哈希退休。源码 POST '+post+'，ref '+postRef+'；共享 HEAD/index 未变。没有启动产品或功能验证。\n');
+fs.writeFileSync(path.join(dir,'progress.md'),'# 进度\n状态：running；源码 POST 已记录，构建和托管发布待完成。\n未启动产品、未实际逆向、未运行测试；上游引擎与宿主运行兼容尚未验收。\n');
+console.log(JSON.stringify({pre:state.pre,mistake:state.mistake,post,postRef,changedPaths:changed.length,sharedGitUntouched:true,version:json(path.join(root,'package.json')).version,productStarted:false,functionalTestsRun:false}));

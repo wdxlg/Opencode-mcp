@@ -596,13 +596,14 @@ var SPLIT_ORDER = 1e5;
 
 var CLOSE_ORDER = 1e6;
 
+// OpenCode ae-dock-step17: 编辑区标题栏不再显示「向右/向下拆分编辑器」按钮（拆分改用拖放方块；右键菜单里仍可拆分）
 appendEditorToolItem(
   {
     id: SPLIT_EDITOR,
     title: localize(6458, null),
     icon: Codicon.splitHorizontal
   },
-  ContextKeyExpr.and(SplitEditorsVertically.negate(), IsSessionsWindowContext.toNegated()),
+  ContextKeyExpr.and(ContextKeyExpr.false(), SplitEditorsVertically.negate(), IsSessionsWindowContext.toNegated()),
   SPLIT_ORDER,
   {
     id: SPLIT_EDITOR_DOWN,
@@ -617,7 +618,7 @@ appendEditorToolItem(
     title: localize(6457, null),
     icon: Codicon.splitVertical
   },
-  ContextKeyExpr.and(SplitEditorsVertically, IsSessionsWindowContext.toNegated()),
+  ContextKeyExpr.and(ContextKeyExpr.false(), SplitEditorsVertically, IsSessionsWindowContext.toNegated()),
   SPLIT_ORDER,
   {
     id: SPLIT_EDITOR_RIGHT,

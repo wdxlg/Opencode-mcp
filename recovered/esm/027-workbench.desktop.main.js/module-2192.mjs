@@ -304,6 +304,10 @@ var ModelPickerWidget = class extends Disposable {
     if (!anchorElement || this._domNode?.classList.contains("disabled")) {
       return;
     }
+    if (this._ocPicker) {
+      this._ocPicker.dispose();
+      return;
+    }
     if (this._nameButton?.getAttribute("aria-expanded") === "true") {
       this._actionWidgetService.hide(true);
       return;
@@ -326,6 +330,10 @@ var ModelPickerWidget = class extends Disposable {
     };
     const hasOpenCodeProvider = this._usesOpenCodeProviders();
     const models = this._getPickerModels();
+    if (hasOpenCodeProvider && !this.isRestrictedMode()) {
+      this._showOpenCodePicker(anchorElement, models, onSelect); // OpenCode: 按供应商分类的模型选择（参考 DSH）
+      return;
+    }
     const currentModel = hasOpenCodeProvider ? models.find((model) => model.identifier === this._selectedModel?.identifier) : void 0;
     const currentChannel = currentModel ? getProviderGroupForModel(currentModel, buildModelToProviderGroupMap(this._languageModelsService), this._languageModelsService).channelLabel : void 0;
     const delegatePresentation = this._delegate.getPresentationOptions();
@@ -456,6 +464,267 @@ var ModelPickerWidget = class extends Disposable {
       listOptions
     );
   }
+  /**
+   * OpenCode: 模型选择下拉（参考 DSH）。顶部固定显示「最靠近上方的分类」（分类标题已完整显示时显示更上一个），
+   * 中间按供应商分类列出模型，底部固定「配置供应商」。选择即切换模型。
+   */
+  _showOpenCodePicker(anchorElement, models, onSelect, initialQuery = "") {
+    const doc = anchorElement.ownerDocument;
+    const win = getWindow(anchorElement);
+    // OpenCode: 主题色变量只定义在 .monaco-workbench 上，下拉必须挂在工作台容器内，否则变量全部未定义（透明背景、黑字）
+    const host = anchorElement.closest?.(".monaco-workbench") ?? doc.querySelector(".monaco-workbench") ?? doc.body;
+    doc.getElementById("oc-model-picker-style")?.remove();
+    doc.getElementById("oc-model-picker-style-v2")?.remove();
+    doc.getElementById("oc-model-picker-style-v3")?.remove();
+    if (!doc.getElementById("oc-model-picker-style-v4")) {
+      const style = doc.createElement("style");
+      style.id = "oc-model-picker-style-v4";
+      style.textContent = [
+        ".oc-mp{position:fixed;z-index:2600;box-sizing:border-box;display:flex;flex-direction:column;min-width:260px;max-width:420px;background-color:var(--vscode-menu-background,var(--vscode-quickInput-background,var(--vscode-editorWidget-background,#252526)));color:var(--vscode-menu-foreground,var(--vscode-quickInput-foreground,var(--vscode-foreground,#cccccc)));border:1px solid var(--vscode-menu-border,var(--vscode-widget-border,var(--vscode-contrastBorder,rgba(128,128,128,.35))));border-radius:8px;box-shadow:0 6px 20px var(--vscode-widget-shadow,rgba(0,0,0,.45));font-family:var(--vscode-font-family,inherit);font-size:13px;line-height:normal;overflow:hidden;outline:none;opacity:1}",
+        ".oc-mp *{box-sizing:border-box}",
+        ".oc-mp-top,.oc-mp-h{display:flex;align-items:center;gap:6px;height:26px;padding:0 10px;font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--vscode-descriptionForeground,#9d9d9d);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+        ".oc-mp-top{flex:none;background-color:inherit;border-bottom:1px solid var(--vscode-menu-separatorBackground,var(--vscode-widget-border,rgba(128,128,128,.25)));cursor:pointer}",
+        ".oc-mp-top.empty{cursor:default}",
+        ".oc-mp-top .oc-mp-count,.oc-mp-h .oc-mp-count{margin-left:auto;font-weight:400;opacity:.8}",
+        ".oc-mp-list{position:relative;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:2px 0 4px;background-color:inherit}",
+        ".oc-mp-h{margin-top:4px}",
+        ".oc-mp-row{display:flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 10px;margin:0 4px;border-radius:4px;cursor:pointer;white-space:nowrap;color:inherit}",
+        ".oc-mp-row .codicon{flex:none;width:16px;font-size:14px;color:inherit}",
+        ".oc-mp-row .oc-mp-name{overflow:hidden;text-overflow:ellipsis}",
+        ".oc-mp-row:hover{background-color:var(--vscode-list-hoverBackground,rgba(128,128,128,.18));color:var(--vscode-list-hoverForeground,inherit)}",
+        ".oc-mp-row.selected{background-color:var(--vscode-list-inactiveSelectionBackground,rgba(128,128,128,.22));color:var(--vscode-list-inactiveSelectionForeground,inherit)}",
+        ".oc-mp-row.selected .oc-mp-name{font-weight:600}",
+        ".oc-mp-row.focused{background-color:var(--vscode-menu-selectionBackground,var(--vscode-list-activeSelectionBackground,#04395e));color:var(--vscode-menu-selectionForeground,var(--vscode-list-activeSelectionForeground,#ffffff))}",
+        ".oc-mp-empty{padding:12px 14px;white-space:normal;color:var(--vscode-descriptionForeground,#9d9d9d)}",
+        ".oc-mp-foot{flex:none;display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;background-color:inherit;border-top:1px solid var(--vscode-menu-separatorBackground,var(--vscode-widget-border,rgba(128,128,128,.25)));cursor:pointer;color:inherit}",
+        ".oc-mp-foot:hover,.oc-mp-foot:focus-visible{background-color:var(--vscode-list-hoverBackground,rgba(128,128,128,.18));outline:none}",
+        ".oc-mp:focus-visible{outline:1px solid var(--vscode-focusBorder,#007fd4);outline-offset:-1px}",
+        ".oc-mp-search{flex:none;padding:6px 6px 4px;background-color:inherit}",
+        ".oc-mp-search input{display:block;width:100%;height:26px;margin:0;padding:0 8px;border-radius:4px;border:1px solid var(--vscode-input-border,rgba(128,128,128,.35));background-color:var(--vscode-input-background,#3c3c3c);color:var(--vscode-input-foreground,#cccccc);font-family:inherit;font-size:13px;outline:none}",
+        ".oc-mp-search input:focus{border-color:var(--vscode-focusBorder,#007fd4)}",
+        ".oc-mp-search input::placeholder{color:var(--vscode-input-placeholderForeground,rgba(204,204,204,.5))}",
+        ".oc-mp .oc-mp-hide{display:none!important}",
+        // OpenCode: 列表滚动条与编辑器一致（细条、无上下箭头、透明轨道），不用系统默认白色滚动条
+        ".oc-mp-list{scrollbar-width:auto;scrollbar-color:auto}",
+        ".oc-mp-list::-webkit-scrollbar{width:10px;height:10px}",
+        ".oc-mp-list::-webkit-scrollbar-track,.oc-mp-list::-webkit-scrollbar-corner{background:transparent}",
+        ".oc-mp-list::-webkit-scrollbar-button{display:none;width:0;height:0}",
+        ".oc-mp-list::-webkit-scrollbar-thumb{background-color:var(--vscode-scrollbarSlider-background,rgba(121,121,121,.4));border:none;border-radius:0;min-height:20px}",
+        ".oc-mp-list::-webkit-scrollbar-thumb:hover{background-color:var(--vscode-scrollbarSlider-hoverBackground,rgba(100,100,100,.7))}",
+        ".oc-mp-list::-webkit-scrollbar-thumb:active{background-color:var(--vscode-scrollbarSlider-activeBackground,rgba(191,191,191,.4))}"
+      ].join("\n");
+      (doc.head || doc.documentElement).appendChild(style);
+    }
+    const groupMap = buildModelToProviderGroupMap(this._languageModelsService);
+    const vendorNames = new Map(this._languageModelsService.getVendors().map((v) => [v.vendor, v.displayName]));
+    const groups = new Map();
+    for (const model of models) {
+      const entry = groupMap.get(model.identifier);
+      const vendorName = vendorNames.get(model.metadata.vendor);
+      const label3 = entry?.groupName && entry.groupName !== vendorName ? entry.groupName : model.metadata.detail || entry?.groupName || vendorName || "\u5176\u4ED6";
+      if (!groups.has(label3)) groups.set(label3, []);
+      groups.get(label3).push(model);
+    }
+    const root = doc.createElement("div");
+    root.className = "oc-mp";
+    root.tabIndex = -1;
+    root.setAttribute("role", "listbox");
+    // OpenCode: 顶部搜索框，按模型名称/ID 过滤所有供应商的模型（实时刷新时保留输入）
+    const searchBox = doc.createElement("div");
+    searchBox.className = "oc-mp-search";
+    const search = doc.createElement("input");
+    search.type = "text";
+    search.placeholder = "\u641C\u7D22\u6A21\u578B";
+    search.spellcheck = false;
+    search.setAttribute("autocomplete", "off");
+    search.setAttribute("aria-label", "\u641C\u7D22\u6A21\u578B");
+    search.value = initialQuery || "";
+    searchBox.appendChild(search);
+    const top = doc.createElement("div");
+    top.className = "oc-mp-top";
+    const list = doc.createElement("div");
+    list.className = "oc-mp-list";
+    const foot = doc.createElement("div");
+    foot.className = "oc-mp-foot";
+    foot.append(renderIcon(Codicon.settingsGear), doc.createTextNode("\u914D\u7F6E\u4F9B\u5E94\u5546"));
+    root.append(searchBox, top, list, foot);
+    const headers = [];
+    const rows = [];
+    let visibleRows = rows;
+    let selectedRow;
+    for (const [label3, groupModels] of groups) {
+      const h = doc.createElement("div");
+      h.className = "oc-mp-h";
+      const t = doc.createElement("span");
+      t.textContent = label3;
+      const c = doc.createElement("span");
+      c.className = "oc-mp-count";
+      c.textContent = String(groupModels.length);
+      h.append(t, c);
+      list.appendChild(h);
+      const header = { el: h, label: label3, count: groupModels.length, countEl: c, rows: [], hidden: false };
+      headers.push(header);
+      for (const model of groupModels) {
+        const row = doc.createElement("div");
+        const selected = model.identifier === this._selectedModel?.identifier;
+        row.className = "oc-mp-row" + (selected ? " selected" : "");
+        row.setAttribute("role", "option");
+        row.setAttribute("aria-selected", String(selected));
+        row.title = model.metadata.tooltip || model.metadata.name;
+        const name = doc.createElement("span");
+        name.className = "oc-mp-name";
+        name.textContent = model.metadata.name;
+        row.append(renderIcon(selected ? Codicon.check : Codicon.blank), name);
+        row.addEventListener("mousedown", (e) => { e.preventDefault(); e.stopPropagation(); });
+        row.addEventListener("click", () => { close(); onSelect(model); });
+        row.addEventListener("mousemove", () => focusRow(visibleRows.indexOf(row), false));
+        list.appendChild(row);
+        rows.push(row);
+        header.rows.push(row);
+        row._ocSearch = [model.metadata.name, model.metadata.id, model.identifier].filter(Boolean).join("\n").toLowerCase();
+        if (selected) selectedRow = row;
+      }
+    }
+    if (!rows.length) {
+      const empty = doc.createElement("div");
+      empty.className = "oc-mp-empty";
+      // OpenCode: 供应商扩展尚未返回模型时显示加载中，并主动触发一次解析（列表到达后下拉会自动刷新）
+      const loading = !this._languageModelsService.hasResolvedVendor?.("opencode");
+      empty.textContent = loading ? "\u6B63\u5728\u52A0\u8F7D\u6A21\u578B\u2026" : "\u8FD8\u6CA1\u6709\u53EF\u7528\u6A21\u578B\uFF0C\u8BF7\u5148\u5728\u300C\u914D\u7F6E\u4F9B\u5E94\u5546\u300D\u4E2D\u6DFB\u52A0\u6216\u5BFC\u5165";
+      list.appendChild(empty);
+      if (loading) void this._languageModelsService.selectLanguageModels({ vendor: "opencode" }).catch(() => void 0);
+    }
+    let topTarget;
+    const updateTop = () => {
+      const scrollTop = list.scrollTop;
+      let current;
+      for (const h of headers) {
+        if (h.hidden) continue;
+        if (h.el.offsetTop < scrollTop) current = h;
+        else break;
+      }
+      topTarget = current;
+      top.textContent = "";
+      const t = doc.createElement("span");
+      const c = doc.createElement("span");
+      c.className = "oc-mp-count";
+      if (current) {
+        t.textContent = current.label;
+        c.textContent = String(current.count);
+      } else {
+        t.textContent = "\u6A21\u578B";
+        c.textContent = String(visibleRows.length);
+      }
+      top.classList.toggle("empty", !current);
+      top.append(t, c);
+    };
+    let focusIndex = -1;
+    const focusRow = (index, reveal) => {
+      if (!visibleRows.length) { focusIndex = -1; rows.forEach((r) => r.classList.remove("focused")); return; }
+      focusIndex = Math.max(0, Math.min(visibleRows.length - 1, index));
+      rows.forEach((r) => r.classList.toggle("focused", r === visibleRows[focusIndex]));
+      if (reveal) visibleRows[focusIndex].scrollIntoView({ block: "nearest" });
+    };
+    // OpenCode: 搜索过滤——不匹配的模型隐藏，没有匹配模型的分类整组隐藏，分类计数显示匹配数
+    let noMatch;
+    const applyFilter = () => {
+      const q = search.value.trim().toLowerCase();
+      visibleRows = [];
+      for (const h of headers) {
+        let n = 0;
+        for (const r of h.rows) {
+          const show = !q || r._ocSearch.includes(q);
+          r.classList.toggle("oc-mp-hide", !show);
+          if (show) { n++; visibleRows.push(r); }
+        }
+        h.hidden = n === 0;
+        h.el.classList.toggle("oc-mp-hide", h.hidden);
+        h.count = n;
+        h.countEl.textContent = q ? n + " / " + h.rows.length : String(h.rows.length);
+      }
+      if (rows.length && !visibleRows.length) {
+        if (!noMatch) { noMatch = doc.createElement("div"); noMatch.className = "oc-mp-empty"; list.appendChild(noMatch); }
+        noMatch.textContent = "\u6CA1\u6709\u5339\u914D\u300C" + search.value.trim() + "\u300D\u7684\u6A21\u578B";
+        noMatch.classList.remove("oc-mp-hide");
+      } else noMatch?.classList.add("oc-mp-hide");
+    };
+    const disposables = new DisposableStore();
+    const close = () => {
+      if (this._ocPicker !== handle) return;
+      this._ocPicker = void 0;
+      disposables.dispose();
+      root.remove();
+      this._nameButton?.setAttribute("aria-expanded", "false");
+    };
+    const handle = { dispose: close };
+    this._ocPicker = handle;
+    top.addEventListener("mousedown", (e) => { e.preventDefault(); e.stopPropagation(); });
+    top.addEventListener("click", () => {
+      if (topTarget) list.scrollTop = topTarget.el.offsetTop;
+    });
+    foot.addEventListener("mousedown", (e) => { e.preventDefault(); e.stopPropagation(); });
+    foot.addEventListener("click", () => {
+      close();
+      void this._commandService.executeCommand("opencode.manageProviders");
+    });
+    list.addEventListener("scroll", updateTop);
+    root.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.preventDefault(); close(); anchorElement.focus?.(); }
+      else if (e.key === "ArrowDown") { e.preventDefault(); focusRow(focusIndex + 1, true); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); focusRow(focusIndex - 1, true); }
+      else if (e.key === "Enter" && focusIndex >= 0 && visibleRows[focusIndex]) { e.preventDefault(); visibleRows[focusIndex].click(); }
+    });
+    search.addEventListener("input", () => {
+      applyFilter();
+      if (search.value.trim()) { list.scrollTop = 0; focusRow(0, false); }
+      else {
+        const sel = selectedRow && visibleRows.indexOf(selectedRow);
+        focusRow(sel >= 0 ? sel : 0, true);
+      }
+      updateTop();
+    });
+    disposables.add(addDisposableListener(doc, "mousedown", (e) => {
+      if (!root.contains(e.target) && !this._domNode?.contains(e.target)) close();
+    }, true));
+    // OpenCode oc-mp-esc-global: 焦点不在弹窗里（例如还没有模型、搜索框没拿到焦点）时 Esc 也能关闭
+    disposables.add(addDisposableListener(doc, "keydown", (e) => {
+      if (e.key !== "Escape" || root.contains(doc.activeElement)) return;
+      e.preventDefault(); e.stopPropagation(); close();
+    }, true));
+    disposables.add(addDisposableListener(win, "resize", () => close()));
+    disposables.add(addDisposableListener(win, "blur", () => close()));
+    // OpenCode: 打开期间模型列表变化（扩展晚于界面完成加载）时原位刷新
+    disposables.add(this._languageModelsService.onDidChangeLanguageModels(() => {
+      if (this._ocPicker !== handle) return;
+      const query = search.value;
+      close();
+      this._showOpenCodePicker(anchorElement, this._getPickerModels(), onSelect, query);
+    }));
+    host.appendChild(root);
+    const rect = anchorElement.getBoundingClientRect();
+    const spaceAbove = rect.top - 8;
+    const spaceBelow = win.innerHeight - rect.bottom - 8;
+    // OpenCode: 默认在按钮上方展开（输入框在底部），上方空间不足且下方更大时才向下
+    const above = spaceAbove >= 200 || spaceAbove >= spaceBelow;
+    root.style.maxHeight = Math.max(120, Math.min(440, above ? spaceAbove : spaceBelow)) + "px";
+    const width = Math.min(420, Math.max(240, root.offsetWidth));
+    root.style.left = Math.max(8, Math.min(rect.left, win.innerWidth - width - 8)) + "px";
+    if (above) root.style.bottom = win.innerHeight - rect.top + 4 + "px";
+    else root.style.top = rect.bottom + 4 + "px";
+    applyFilter();
+    if (search.value.trim()) {
+      list.scrollTop = 0;
+      focusRow(0, false);
+    } else if (selectedRow) {
+      list.scrollTop = Math.max(0, selectedRow.offsetTop - (list.clientHeight - selectedRow.offsetHeight) / 2);
+      focusRow(visibleRows.indexOf(selectedRow), false);
+    }
+    updateTop();
+    this._nameButton?.setAttribute("aria-expanded", "true");
+    // OpenCode: 打开即聚焦搜索框，方向键/回车/Esc 由 root 的 keydown 统一处理
+    search.focus();
+    search.setSelectionRange(search.value.length, search.value.length);
+  }
   _updateBadge() {
     if (this._badgeIcon) {
       if (this._badge) {
@@ -485,9 +754,18 @@ var ModelPickerWidget = class extends Disposable {
       nameChildren.push(renderIcon(modelIcon));
     }
     const modelLabel = unavailable ? localize(12623, null) : activating ? localize(12616, null) : genericNoModels ? this._usesOpenCodeProviders() ? localize(12628, null) : localize(12624, null) : name ?? localize(12620, null);
-    const showModelLabel = !compact2 || !modelIcon || noModelsAvailable;
+    const openCodeLabel = this._usesOpenCodeProviders(); // OpenCode: 始终显示当前所选模型名称
+    const showModelLabel = !compact2 || !modelIcon || noModelsAvailable || openCodeLabel;
     if (showModelLabel) {
-      nameChildren.push($("span.chat-input-picker-label", void 0, modelLabel));
+      const labelEl = $("span.chat-input-picker-label", void 0, modelLabel);
+      if (openCodeLabel) {
+        labelEl.style.maxWidth = "200px";
+        labelEl.style.overflow = "hidden";
+        labelEl.style.textOverflow = "ellipsis";
+        labelEl.style.whiteSpace = "nowrap";
+        labelEl.title = this._selectedModel ? `${modelLabel}${this._selectedModel.metadata.detail ? " \xB7 " + this._selectedModel.metadata.detail : ""}` : modelLabel;
+      }
+      nameChildren.push(labelEl);
     }
     if (this._badgeIcon) {
       nameChildren.push(this._badgeIcon);

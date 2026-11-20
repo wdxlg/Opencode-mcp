@@ -7,8 +7,10 @@ import { validateToolInput } from "./module-0041.mjs";
 import { applyPatch, formatApplyPatchForModel } from "./module-0031.mjs";
 import { findFiles, formatFindFilesForModel } from "./module-0036.mjs";
 import { formatReadFilesForModel, readFiles } from "./module-0038.mjs";
-import { formatReadImageForModel, readImage } from "./module-0039.mjs";
+import { formatReadImageForModel, readImage, resolveSafePath2 } from "./module-0039.mjs";
 import { formatSearchFilesForModel, searchFiles } from "./module-0040.mjs";
+// see_now: vendored dsh-see-now core (Apache-2.0) + OpenCode glue, synchronized from recovered/shared/see-now/.
+import { invokeSeeNow, SEE_NOW_ACTIONS } from "./see-now/opencode-see-now.mjs";
 
 
 // src/file-tool-registry.ts
@@ -488,12 +490,48 @@ var SEARCH_FILES_TOOL = {
   }
 };
 
+var SEE_NOW_TOOL = {
+  name: "see_now",
+  title: "See Now",
+  description: [
+    "Look at the live screen, take a screenshot, or watch a video file on this OpenCode host. Use this tool for every request to view the screen, capture a screenshot, or watch/skim a video; for one screenshot use action \"peek\".",
+    "Based on dsh-see-now: frames are scored by how much the picture changed and only changed frames are packed into one numbered sheet, so a static screen costs almost no tokens.",
+    "Actions: peek (one frame now), watch (capture `seconds` of screen, or scan a video `path` from `seek`; returns packed sheets; listen:true also transcribes that video segment's audio via the configured ASR service), start/stop (background capture; watch/peek then read from it), status (dependency check: ffmpeg, Python, ASR), region (\"x,y,w,h\" in physical screen pixels or \"off\"), help.",
+    "Windows-MCP stays registered only for clicking, typing and other desktop input; do not use its Screenshot/Snapshot to look at the screen. To read an existing image file use read_image.",
+    "Needs ffmpeg.exe on PATH or OPENCODE_SEE_NOW_FFMPEG; when missing, status/help explain the setup and capture actions return FFMPEG_MISSING. Video paths must be inside the allowed roots."
+  ].join(" "),
+  inputSchema: {
+    type: "object",
+    properties: {
+      action: { type: "string", enum: [...SEE_NOW_ACTIONS], description: "watch (default), peek, start, stop, status, region or help." },
+      source: { type: "string", enum: ["screen", "file", "camera"], description: "What to look at. Defaults to screen." },
+      path: { type: "string", minLength: 1, description: "Video file for source=file, inside allowed roots." },
+      seek: { type: "number", minimum: 0, description: "Start offset in seconds for source=file." },
+      seconds: { type: "number", minimum: 0, maximum: 1800, description: "watch window: screen 1-60 s (default 8); file 1-1800 s of video (default 120); with a running background capture, how long to wait for a new sheet." },
+      quality: { type: "string", enum: ["low", "standard", "high"], description: "Frame size: low 798x450 (default), standard 1050x600, high 1260x720." },
+      region: { type: "string", minLength: 1, description: "For action=region: \"x,y,w,h\" (physical screen pixels) or \"off\"." },
+      device: { type: "string", minLength: 1, description: "Camera device name for source=camera." },
+      listen: { type: "boolean", description: "For watch with source=file: also transcribe the audio of that segment through the user-configured ASR service." },
+      max_sheets: { type: "integer", minimum: 1, maximum: 4, description: "Maximum sheets returned by watch (default 4)." }
+    },
+    additionalProperties: false
+  },
+  annotations: {
+    title: "See Now",
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true
+  }
+};
+
 var FILE_TOOL_DEFINITIONS = [
   APPLY_PATCH_TOOL,
   FIND_FILES_TOOL,
   READ_FILES_TOOL,
   READ_IMAGE_TOOL,
-  SEARCH_FILES_TOOL
+  SEARCH_FILES_TOOL,
+  SEE_NOW_TOOL
 ];
 
 var FILE_TOOL_NAMES = FILE_TOOL_DEFINITIONS.map((tool) => tool.name);
@@ -659,12 +697,13 @@ var FILE_TOOL_ERROR_TAGS = {
   find_files: "FIND_FILES",
   read_files: "READ_FILES",
   read_image: "READ_IMAGE",
-  search_files: "SEARCH_FILES"
+  search_files: "SEARCH_FILES",
+  see_now: "SEE_NOW"
 };
 
 function resolveFileToolErrorCode(error2, message2) {
   const className = error2?.constructor?.name ?? "";
-  if (/(?:FindFiles|SearchTool|ReadTool|ReadImageTool|PatchTool)Error$/.test(className)) {
+  if (/(?:FindFiles|SearchTool|ReadTool|ReadImageTool|PatchTool|SeeNowTool)Error$/.test(className)) {
     const code = error2.code;
     if (typeof code === "string" && code.length > 0) return code;
   }
@@ -759,6 +798,13 @@ async function dispatchFileTool(name, args, context) {
       signal: context.signal
     });
     return { text: formatSearchFilesForModel(result), structuredContent: result };
+  }
+  if (canonicalName === SEE_NOW_TOOL.name) {
+    // Screen / screenshot / video viewing. Video file paths are confined to the same roots as read_image.
+    return await invokeSeeNow(normalizedArgs, {
+      signal: context.signal,
+      resolvePath: (requested) => resolveSafePath2(requested, context.workspaceRoots)
+    });
   }
   throw new Error(`Unknown file tool: ${name}`);
 }

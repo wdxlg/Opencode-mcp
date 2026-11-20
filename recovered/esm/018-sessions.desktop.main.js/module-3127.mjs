@@ -82,11 +82,11 @@ var TerminalSandboxService = class extends Disposable {
     }));
   }
   // ---- ITerminalSandboxService forwarders ---------------------------------
-  isEnabled(precheckInputs) {
-    return this._engine.isEnabled(precheckInputs);
+  isEnabled() {
+    return this._engine.isEnabled();
   }
-  isSandboxAllowNetworkEnabled(precheckInputs) {
-    return this._engine.isSandboxAllowNetworkEnabled(precheckInputs);
+  isSandboxAllowNetworkEnabled() {
+    return this._engine.isSandboxAllowNetworkEnabled();
   }
   getOS() {
     return this._engine.getOS();
@@ -94,14 +94,14 @@ var TerminalSandboxService = class extends Disposable {
   wrapCommand(command4, requestUnsandboxedExecution, shell, cwd2, commandDetails, requestAllowNetwork) {
     return this._engine.wrapCommand(command4, requestUnsandboxedExecution, shell, cwd2, commandDetails, requestAllowNetwork);
   }
-  checkFileAccess(permission, paths, precheckInputs) {
-    return this._engine.checkFileAccess(permission, paths, precheckInputs);
+  checkFileAccess(permission, paths) {
+    return this._engine.checkFileAccess(permission, paths);
   }
-  checkForSandboxingPrereqs(forceRefresh = false, precheckInputs) {
-    return this._engine.checkForSandboxingPrereqs(forceRefresh, precheckInputs);
+  checkForSandboxingPrereqs(forceRefresh = false) {
+    return this._engine.checkForSandboxingPrereqs(forceRefresh);
   }
-  getSandboxConfigPath(forceRefresh = false, precheckInputs) {
-    return this._engine.getSandboxConfigPath(forceRefresh, precheckInputs);
+  getSandboxConfigPath(forceRefresh = false) {
+    return this._engine.getSandboxConfigPath(forceRefresh);
   }
   getTempDir() {
     return this._engine.getTempDir();

@@ -1,0 +1,172 @@
+{
+  "taskId": "rea-native-d8585ddc",
+  "state": "completed_source_and_build",
+  "files": [
+    {
+      "path": "package.json",
+      "sha256": "74be0f603ea06459cbbb5e36932c7292956b66adb3788deaf36f7a1aca9bca44"
+    },
+    {
+      "path": "scripts/sync-shared.cjs",
+      "sha256": "0fbe33dde968f036f168b8499ae34f3243e5f80f0d9ad6a9dfb089553858d10f"
+    },
+    {
+      "path": "scripts/update.cjs",
+      "sha256": "7b4bb25d6c8830267ff4467b1f54589205947f38982a6c22f71a78ed8e06f13f"
+    },
+    {
+      "path": "scripts/prepare-rea.cjs",
+      "sha256": "08acc67f37842c0ff35e45d6acc38cc38f0cfdb38b9e2a00091dee213fce7af2"
+    },
+    {
+      "path": "scripts/verify-rea-assets.cjs",
+      "sha256": "735487b1af54c8c3316cb6cfb06534db28e8c2fe4de368013a3611d7149a37e9"
+    },
+    {
+      "path": "recovered/shared/default-bootstrap.mjs",
+      "sha256": "862b639ed475c458d07660e7b60c4232a01b289fee1fc026e4a2d819b60a0559"
+    },
+    {
+      "path": "recovered/shared/rea-integration.mjs",
+      "sha256": "57a8696499a34bf6374714c3f25d7101b5031fe451baa50f881bfa48fc294618"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/default-bootstrap.mjs",
+      "sha256": "862b639ed475c458d07660e7b60c4232a01b289fee1fc026e4a2d819b60a0559"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/rea-integration.mjs",
+      "sha256": "57a8696499a34bf6374714c3f25d7101b5031fe451baa50f881bfa48fc294618"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/modules.json",
+      "sha256": "3027c60df93bf01bbb8474a8d222c1f398d19bfdae1ba0996ca1d6f7ab053572"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0154.mjs",
+      "sha256": "6555e49047b6427e961d9c6900cedea8ce0d1c79f62730cc624f4a4aa33e8705"
+    },
+    {
+      "path": "defaults/manifest.json",
+      "sha256": "959d7e5e80d2c05bb1a1c689dbfb0807c29123273f360fe710f76bcc5c92604d"
+    },
+    {
+      "path": "defaults/rea-bridge.mjs",
+      "sha256": "56c9c56fd61c621ef6c1fabbbd9f40db2ddb72feb56fd6cee05a5140e68a3f1d"
+    },
+    {
+      "path": "defaults/rea/package.json",
+      "sha256": "c655a72afa70d0729da10417d63ffc3eda18a377435c72c2f4e24e3422723b54"
+    },
+    {
+      "path": "defaults/rea/package-lock.json",
+      "sha256": "32d69d65bf08c9ce255758dd5cdb6589d7245d71da8d9c2ca599d10a409a3b6d"
+    },
+    {
+      "path": "defaults/rea/PROVENANCE.json",
+      "sha256": "a06a2c6ab9bcceff3116cb982fc51eb28f0a471872a7937bca1ba897fa6b6f88"
+    },
+    {
+      "path": "docs/rea-integration.md",
+      "sha256": "d5be4b88bdb9c79419e0f2a1653f702cfa4181094034cd28c180465440f733d3"
+    },
+    {
+      "path": "scripts/publish-runtime.cjs",
+      "sha256": "58acebdde65616ab1220f5f21edd9ec2570ddc2bf78aaa15f23145b85fdd2d61"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/publisher-pre.cjs",
+      "sha256": "e4838dd3659878cc8b99afbfc57fadff13e63cc8c892aab7691ccc362f56ddf7"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/source-post-v2.cjs",
+      "sha256": "c470fe3999b70638005585be8c497773d951b2132c576f8614296ec89ac95a2e"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/build-first.log",
+      "sha256": "3f7e0d4bd29b3a82cb4a7567bd847ca6ab509618273c45fea3d21a8b9f2160af"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/build-first.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/source-post.cjs",
+      "sha256": "deb3b06c84f5df5e01697d039c301919082abab06ba19d1791cb140857f5dd75"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/final-record.cjs",
+      "sha256": "1634d2479699b0f228c407ac210c1f2a302b31339e05a54e2069356e5b447baf"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/task.md",
+      "sha256": "11e2a71c8eb800c76119994e9627b646c0b5a4df5d2b744701e078df7e1582e4"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/progress.md",
+      "sha256": "73abc28b76ea2f1bdbe565036ae2a2460144aaa0ae7c866bc56305a2c3502d2c"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/mandatory-reads.md",
+      "sha256": "4db625516c60c6cc33bc277a1eb51c6e350375303502e93c6c53c7bbd92db717"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/acceptance.md",
+      "sha256": "fa06bc78bc2b982f8153ec74d79475b4cc43cdd2f261f7352d1cd4331323aff8"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/mistakes.md",
+      "sha256": "ad619e07d2e69efc0ef047ee26f34425e6eb4295b0cdd5912e62d388c7547398"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/state.json",
+      "sha256": "90629dabca3ccd206f1b6ac945bb1ae2abf9e2cb4797e485365969f5f03e30e9"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/prepare.log",
+      "sha256": "1fabce631fa3bc5efae4bdfed73574b2e7e7c53f85ac5d46a2d1b2eb1cbddb8f"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/prepare-zip.log",
+      "sha256": "29e3b279a4ce51a294cf2b714ff8a6f0d87c153ed708205be8d76103ae84e9ba"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/prepare-ranged.log",
+      "sha256": "a691f84d2c07fb8561c4fdef0c6cc06a3824faee4b41db3b9e5f47ea10e83616"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/build.log",
+      "sha256": "9c92f43cfa94c61a3a434afb509c1fcb8d9691f25bbb95310ada889d10b985e6"
+    },
+    {
+      "path": "tasks/rea-native-d8585ddc/build.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "reports/rea-build-verification.json",
+      "sha256": "9f7273cf606d7b3f296917621508a41e358b7ecd656b965f617f36dbc32fd5a4"
+    },
+    {
+      "path": "reports/build-verification.json",
+      "sha256": "a41f132e25b87367b3c0f81b74cf4b17e7437c460544eeacfc967730e39be5fa"
+    },
+    {
+      "path": "reports/runtime-update.json",
+      "sha256": "421faff24b84684bdccfe87f41cee07400e7792be92db37ff3366eb6a486b803"
+    }
+  ],
+  "managedDefaultManifest": {
+    "path": "defaults/manifest.json",
+    "sha256": "959d7e5e80d2c05bb1a1c689dbfb0807c29123273f360fe710f76bcc5c92604d"
+  },
+  "managedRuntimeManifest": {
+    "path": "opencode/OPENCODE-RELEASE.json",
+    "sha256": "282a8d43cfe13454b748660bb6101e4fd724675c795581e33c5b30de7bf1de26"
+  },
+  "generatedCaches": [
+    "upstream/rea-node/",
+    "upstream/rea-npm-cache/"
+  ],
+  "post": "c2061f36a8bd308b33602d774643bd21e8e13e01",
+  "pre": "fc0722508911dace557e90f4c07397f37e76825e"
+}

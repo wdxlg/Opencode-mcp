@@ -273,12 +273,8 @@ registerAction2(class extends Action2 {
         condition: PanelMaximizedContext,
         tooltip: localize(6882, null)
       },
-      menu: [{
-        id: MenuId.PanelTitle,
-        group: "navigation",
-        order: 1,
-        when: panelMaximizationSupportedWhen
-      }]
+      // OpenCode ae-dock-step17: 去掉底部面板标题上的最大化按钮，改为 AE 式按 ` 键切换最大化
+      menu: []
     });
   }
   run(accessor) {

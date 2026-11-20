@@ -1,22 +1,13 @@
 // Recovered JavaScript implementation; original TS types are not recovered.
 // Artifact: resources/app/out/vs/workbench/workbench.desktop.main.js
 // Original module marker: src/vs/workbench/contrib/terminalContrib/chatAgentTools/browser/tools/terminalToolAutoApprove.ts
-import { isAutoApproveLevel } from "./module-0964.mjs";
+import { isOpenCodeAutoApproveMode } from "./module-0964.mjs";
 
 
 // src/vs/workbench/contrib/terminalContrib/chatAgentTools/browser/tools/terminalToolAutoApprove.ts
-function isSessionAutoApproveLevel(chatSessionResource, configurationService, chatWidgetService, chatService) {
-  const inspected = configurationService.inspect("chat.tools.global.autoApprove" /* GlobalAutoApprove */);
-  if (inspected.policyValue === false) {
-    return false;
-  }
-  const widget = chatWidgetService.getWidgetBySessionResource(chatSessionResource) ?? chatWidgetService.lastFocusedWidget;
-  if (widget && isAutoApproveLevel(widget.input.currentModeInfo.permissionLevel)) {
-    return true;
-  }
-  const model = chatService.getSession(chatSessionResource);
-  const request2 = model?.getRequests().at(-1);
-  return isAutoApproveLevel(request2?.modeInfo?.permissionLevel);
+// OpenCode: 旧的会话审批级别（自动批准 / Autopilot）已删除；「整个会话自动允许」改由对话「权限」按钮的模式决定（自动允许 / 全自动）
+function isSessionAutoApproveLevel(chatSessionResource, configurationService) {
+  return !!chatSessionResource && isOpenCodeAutoApproveMode(configurationService);
 }
 
 function isToolEligibleForTerminalAutoApproval(toolReferenceName, configurationService, legacyToolReferenceFullNames) {

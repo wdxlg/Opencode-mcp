@@ -886,12 +886,8 @@ var RefreshAgentSessionsViewerAction = class extends Action2 {
     super({
       id: "agentSessionsViewer.refresh",
       title: localize2(9128, "Refresh Agent Sessions"),
-      icon: Codicon.refresh,
-      menu: {
-        id: MenuId.AgentSessionsToolbar,
-        group: "navigation",
-        order: 1
-      }
+      icon: Codicon.refresh
+      // OpenCode: 对话面板标题行不再显示刷新按钮（命令保留，窗口获得焦点时列表仍自动刷新）
     });
   }
   run(accessor, agentSessionsControl) {

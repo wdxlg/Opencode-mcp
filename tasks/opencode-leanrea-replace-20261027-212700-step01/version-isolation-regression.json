@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "normal startup ignores inherited foreign profile and creates local data",
+      "passed": true
+    },
+    {
+      "name": "only this runtime recovery profile is accepted; foreign recovery rejected",
+      "passed": true
+    },
+    {
+      "name": "CLI and main portable bootstrap stay identical",
+      "passed": true
+    },
+    {
+      "name": "Windows launcher shares rules while isolating ordinary data (stubbed application start)",
+      "passed": true
+    },
+    {
+      "name": "private paths reject traversal, another version, and directory junctions",
+      "passed": true
+    },
+    {
+      "name": "MCP rejects other runtime command/argument/env without altering config",
+      "passed": true
+    },
+    {
+      "name": "shared Skills pointer survives profile moves and ignores legacy version-local settings",
+      "passed": true
+    },
+    {
+      "name": "legacy MCP migration is copy-only and never overwrites destination",
+      "passed": true
+    },
+    {
+      "name": "MCP catalog never falls back to public HOME in portable mode",
+      "passed": true
+    },
+    {
+      "name": "two profiles and an independent process continuously share schema-4 rules",
+      "passed": true
+    },
+    {
+      "name": "legacy schemas require explicit migration and future formats are never overwritten",
+      "passed": true
+    },
+    {
+      "name": "missing Skill blocks worker authorization before any paid request",
+      "passed": true
+    },
+    {
+      "name": "clean-build publishes only after verification; launcher captures shared path before redirection",
+      "passed": true
+    }
+  ],
+  "applicationStarted": false,
+  "realModelRequests": false,
+  "usedRealUserData": false,
+  "at": "2026-10-27T13:41:49.968Z"
+}

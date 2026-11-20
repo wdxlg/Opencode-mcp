@@ -471,6 +471,11 @@ var RemoteStatusIndicator = class extends Disposable {
       tooltip,
       command: command4 ?? RemoteStatusIndicator.REMOTE_ACTIONS_COMMAND_ID
     };
+    // OpenCode: hide remote indicator (status.host) in the status bar
+    if (true) {
+      if (this.remoteStatusEntry) { this.remoteStatusEntry.dispose(); this.remoteStatusEntry = undefined; }
+      return;
+    }
     if (this.remoteStatusEntry) {
       this.remoteStatusEntry.update(properties);
     } else {

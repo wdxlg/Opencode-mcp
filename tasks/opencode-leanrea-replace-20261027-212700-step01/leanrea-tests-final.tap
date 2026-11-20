@@ -1,0 +1,172 @@
+TAP version 13
+# Subtest: packaged Skill, license and manifest are internally consistent
+ok 1 - packaged Skill, license and manifest are internally consistent
+  ---
+  duration_ms: 65.4239
+  type: 'test'
+  ...
+# Subtest: bundled discovery exposes a valid listing and respects master switch
+ok 2 - bundled discovery exposes a valid listing and respects master switch
+  ---
+  duration_ms: 9.3378
+  type: 'test'
+  ...
+# Subtest: existing same-name user Skill wins, even when disabled
+ok 3 - existing same-name user Skill wins, even when disabled
+  ---
+  duration_ms: 4.9977
+  type: 'test'
+  ...
+# Subtest: missing instruction is not advertised
+ok 4 - missing instruction is not advertised
+  ---
+  duration_ms: 4.9724
+  type: 'test'
+  ...
+# Subtest: directory links are not advertised
+ok 5 - directory links are not advertised
+  ---
+  duration_ms: 7.8977
+  type: 'test'
+  ...
+# Subtest: actual file registry can read bundled instructions but cannot patch outside workspace
+ok 6 - actual file registry can read bundled instructions but cannot patch outside workspace
+  ---
+  duration_ms: 37.6524
+  type: 'test'
+  ...
+# Subtest: verified old default is retired only after backup, retaining Windows MCP and secrets
+ok 7 - verified old default is retired only after backup, retaining Windows MCP and secrets
+  ---
+  duration_ms: 1.3193
+  type: 'test'
+  ...
+# Subtest: retirement preserves disabled server
+ok 8 - retirement preserves disabled server
+  ---
+  duration_ms: 0.2238
+  type: 'test'
+  ...
+# Subtest: retirement preserves editor target
+ok 9 - retirement preserves editor target
+  ---
+  duration_ms: 0.37
+  type: 'test'
+  ...
+# Subtest: retirement preserves bridge target
+ok 10 - retirement preserves bridge target
+  ---
+  duration_ms: 0.2923
+  type: 'test'
+  ...
+# Subtest: retirement preserves timeout
+ok 11 - retirement preserves timeout
+  ---
+  duration_ms: 0.1213
+  type: 'test'
+  ...
+# Subtest: retirement preserves additional server field
+ok 12 - retirement preserves additional server field
+  ---
+  duration_ms: 0.1088
+  type: 'test'
+  ...
+# Subtest: retirement preserves extra environment
+ok 13 - retirement preserves extra environment
+  ---
+  duration_ms: 0.1023
+  type: 'test'
+  ...
+# Subtest: retirement preserves changed env secret
+ok 14 - retirement preserves changed env secret
+  ---
+  duration_ms: 0.1283
+  type: 'test'
+  ...
+# Subtest: retirement preserves changed args secret
+ok 15 - retirement preserves changed args secret
+  ---
+  duration_ms: 0.1887
+  type: 'test'
+  ...
+# Subtest: retirement preserves missing owner marker
+ok 16 - retirement preserves missing owner marker
+  ---
+  duration_ms: 0.1652
+  type: 'test'
+  ...
+# Subtest: retirement preserves different existing backup
+ok 17 - retirement preserves different existing backup
+  ---
+  duration_ms: 0.2358
+  type: 'test'
+  ...
+# Subtest: unavailable credential storage preserves the server
+ok 18 - unavailable credential storage preserves the server
+  ---
+  duration_ms: 0.296
+  type: 'test'
+  ...
+# Subtest: retirement does not remove a server if backup creation fails
+ok 19 - retirement does not remove a server if backup creation fails
+  ---
+  duration_ms: 0.4547
+  type: 'test'
+  ...
+# Subtest: default copy removes only trusted unchanged obsolete files and preserves unmanaged files
+ok 20 - default copy removes only trusted unchanged obsolete files and preserves unmanaged files
+  ---
+  duration_ms: 30.414
+  type: 'test'
+  ...
+# Subtest: untrusted old manifest aborts before changes
+ok 21 - untrusted old manifest aborts before changes
+  ---
+  duration_ms: 22.0256
+  type: 'test'
+  ...
+# Subtest: default copy rejects customized obsolete file before any removal
+ok 22 - default copy rejects customized obsolete file before any removal
+  ---
+  duration_ms: 21.8078
+  type: 'test'
+  ...
+# Subtest: default copy rejects customized retained file before any removal
+ok 23 - default copy rejects customized retained file before any removal
+  ---
+  duration_ms: 21.6956
+  type: 'test'
+  ...
+# Subtest: default copy rejects unmanaged new collision before any removal
+ok 24 - default copy rejects unmanaged new collision before any removal
+  ---
+  duration_ms: 27.4835
+  type: 'test'
+  ...
+# Subtest: default copy refuses linked destination ancestors
+ok 25 - default copy refuses linked destination ancestors
+  ---
+  duration_ms: 34.1081
+  type: 'test'
+  ...
+# Subtest: default copy refuses path traversal
+ok 26 - default copy refuses path traversal
+  ---
+  duration_ms: 23.6278
+  type: 'test'
+  ...
+# Subtest: exact old rule is rendered as LeanREA without rewriting shared state; customized rule survives
+ok 27 - exact old rule is rendered as LeanREA without rewriting shared state; customized rule survives
+  ---
+  duration_ms: 44.4507
+  type: 'test'
+  ...
+1..27
+# tests 27
+# suites 0
+# pass 27
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 509.9206

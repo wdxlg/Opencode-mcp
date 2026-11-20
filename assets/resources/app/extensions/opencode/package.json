@@ -2,7 +2,7 @@
   "name": "opencode",
   "displayName": "OpenCode",
   "description": "本地开发工具、原生 Chat、持久规则、多智能体协作、Bridge、MCP 与 Skills 集成",
-  "version": "0.13.2",
+  "version": "0.13.3",
   "publisher": "opencode",
   "private": true,
   "engines": {
@@ -23,10 +23,12 @@
     "chatReferenceBinaryData",
     "chatPromptFiles",
     "chatProvider",
-    "languageModelThinkingPart"
+    "languageModelThinkingPart",
+    "browser"
   ],
   "activationEvents": [
     "onStartupFinished",
+    "onWebviewPanel:opencode.usage",
     "onChatParticipant:opencode.agent",
     "onLanguageModelChatProvider:opencode",
     "onLanguageModelChatProvider:opencode-codex",
@@ -59,8 +61,6 @@
     "onCommand:opencode.bridge.installCloudflared",
     "onCommand:opencode.bridge.checkNgrok",
     "onCommand:opencode.bridge.rotateEndpoint",
-    "onCommand:opencode.workspaceHub.open",
-    "onCommand:opencode.workspaceHub.openChats",
     "onCommand:opencode.workspaceHub.beginChat",
     "onCommand:opencode.workspaceHub.publishChat",
     "onCommand:opencode.workspaceHub.importedKeys",
@@ -76,9 +76,28 @@
     "onCommand:opencode.mcp.setEnabled",
     "onCommand:opencode.mcp.remove",
     "onCommand:opencode.mcp.retry",
-    "onCommand:opencode.mcp.open"
+    "onCommand:opencode.mcp.open",
+    "onCommand:opencode.bridge.toggleWorkspaceScope",
+    "onCommand:opencode.work.open",
+    "onCommand:opencode.automations.open"
   ],
   "contributes": {
+    "icons": {
+      "opencode-work": {
+        "description": "OpenCode 「工作」看板",
+        "default": {
+          "fontPath": "media/task-workbench/icons/opencode-icons.woff",
+          "fontCharacter": "\\E001"
+        }
+      },
+      "opencode-automations": {
+        "description": "OpenCode 「自动化」",
+        "default": {
+          "fontPath": "media/task-workbench/icons/opencode-icons.woff",
+          "fontCharacter": "\\E002"
+        }
+      }
+    },
     "mcpServerDefinitionProviders": [
       {
         "id": "opencode.external-mcp",
@@ -86,6 +105,70 @@
       }
     ],
     "commands": [
+      {
+        "command": "opencode.inlineEdit",
+        "title": "AI 行内修改（选中代码后描述怎么改）",
+        "category": "OpenCode",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "opencode.inlineAi.toggleTab",
+        "title": "开关 AI Tab 补全",
+        "category": "OpenCode",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "opencode.inlineAi.pickModel",
+        "title": "选择 Tab 补全 / 行内修改用的模型",
+        "category": "OpenCode"
+      },
+      {
+        "command": "opencode.aiCodeReview.run",
+        "title": "AI 审查改动（未提交 / 分支 PR / 最近提交）",
+        "category": "OpenCode",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "opencode.aiCodeReview.clear",
+        "title": "清除 AI 审查标记",
+        "category": "OpenCode"
+      },
+      {
+        "command": "opencode.usage.show",
+        "title": "模型用量统计",
+        "category": "OpenCode",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "opencode.diagnostics.export",
+        "title": "导出诊断信息",
+        "category": "OpenCode",
+        "icon": "$(report)"
+      },
+      {
+        "command": "opencode.update.check",
+        "title": "检查更新",
+        "category": "OpenCode",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "opencode.cloudAgent.dispatch",
+        "title": "发到云端运行",
+        "category": "OpenCode",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "opencode.cloudAgent.installWorkflow",
+        "title": "安装云端工作流",
+        "category": "OpenCode",
+        "icon": "$(github-action)"
+      },
+      {
+        "command": "opencode.cloudAgent.showRuns",
+        "title": "查看云端任务",
+        "category": "OpenCode",
+        "icon": "$(cloud)"
+      },
       {
         "command": "opencode.mcp.windows.setup",
         "title": "Windows-MCP：接入完整桌面工具",
@@ -142,6 +225,10 @@
         "command": "opencode.openChat",
         "title": "OpenCode: Open Chat",
         "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "opencode.multiModel.cleanupWorktrees",
+        "title": "OpenCode: 清理多模型隔离工作区"
       },
       {
         "command": "opencode.pickMergeModel",
@@ -209,16 +296,6 @@
         "icon": "$(key)"
       },
       {
-        "command": "opencode.workspaceHub.open",
-        "title": "OpenCode：工作区与 Bridge 会话",
-        "icon": "$(layout)"
-      },
-      {
-        "command": "opencode.workspaceHub.openChats",
-        "title": "OpenCode：全实例共享聊天记录",
-        "icon": "$(history)"
-      },
-      {
         "command": "opencode.openNewInstance",
         "title": "OpenCode：新开独立实例",
         "icon": "$(empty-window)"
@@ -278,22 +355,38 @@
         "icon": "$(organization)"
       },
       {
-        "command": "opencode.taskWorkbench.open",
-        "title": "项目记忆与任务",
-        "category": "任务工作台"
+        "command": "opencode.bridge.toggleWorkspaceScope",
+        "title": "切换 MCP 模式（临时/项目）",
+        "category": "OpenCode",
+        "icon": "$(globe)"
       },
       {
-        "command": "opencode.taskWorkbench.pair",
-        "title": "配对本机任务服务",
-        "category": "任务工作台"
+        "command": "opencode.waitForEvent.fire",
+        "title": "记录事件并让等待中的对话继续",
+        "category": "OpenCode"
       },
       {
-        "command": "opencode.taskWorkbench.disconnect",
-        "title": "断开任务工作台面板",
-        "category": "任务工作台"
+        "command": "opencode.work.open",
+        "title": "工作",
+        "category": "OpenCode",
+        "icon": "$(opencode-work)"
+      },
+      {
+        "command": "opencode.automations.open",
+        "title": "自动化",
+        "category": "OpenCode",
+        "icon": "$(opencode-automations)"
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "opencode.work.open"
+        },
+        {
+          "command": "opencode.automations.open"
+        }
+      ],
       "view/title": [
         {
           "command": "opencode.rules.open",
@@ -303,12 +396,17 @@
         {
           "command": "opencode.collaboration.open",
           "when": "view == workbench.panel.chat.view.copilot",
-          "group": "navigation@11"
+          "group": "navigation@9.5"
         },
         {
-          "command": "opencode.workspaceHub.open",
+          "command": "opencode.work.open",
           "when": "view == workbench.panel.chat.view.copilot",
           "group": "navigation@10"
+        },
+        {
+          "command": "opencode.automations.open",
+          "when": "view == workbench.panel.chat.view.copilot",
+          "group": "navigation@11"
         }
       ]
     },
@@ -324,6 +422,41 @@
         ],
         "modes": [
           "agent"
+        ],
+        "commands": [
+          {
+            "name": "compact",
+            "description": "压缩当前对话上下文，可附加要保留的重点"
+          },
+          {
+            "name": "commands",
+            "description": "列出自定义指令（/commands init 生成示例）"
+          },
+          {
+            "name": "run",
+            "description": "执行自定义指令：/run 名字 参数"
+          },
+          {
+            "name": "add",
+            "description": "快速新建指令：/add 名字 要发给 AI 的文字（不调用 AI）"
+          },
+          {
+            "name": "tools",
+            "description": "列出自定义工具（/tools init 生成生图工具示例）"
+          },
+          {
+            "name": "goal",
+            "description": "目标循环：/goal 目标 [--check \"验收命令\"] [--max 轮数]，每轮后验收，没通过就自动继续"
+          }
+        ]
+      },
+      {
+        "id": "opencode.team",
+        "name": "team",
+        "fullName": "团队协作",
+        "description": "和团队成员群聊，@成员名 点名",
+        "locations": [
+          "panel"
         ]
       }
     ],
@@ -834,6 +967,85 @@
           },
           "additionalProperties": false
         }
+      },
+      {
+        "name": "opencode_github",
+        "displayName": "GitHub",
+        "toolReferenceName": "github",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(github)",
+        "userDescription": "用你登录的 GitHub 账号访问 Issue、PR、评论、审查、Actions、Release、搜索等。",
+        "modelDescription": "Call the GitHub API as the signed-in user. Use it for anything on GitHub: issues, pull requests (files, diffs, reviews, review comments, merge), comments, labels, milestones, branches, commits, compare, contents, releases, Actions workflows/runs/logs, checks, gists, notifications, code/issue search, repos and users. REST: set method (default GET) and path, e.g. '/repos/{owner}/{repo}/issues', '/repos/{owner}/{repo}/pulls/12/files', '/search/issues'; '{owner}' and '{repo}' are replaced with the current workspace's GitHub origin. Put URL parameters in query (per_page up to 100, page). Use body for POST/PATCH/PUT/DELETE payloads. For a PR diff use accept 'application/vnd.github.v3.diff'. GraphQL: set graphql (and variables); '{owner}'/'{repo}' are replaced there too. The result starts with 'HTTP <status>' and a 'link' header for pagination. Write operations ask the user to confirm first. Prefer this tool over running gh/curl in the terminal.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": [
+                "GET",
+                "POST",
+                "PATCH",
+                "PUT",
+                "DELETE",
+                "HEAD"
+              ],
+              "description": "HTTP method for REST calls. Default GET."
+            },
+            "path": {
+              "type": "string",
+              "description": "REST path on api.github.com, e.g. /repos/{owner}/{repo}/pulls?state=open or /user. Ignored when graphql is set."
+            },
+            "query": {
+              "type": "object",
+              "description": "URL query parameters, e.g. {\"state\":\"open\",\"per_page\":50}.",
+              "additionalProperties": true
+            },
+            "body": {
+              "description": "JSON request body for POST/PATCH/PUT/DELETE."
+            },
+            "graphql": {
+              "type": "string",
+              "description": "GraphQL query or mutation. When set, path/method are ignored."
+            },
+            "variables": {
+              "type": "object",
+              "description": "GraphQL variables.",
+              "additionalProperties": true
+            },
+            "accept": {
+              "type": "string",
+              "description": "Accept header, e.g. application/vnd.github.v3.diff for a PR diff. Default application/vnd.github+json."
+            },
+            "max_chars": {
+              "type": "integer",
+              "minimum": 2000,
+              "maximum": 200000,
+              "description": "Truncate the response to this many characters. Default 60000."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "opencode_confirm",
+        "displayName": "OpenCode 确认",
+        "modelDescription": "Internal UI helper OpenCode uses to ask the user for confirmation inside the chat. Never call this tool yourself.",
+        "userDescription": "OpenCode 内部使用：在聊天里请求你确认",
+        "canBeReferencedInPrompt": false,
+        "tags": [
+          "opencode-internal"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "detail": {
+              "type": "string"
+            }
+          }
+        }
       }
     ],
     "configuration": {
@@ -843,6 +1055,27 @@
           "type": "string",
           "default": "https://api.openai.com/v1",
           "description": "OpenAI Chat Completions-compatible base URL used by OpenCode."
+        },
+        "opencode.update.source": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "markdownDescription": "OpenCode 更新来源。填 GitHub 公开仓库 `owner/name`（读取 releases/latest），或包含 `latest.json`（`{version, notes, url 或 path}`）的本地/共享文件夹路径。留空（默认）= 不检查更新、不联网。启动时每天最多检查一次，也可运行「OpenCode: 检查更新」。"
+        },
+        "opencode.cloudAgent.repo": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "「发到云端运行」的目标 GitHub 仓库 `owner/repo`。留空（默认）= 自动使用当前工作区 git remote（优先 origin）指向的仓库；识别不到时才用这里的值，仍为空则弹框询问。"
+        },
+        "opencode.cloudAgent.model": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "云端智能体使用的模型 id（传给工作流输入 `model`）。留空 = 使用 `opencode.model.name`；两者都为空时用仓库变量 `OPENCODE_MODEL` 或运行器默认值。"
+        },
+        "opencode.cloudAgent.secretName": {
+          "type": "string",
+          "default": "OPENCODE_API_KEY",
+          "markdownDescription": "保存模型 API Key 的 GitHub 仓库 Secret 名称（只在 GitHub Secrets 中保存，OpenCode 不读取、不记录密钥）。可选：Secret 或变量 `OPENCODE_API_BASE` 指定 OpenAI 兼容地址。"
         },
         "opencode.model.name": {
           "type": "string",
@@ -854,6 +1087,203 @@
           "default": true,
           "scope": "application",
           "description": "Render OpenCode Chat tool activity with the compact Bridge-inspired card style. This setting does not change Bridge mode."
+        },
+        "opencode.chat.aiTitle": {
+          "type": "boolean",
+          "default": false,
+          "scope": "application",
+          "description": "Use the current chat model to generate a short title for new chats. When off, the first message is used as the title."
+        },
+        "opencode.chat.permissionMode": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "auto",
+            "fullAuto",
+            "readonly"
+          ],
+          "enumDescriptions": [
+            "每次询问：终端命令、文件修改与 MCP 工具调用前都要确认",
+            "自动允许：工具调用不再弹出确认",
+            "全自动：同「自动允许」，并且 AI 的所有提问直接采用推荐项（对话里留记录），交接自动发送；单独设为询问 / 禁止的类别和工具仍优先",
+            "只读：只允许读取类工具，禁止修改文件、运行命令与未单独允许的 MCP 工具"
+          ],
+          "default": "ask",
+          "scope": "application",
+          "description": "OpenCode 原生 Chat 的工具权限模式（对话面板标题行「权限」按钮）：每次询问 / 自动允许 / 全自动 / 只读。不影响 Bridge 远程调用，Bridge 仍由自身规则与门禁约束。"
+        },
+        "opencode.chat.mcpPermissions": {
+          "type": "object",
+          "default": {},
+          "scope": "application",
+          "properties": {
+            "servers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "enum": [
+                  "allow",
+                  "ask",
+                  "deny"
+                ]
+              }
+            },
+            "tools": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "enum": [
+                  "allow",
+                  "ask",
+                  "deny"
+                ]
+              }
+            }
+          },
+          "description": "OpenCode 原生 Chat 的 MCP 工具权限：servers 按服务器名、tools 按工具 ID 设置 allow / ask / deny；工具优先于服务器，未设置时跟随 opencode.chat.categoryPermissions 的 mcp 类别，再跟随 opencode.chat.permissionMode。"
+        },
+        "opencode.chat.categoryPermissions": {
+          "type": "object",
+          "default": {},
+          "scope": "application",
+          "additionalProperties": false,
+          "properties": {
+            "terminal": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "edit": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "read": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "search": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "diagnostics": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "screen": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "memoryRead": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "memoryWrite": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "tasks": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "collab": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "mcpConfig": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "custom": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "mcp": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "branchCommand": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            },
+            "worktreeEdit": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "ask",
+                "deny"
+              ]
+            }
+          },
+          "description": "OpenCode 原生 Chat 按类别的工具权限（「权限」›「更多」）：terminal 终端命令、edit 修改文件、read 读取文件、search 搜索与列目录、diagnostics 诊断与 LSP、screen 屏幕/摄像头查看、memoryRead 读取记忆与技能、memoryWrite 写入记忆、tasks 任务卡与计划、collab Bridge 协作与规则、mcpConfig 配置 MCP 服务器、custom 自定义工具、mcp MCP 工具、branchCommand 多模型后台分支终端命令、worktreeEdit 隔离工作树改动。未设置的类别跟随 opencode.chat.permissionMode。优先级：单个工具 > MCP 服务器 > 类别 > 模式。"
+        },
+        "opencode.chat.toolPermissions": {
+          "type": "object",
+          "default": {},
+          "scope": "application",
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "allow",
+              "ask",
+              "deny"
+            ]
+          },
+          "description": "OpenCode 原生 Chat 按单个工具名的权限（如 run_command、apply_patch、custom_xxx），优先于类别与模式；MCP 工具用 opencode.chat.mcpPermissions.tools。"
         },
         "opencode.chat.sharedHistory": {
           "type": "boolean",
@@ -923,17 +1353,49 @@
           "maximum": 65535,
           "description": "Fixed localhost port used by Cloudflare Named Tunnel. Configure the Cloudflare published application Service URL as http://127.0.0.1:<port>."
         },
+        "opencode.bridge.tailscalePath": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "Path to tailscale.exe for the Tailscale Funnel tunnel. Empty: Program Files, E:\\ai工作区\\tailscale\\bin, then PATH."
+        },
+        "opencode.bridge.tailscaleSocket": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "tailscaled named pipe for the Tailscale Funnel tunnel. Empty: default for installed Tailscale, or \\\\.\\pipe\\tailscale-ai for a portable copy with tailscaled.exe next to tailscale.exe."
+        },
+        "opencode.bridge.elicitation": {
+          "type": "boolean",
+          "default": false,
+          "scope": "application",
+          "description": "Bridge 用 bridge_ask_user 提问时，同时向支持 MCP elicitation 表单的客户端推送一份等价表单，哪边先回答就用哪边。默认关闭。"
+        },
+        "opencode.bridge.checkpoints": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "description": "影子 git 检查点：每次 apply_patch、写文件或 run_command 成功后，在 .opencode/shadow-git 自动保存一次工作区快照（不碰项目自己的 .git），并提供 bridge_checkpoints 工具（list / restore / fork）。默认关闭。"
+        },
+        "opencode.bridge.specMode": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "description": "Spec 模式：开启后新建的任务卡，要先依次提交 需求→设计→任务 三段规格（写在 .opencode/specs/），每段都要在任务卡上评审通过；三段全部通过前，Bridge 拒绝写文件和执行命令。默认关闭。"
+        },
         "opencode.bridge.tunnelProvider": {
           "type": "string",
           "enum": [
             "cloudflare",
             "cloudflare-named",
-            "ngrok"
+            "ngrok",
+            "tailscale"
           ],
           "enumDescriptions": [
             "Cloudflare Quick Tunnel. No account or domain required; the public URL changes after restart.",
             "Cloudflare Named Tunnel. Stable hostname; requires a Cloudflare account, managed domain, Tunnel Token, and published application route.",
-            "ngrok reserved domain. Requires an ngrok account, Authtoken, and configured domain."
+            "ngrok reserved domain. Requires an ngrok account, Authtoken, and configured domain.",
+            "Tailscale Funnel. Fixed https://<machine>.<tailnet>.ts.net address; requires Tailscale login with HTTPS and Funnel enabled."
           ],
           "default": "cloudflare",
           "scope": "application",
@@ -975,7 +1437,7 @@
         },
         "opencode.bridge.copyPromptText": {
           "type": "string",
-          "default": "使用上方 MCP_URL_BASE64 接入 MCP，完成 initialize 与 initialized 握手，通过 tools/list 阅读工具规则。AI 自行创建、更新并收尾自己的 Bridge 任务卡；确认指工具成功回执，不需要用户点击或手动完成普通任务卡。完整读取全部已启用规则，再调用 bridge_acknowledge_rules 确认当前哈希；不能假装已读取或把未做检查写成通过。仅在真实需求不明确或操作超出授权时询问，不为普通计划和卡片维护增加人工审批。",
+          "default": "使用上方 MCP_URL_BASE64，用 Bash 连接 MCP，然后调用 start。这是我电脑mcp工具打开的隧道，用于让你直接修改或查看我电脑项目，用于我的学习或开发",
           "scope": "application",
           "markdownDescription": "Text the Bridge page's **Copy prompt** button places after the MCP address. The address is always taken from the running Bridge and is never read from this setting, so editing it cannot produce a stale or wrong endpoint. Leave empty to use the built-in default."
         },
@@ -1090,7 +1552,7 @@
         "opencode.multiModel.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable multi-model rounds. In Plan mode, different models answer the same question from the context before the previous round; the merge model reads all branches and, when necessary, performs read-only file verification, producing consensus, disagreements, and the final plan. Only adopted branches continue into subsequent context. When disabled, an empty input no longer triggers branch sending."
+          "description": "Enable multi-model rounds. Different models answer the same question from the context before the previous round, each branch editing code in its own git worktree; the merge model reads all branches, verifies when necessary, and produces consensus, disagreements, and the final change. Only adopted branches continue into subsequent context. When disabled, an empty input no longer triggers branch sending."
         },
         "opencode.multiModel.mergeModel": {
           "type": "string",
@@ -1109,6 +1571,13 @@
           "maximum": 6,
           "description": "Maximum number of branches per round. When the limit is reached, merge or adopt a branch before generating more branches for the same question."
         },
+        "opencode.multiModel.parallelBranches": {
+          "type": "integer",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 6,
+          "description": "How many branch models \"Multi-Model Branches\" runs at the same time (including the one shown live). 1 runs them one after another. Background branches run their terminal commands without per-command chat confirmation, inside the isolated branch worktree in Code mode; workspace rules still apply."
+        },
         "opencode.multiModel.mergeReasoningEffort": {
           "type": "string",
           "enum": [
@@ -1125,13 +1594,184 @@
           "default": "high",
           "description": "Thinking effort used by the merge model when summarizing branches. Only applies when opencode.multiModel.mergeModel is set to a separate merge model; otherwise merging follows the thinking setting of the current conversation. If the merge model does not support the selected effort (DeepSeek supports low/high/max only; Codex models cannot disable thinking or use Ultra), the merge model default effort is used instead."
         },
+        "opencode.multiModel.branchModels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Models used by the Multi-Model Branches button, in vendor/modelId format and in order. Models that already answered the current round are skipped; the count is limited by opencode.multiModel.maxBranches."
+        },
+        "opencode.multiModel.branchRoles": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "critic",
+              "alternative",
+              "minimal",
+              "verifier"
+            ]
+          },
+          "description": "Per-model branch perspective, keyed by vendor/modelId: critic, alternative, minimal or verifier. Applies to every branch answered by that model; merging labels each branch with its role."
+        },
+        "opencode.multiModel.codeBranches": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow multi-model branches in Code mode. A git snapshot is taken before each Code answer; every branch edits code in its own git worktree and shows a diff that can replace or be layered onto the workspace."
+        },
+        "opencode.multiModel.autoMerge": {
+          "type": "boolean",
+          "default": false,
+          "description": "After Multi-Model Branches finishes and at least two complete branches exist, run Merge & Summarize automatically."
+        },
         "opencode.terminal.pipelineExitCodes": {
           "type": "boolean",
           "default": true,
           "scope": "application",
           "description": "Include pipeline_exit_codes (per-command Bash PIPESTATUS) in run_command and get_command_output responses."
+        },
+        "opencode.memory.scratchDirectory": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "description": "临时 MCP 的专属记忆目录路径。留空时使用 OpenCode 共享自动化目录下的 scratch-memory。临时 MCP 默认拥有整机权限（Entire device），其需求、随手记与临时交接存放在此处，不污染任何工作区项目记忆。"
+        },
+        "opencode.memory.autoHandoff": {
+          "type": "boolean",
+          "default": true,
+          "scope": "application",
+          "description": "任务或会话结束时，是否自动将工作进展与交接单归档至记忆中。"
+        },
+        "opencode.tools.deferLoading": {
+          "type": "boolean",
+          "default": true,
+          "description": "工具较多时（超过 24 个）只发送核心工具的完整定义，其余工具由模型通过 tool_search 按需加载，以减少每轮请求的 token 并加快首句回复。关闭后每轮都发送全部工具定义。"
+        },
+        "opencode.context.maxImages": {
+          "type": "number",
+          "default": 6,
+          "minimum": 0,
+          "description": "每次请求最多带上最近的几张图片（截图、看屏幕结果、用户附图）；更早的图片换成一行占位文字以节省上下文。最新一条用户消息的图片始终保留。0 = 不限制。"
+        },
+        "opencode.goal.maxRounds": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "/goal 目标循环默认最多跑几轮（每轮是一次完整的 agent 运行）。可在命令里用 --max 覆盖，上限 50。"
+        },
+        "opencode.goal.checkTimeoutSeconds": {
+          "type": "number",
+          "default": 600,
+          "minimum": 10,
+          "description": "/goal 的 --check 验收命令单次最长运行秒数，超时按未通过处理。"
+        },
+        "opencode.commands.maxConcurrent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null,
+          "minimum": 0,
+          "description": "同时运行的前台命令上限（所有对话合计，后台命令不计）。达到上限时新命令排队最多 60 秒，然后照常启动并附提示，从不拒绝。留空 = max(4, CPU 逻辑核数)；0 = 不限制。环境变量 OPENCODE_MAX_RUNNING_COMMANDS 优先。"
+        },
+        "opencode.context.autoCompact": {
+          "type": "boolean",
+          "default": true,
+          "description": "上下文接近模型窗口上限时自动压缩对话（生成检查点并保留最近内容）。"
+        },
+        "opencode.context.compactThreshold": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null,
+          "minimum": 0.3,
+          "maximum": 0.98,
+          "description": "dsh 触发比例 ratio（0.3–0.98）。与 dsh 一致：触发点 = min(ratio×窗口, 窗口−预留输出−65536)，留空（默认）ratio=0.8；没有下限，窗口−预留输出−65536≤0 时跳过自动压缩并提示一次。"
+        },
+        "opencode.context.keepRecentTokens": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null,
+          "minimum": 0,
+          "description": "压缩时原样保留的最近对话 token 数（固定值）。留空或 0（默认）时与 dsh 一致：16%×(窗口−预留输出)；必须小于触发点，否则跳过自动压缩并提示一次。"
+        },
+        "opencode.context.readAgentsMd": {
+          "type": "boolean",
+          "default": true,
+          "description": "原生对话每轮读取工作区根目录到当前/附加文件所在目录的 AGENTS.md 与 CLAUDE.md，作为始终生效的项目说明（越具体的越优先）。"
+        },
+        "opencode.context.agentsMdBudgetBytes": {
+          "type": "number",
+          "default": 32768,
+          "minimum": 4096,
+          "maximum": 262144,
+          "description": "AGENTS.md / CLAUDE.md 每轮最多带入的总字节数；超出时优先保留更具体（更深目录）的文件。"
+        },
+        "opencode.custom.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用自定义指令（.opencode/commands/*.md）和自定义工具（.opencode/tools/*.json）。用户级目录为 ~/.opencode，工作区级为 <工作区>/.opencode，重名时工作区优先。"
+        },
+        "opencode.custom.paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "额外的自定义目录（每个目录下放 commands/ 和 tools/）。"
+        },
+        "opencode.chat.autoApproveReadOnlyCommands": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "权限为「每次询问」时，只读终端命令（如 `git status`、`ls`、`rg`、`Get-Content`、任意程序的 `--version`）自动执行，不再弹确认。含重定向、`$( )`、变量展开或写操作的命令仍需确认。"
+        },
+        "opencode.chat.commandAllowlist": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "权限为「每次询问」时自动执行的命令前缀，例如 `npm test`、`pnpm build`、`python -m pytest`。串联命令要求每一段都在白名单或属于只读命令。"
+        },
+        "opencode.chat.trackEdits": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "把 AI 用 apply_patch 做的修改记入对话编辑会话：对话里列出改动的文件，可逐个保留 / 撤销，并可「恢复到检查点」回到某一轮之前。"
         }
       }
+    },
+    "keybindings": [
+      {
+        "command": "opencode.inlineEdit",
+        "key": "ctrl+i",
+        "mac": "cmd+i",
+        "when": "editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "opencode.waitForEvent.fire",
+        "key": "ctrl+alt+m",
+        "mac": "cmd+alt+m"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "opencode.agents",
+          "name": "OpenCode Agents",
+          "when": "false"
+        }
+      ]
+    },
+    "configurationDefaults": {
+      "chat.agent.thinkingStyle": "collapsed",
+      "chat.agent.thinking.collapsedTools": "always",
+      "chat.agent.thinking.terminalTools": true
     }
   },
   "icon": "media/opencode.svg"

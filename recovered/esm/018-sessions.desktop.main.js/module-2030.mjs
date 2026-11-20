@@ -65,15 +65,9 @@ var ChatSuggestNextWidget = class extends Disposable {
       }
       this.promptsContainer.removeChild(child);
     }
-    const isAutopilotPolicyRestricted = this.configurationService.inspect("chat.tools.global.autoApprove" /* GlobalAutoApprove */).policyValue === false;
-    const firstAutoSendHandoff = !isAutopilotPolicyRestricted ? handoffs.find((h3) => h3.send) : void 0;
     for (const handoff of handoffs) {
       const promptButton = this.createPromptButton(handoff);
       this.promptsContainer.appendChild(promptButton);
-      if (handoff === firstAutoSendHandoff) {
-        const autopilotButton = this.createAutopilotButton(handoff);
-        this.promptsContainer.appendChild(autopilotButton);
-      }
     }
     this.domNode.style.display = "flex";
     this._onDidChangeHeight.fire();
@@ -172,38 +166,6 @@ var ChatSuggestNextWidget = class extends Disposable {
         const currentHandoff = getCurrentHandoff();
         if (currentHandoff) {
           this._onDidSelectPrompt.fire({ handoff: currentHandoff });
-        }
-      }
-    }));
-    this.buttonDisposables.set(button, disposables);
-    return button;
-  }
-  createAutopilotButton(handoff) {
-    const disposables = new DisposableStore();
-    const handoffLabel = handoff.label;
-    const getCurrentHandoff = () => {
-      const currentHandoffs = this._currentMode?.handOffs?.get();
-      return currentHandoffs?.find((h3) => h3.label === handoffLabel) ?? handoff;
-    };
-    const label3 = localize(12104, null);
-    const button = $(".chat-welcome-view-suggested-prompt");
-    button.setAttribute("tabindex", "0");
-    button.setAttribute("role", "button");
-    button.setAttribute("aria-label", label3);
-    const titleElement = append(button, $(".chat-welcome-view-suggested-prompt-title"));
-    titleElement.textContent = label3;
-    disposables.add(addDisposableListener(button, "click", () => {
-      const currentHandoff = getCurrentHandoff();
-      if (currentHandoff) {
-        this._onDidSelectPrompt.fire({ handoff: currentHandoff, withAutopilot: true });
-      }
-    }));
-    disposables.add(addDisposableListener(button, "keydown", (e4) => {
-      if (e4.key === "Enter" || e4.key === " ") {
-        e4.preventDefault();
-        const currentHandoff = getCurrentHandoff();
-        if (currentHandoff) {
-          this._onDidSelectPrompt.fire({ handoff: currentHandoff, withAutopilot: true });
         }
       }
     }));

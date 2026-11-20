@@ -45,12 +45,10 @@ var AccessibilitySignalService = class extends Disposable {
       { getCacheKey: getStructuralKey },
       (arg) => {
         return derived((reader) => {
-          const setting = this._signalConfigValue.get(arg.signal).read(reader);
-          if (arg.modality === "sound" || arg.modality === void 0) {
-            if (arg.signal.managesOwnEnablement || checkEnabledState(setting.sound, () => this.screenReaderAttached.read(reader), arg.userGesture)) {
-              return true;
-            }
+          if (arg.modality === "sound") {
+            return false;
           }
+          const setting = this._signalConfigValue.get(arg.signal).read(reader);
           if (arg.modality === "announcement" || arg.modality === void 0) {
             if (checkEnabledState(setting.announcement, () => this.screenReaderAttached.read(reader), arg.userGesture)) {
               return true;
@@ -70,23 +68,13 @@ var AccessibilitySignalService = class extends Disposable {
     if (shouldPlayAnnouncement && this.isAnnouncementEnabled(signal, options3.userGesture) && announcementMessage) {
       this.accessibilityService.status(announcementMessage);
     }
-    const shouldPlaySound = options3.modality === "sound" || options3.modality === void 0;
-    if (shouldPlaySound && this.isSoundEnabled(signal, options3.userGesture)) {
-      this.sendSignalTelemetry(signal, options3.source);
-      await this.playSound(signal.sound.getSound(), options3.allowManyInParallel);
-    }
   }
   async playSignals(signals) {
-    for (const signal of signals) {
-      this.sendSignalTelemetry("signal" in signal ? signal.signal : signal, "source" in signal ? signal.source : void 0);
-    }
     const signalArray = signals.map((s) => "signal" in s ? s.signal : s);
     const announcements = signalArray.filter((signal) => this.isAnnouncementEnabled(signal)).map((s) => s.announcementMessage);
     if (announcements.length) {
       this.accessibilityService.status(announcements.join(", "));
     }
-    const sounds = new Set(signalArray.filter((signal) => this.isSoundEnabled(signal)).map((signal) => signal.sound.getSound()));
-    await Promise.all(Array.from(sounds).map((sound) => this.playSound(sound, true)));
   }
   sendSignalTelemetry(signal, source) {
     const isScreenReaderOptimized = this.accessibilityService.isScreenReaderOptimized();
@@ -102,50 +90,31 @@ var AccessibilitySignalService = class extends Disposable {
     });
   }
   getVolumeInPercent() {
-    const volume = this.configurationService.getValue("accessibility.signalOptions.volume");
-    if (typeof volume !== "number") {
-      return 50;
-    }
-    return Math.max(Math.min(volume, 100), 0);
+    return 0;
   }
   async playSound(sound, allowManyInParallel = false) {
-    if (!allowManyInParallel && this.playingSounds.has(sound)) {
-      return;
-    }
-    this.playingSounds.add(sound);
-    const url = FileAccess.asBrowserUri(`vs/platform/accessibilitySignal/browser/media/${sound.fileName}`).toString(true);
-    try {
-      const sound2 = this.sounds.get(url);
-      if (sound2) {
-        sound2.volume = this.getVolumeInPercent() / 100;
-        sound2.currentTime = 0;
-        await sound2.play();
-      } else {
-        const playedSound = await playAudio(url, this.getVolumeInPercent() / 100);
-        this.sounds.set(url, playedSound);
-      }
-    } catch (e4) {
-      if (!e4.message.includes("play() can only be initiated by a user gesture")) {
-        console.error("Error while playing sound", e4);
-      }
-    } finally {
-      this.playingSounds.delete(sound);
-    }
+    void sound;
+    void allowManyInParallel;
+    return;
   }
   playSignalLoop(signal, milliseconds) {
+    if (!this.isAnnouncementEnabled(signal)) {
+      return toDisposable(() => {
+      });
+    }
     let playing = true;
-    const playSound = () => {
+    const playAnnouncement = () => {
       if (playing) {
-        this.playSignal(signal, { allowManyInParallel: true }).finally(() => {
+        this.playSignal(signal, { modality: "announcement", allowManyInParallel: true }).finally(() => {
           setTimeout(() => {
             if (playing) {
-              playSound();
+              playAnnouncement();
             }
           }, milliseconds);
         });
       }
     };
-    playSound();
+    playAnnouncement();
     return toDisposable(() => playing = false);
   }
   isAnnouncementEnabled(signal, userGesture) {
@@ -155,7 +124,9 @@ var AccessibilitySignalService = class extends Disposable {
     return this._signalEnabledState.get({ signal, userGesture: !!userGesture, modality: "announcement" }).get();
   }
   isSoundEnabled(signal, userGesture) {
-    return this._signalEnabledState.get({ signal, userGesture: !!userGesture, modality: "sound" }).get();
+    void signal;
+    void userGesture;
+    return false;
   }
   onSoundEnabledChanged(signal) {
     return this.getEnabledState(signal, false).onDidChange;
@@ -187,28 +158,16 @@ function checkEnabledState(state, getScreenReaderAttached, isTriggeredByUserGest
 }
 
 async function playAudio(url, volume) {
-  const disposables = new DisposableStore();
-  try {
-    return await doPlayAudio(url, volume, disposables);
-  } finally {
-    disposables.dispose();
-  }
+  void url;
+  void volume;
+  return void 0;
 }
 
 function doPlayAudio(url, volume, disposables) {
-  return new Promise((resolve3, reject) => {
-    const audio = new Audio(url);
-    audio.volume = volume;
-    disposables.add(addDisposableListener(audio, "ended", () => {
-      resolve3(audio);
-    }));
-    disposables.add(addDisposableListener(audio, "error", (e4) => {
-      reject(e4.error);
-    }));
-    audio.play().catch((e4) => {
-      reject(e4);
-    });
-  });
+  void url;
+  void volume;
+  void disposables;
+  return Promise.resolve(void 0);
 }
 
 var Sound = class _Sound {

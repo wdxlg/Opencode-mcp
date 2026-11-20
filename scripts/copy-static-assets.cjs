@@ -6,6 +6,20 @@ const manifest=JSON.parse(fs.readFileSync(root+'/reports/static-assets.json'));
 const extraFile=root+'/recovered/workbench-assets.json';const extras=fs.existsSync(extraFile)?JSON.parse(fs.readFileSync(extraFile)):{static:[],scripts:[]};
 if(!Array.isArray(extras.static)||!Array.isArray(extras.scripts))throw Error('Invalid maintained asset manifest');
 for(const rel of extras.static){if(typeof rel!=='string'||rel.includes('..')||rel.includes('\\')||!rel.startsWith('resources/app/extensions/opencode/media/task-workbench/')||/\.(?:c|m)?js$/i.test(rel))throw Error('Invalid maintained static asset');if(!manifest.files.some(f=>f.path===rel))manifest.files.push({path:rel});}
+// Bundled tunnel-proxy core (mihomo): ship every file in assets/.../opencode/proxy-core; the binary must match its pinned ARTIFACT.json hash.
+{const rel='resources/app/extensions/opencode/proxy-core',dir=path.resolve(root,'assets',rel);
+ if(fs.existsSync(dir)){
+  const artifact=JSON.parse(fs.readFileSync(path.join(dir,'ARTIFACT.json'),'utf8'));
+  for(const name of fs.readdirSync(dir).sort()){
+   const file=path.join(dir,name);if(!fs.statSync(file).isFile())continue;
+   if(/^mihomo(?:\.exe)?$/.test(name)&&crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')!==artifact.binarySHA256)throw Error('Proxy core hash differs from ARTIFACT.json: '+name);
+   const p=rel+'/'+name;if(!manifest.files.some(f=>f.path===p))manifest.files.push({path:p});
+  }
+ }
+}
+// OpenCode chat-preview: bundled pdf.js for the side-bar Preview (stored as .txt; read as text and run inside the preview webview).
+{const rel='resources/app/extensions/opencode/media/pdfjs',dir=path.resolve(root,'assets',rel);
+ if(fs.existsSync(dir))for(const name of fs.readdirSync(dir).sort()){const file=path.join(dir,name);if(!fs.statSync(file).isFile()||/\.(?:c|m)?js$/i.test(name))continue;const p=rel+'/'+name;if(!manifest.files.some(f=>f.path===p))manifest.files.push({path:p});}}
 
 let changed=0,removed=0;
 for(const file of manifest.files){

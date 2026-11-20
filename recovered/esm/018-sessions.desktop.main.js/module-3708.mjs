@@ -17,7 +17,6 @@ import { ISessionContext } from "./module-3499.mjs";
 import { BranchPicker2 } from "./module-3705.mjs";
 import { SandboxPicker } from "./module-3707.mjs";
 import { isWeb } from "./module-0014.mjs";
-import { CopilotPermissionPickerDelegate, PermissionPicker } from "./module-3690.mjs";
 import { __decorateClass, __decorateParam } from "./module-0000.mjs";
 import { IActionViewItemService } from "./module-0518.mjs";
 import { ISessionsService } from "./module-1783.mjs";
@@ -81,24 +80,6 @@ registerAction2(class extends Action2 {
         id: Menus.NewSessionConfig,
         group: "navigation",
         order: 0,
-        when: IsActiveSessionCopilotChatCLI
-      }]
-    });
-  }
-  async run() {
-  }
-});
-
-registerAction2(class extends Action2 {
-  constructor() {
-    super({
-      id: "sessions.defaultCopilot.permissionPicker",
-      title: localize2(5037, "Permissions"),
-      f1: false,
-      menu: [{
-        id: Menus.NewSessionControl,
-        group: "navigation",
-        order: 1,
         when: IsActiveSessionCopilotChatCLI
       }]
     });
@@ -182,18 +163,6 @@ var CopilotPickerActionViewItemContribution = class extends Disposable {
         return new PickerActionViewItem2(picker, disposableStore);
       }
     ));
-    if (!isWeb) {
-      this._register(actionViewItemService.register(
-        Menus.NewSessionControl,
-        "sessions.defaultCopilot.permissionPicker",
-        (_action, _options, scopedInstantiationService) => {
-          const { session } = scopedInstantiationService.invokeFunction((accessor) => accessor.get(ISessionContext));
-          const delegate = scopedInstantiationService.createInstance(CopilotPermissionPickerDelegate, session);
-          const picker = scopedInstantiationService.createInstance(PermissionPicker, delegate);
-          return new PickerActionViewItem2(picker, delegate);
-        }
-      ));
-    }
   }
 };
 

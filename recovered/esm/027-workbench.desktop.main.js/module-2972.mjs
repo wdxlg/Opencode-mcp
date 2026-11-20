@@ -163,6 +163,204 @@ McpLanguageModelToolContribution = __decorateClass([
   __decorateParam(4, ILifecycleService)
 ], McpLanguageModelToolContribution);
 
+// OpenCode: 工具调用翻译——把 PowerShell / bash 命令和常见工具参数翻成一句短话（参考 Arena 命令翻译 v1.2.7 的读/改/搜索分类）
+function ocDescShort(p) {
+  let s = String(p ?? "").trim().replace(/^["'`]+|["'`]+$/g, "");
+  if (!s || /^\$|^\(|^@\(|^\{/.test(s)) return "";
+  s = s.replace(/[\\/]+$/, "");
+  const parts = s.split(/[\\/]/).filter(Boolean);
+  let b = parts.length ? parts[parts.length - 1] : s;
+  if (/^[A-Za-z]:$/.test(b)) b = b + "\\";
+  if (b === "~" || b === "." ) return b;
+  return b.length > 48 ? b.slice(0, 47) + "…" : b;
+}
+function ocDescTokens(seg) {
+  const out = [];
+  const re = /"((?:[^"`]|`.)*)"|'([^']*)'|(\S+)/g;
+  let m;
+  while ((m = re.exec(seg))) out.push(m[1] ?? m[2] ?? m[3]);
+  return out;
+}
+function ocDescArg(toks, names, skipVals) {
+  for (let i = 1; i < toks.length - 1; i++) {
+    if (names.includes(toks[i].toLowerCase())) return toks[i + 1];
+  }
+  for (let i = 1; i < toks.length; i++) {
+    const t = toks[i];
+    if (/^-/.test(t)) {
+      if (skipVals && skipVals.includes(t.toLowerCase()) && i + 1 < toks.length) i++;
+      continue;
+    }
+    if (/^[|<>&;]+$/.test(t)) break;
+    return t;
+  }
+  return "";
+}
+const OC_DESC_PS = (() => {
+  const m = {};
+  const add = (verb, names) => names.split(" ").forEach((n) => m[n] = verb);
+  add("read", "get-content gc cat type more less head tail bat");
+  add("list", "get-childitem gci ls dir tree find");
+  add("search", "select-string sls findstr rg grep ag");
+  add("write", "set-content add-content out-file tee-object tee");
+  add("del", "remove-item rm del erase rmdir rd ri unlink");
+  add("copy", "copy-item cp copy cpi xcopy robocopy");
+  add("move", "move-item mv move mi rename-item ren rni");
+  add("mkdir", "mkdir md");
+  add("check", "test-path");
+  add("stat", "get-item gi get-itemproperty gp stat get-filehash certutil");
+  add("net", "invoke-webrequest iwr invoke-restmethod irm curl curl.exe wget");
+  add("start", "start-process start saps");
+  add("proc", "get-process gps ps tasklist");
+  add("kill", "stop-process kill spps taskkill");
+  add("zip", "expand-archive compress-archive tar unzip zip 7z");
+  add("sed", "sed awk");
+  add("skip", "cd set-location sl pushd popd chdir echo write-host write-output write-verbose write-error out-null out-string select-object select sort-object sort measure-object where-object where foreach-object % ? format-table ft format-list fl convertto-json convertfrom-json get-date start-sleep sleep clear cls exit return param try catch finally if else elseif foreach for while new-object get-location pwd join-path split-path resolve-path true false export import");
+  return m;
+})();
+function ocDescSegment(seg, acts, vars) {
+  seg = seg.trim().replace(/^[&.]\s+/, "");
+  if (!seg || seg.startsWith("#")) return;
+  // .NET 文件读写
+  let mm = /\[(?:System\.)?IO\.File\]::(ReadAll\w*|WriteAll\w*|AppendAll\w*|Exists|Delete|Copy|Move)\(\s*["']?([^"',)]*)/i.exec(seg);
+  if (mm) {
+    const f = ocDescShort(mm[2]);
+    const k = mm[1].toLowerCase();
+    acts.push(k.startsWith("read") ? ["读", f] : k === "exists" ? ["检查", f] : k === "delete" ? ["删除", f] : k === "copy" ? ["复制", f] : k === "move" ? ["移动", f] : ["写", f]);
+    return;
+  }
+  const redir = /(?:^|[^2])>>?\s*["']?([^\s"'|;&]+)/.exec(seg);
+  const toks = ocDescTokens(seg.replace(/^\$\w+\s*=\s*/, ""));
+  if (!toks.length) return;
+  let cmd = toks[0].replace(/^.*[\\/]/, "").toLowerCase();
+  if (cmd.endsWith(".exe")) cmd = cmd.slice(0, -4);
+  const verb = OC_DESC_PS[cmd];
+  const rawPath = () => ocDescArg(toks, ["-path", "-literalpath", "-filepath", "-p"], ["-encoding", "-tail", "-totalcount", "-first", "-head", "-n", "-filter", "-include", "-exclude", "-depth", "-raw"]);
+  const pathArg = () => {
+    const raw = rawPath();
+    const v = /^\$(\w+)$/.exec(raw || "");
+    if (v && vars && vars.has(v[1].toLowerCase())) return vars.get(v[1].toLowerCase());
+    return ocDescShort(raw);
+  };
+  if (verb === "read") { const f = pathArg(); if (f) acts.push(["读", f]); }
+  else if (verb === "list") acts.push([toks.some((t) => /^-r(ecurse)?$/i.test(t)) ? "遍历" : "列出", rawPath() ? pathArg() : "当前目录"]);
+  else if (verb === "search") {
+    const pat = ocDescArg(toks, ["-pattern", "-e"], ["-path", "-literalpath", "-g", "--glob", "-t", "--type", "-c", "-a", "-b", "-m", "--max-count"]);
+    acts.push(["搜索", pat ? "“" + (pat.length > 30 ? pat.slice(0, 29) + "…" : pat) + "”" : ""]);
+  } else if (verb === "write") acts.push(["写", pathArg()]);
+  else if (verb === "del") acts.push(["删除", pathArg()]);
+  else if (verb === "copy") acts.push(["复制", pathArg()]);
+  else if (verb === "move") acts.push([/^ren|rename/.test(cmd) ? "重命名" : "移动", pathArg()]);
+  else if (verb === "mkdir") acts.push(["新建目录", pathArg()]);
+  else if (cmd === "new-item" || cmd === "ni") acts.push([toks.some((t) => /^director/i.test(t)) ? "新建目录" : "新建", pathArg()]);
+  else if (verb === "check") acts.push(["检查", pathArg()]);
+  else if (verb === "stat") acts.push(["查看", pathArg()]);
+  else if (verb === "net") {
+    const u = toks.find((t) => /^https?:\/\//i.test(t)) || "";
+    const h = /^https?:\/\/([^/?#]+)/i.exec(u);
+    acts.push(["请求", h ? h[1] : ""]);
+  } else if (verb === "start") acts.push(["启动", pathArg()]);
+  else if (verb === "proc") acts.push(["查看进程", ""]);
+  else if (verb === "kill") acts.push(["结束进程", ""]);
+  else if (verb === "zip") acts.push([/expand|unzip|-x/.test(seg.toLowerCase()) ? "解压" : "压缩", pathArg()]);
+  else if (verb === "sed") acts.push([/\s-i\b/.test(seg) ? "改" : "读", ocDescShort(toks[toks.length - 1])]);
+  else if (cmd === "git") acts.push(["git " + (toks.slice(1).find((t) => !t.startsWith("-") && !/^-c$/.test(t)) || ""), ""]);
+  else if (["npm", "pnpm", "yarn", "npx", "bun", "dotnet", "cargo", "go", "pip", "pip3", "msbuild", "csc", "cmake", "make", "winget", "choco", "scoop"].includes(cmd)) {
+    const words = toks.slice(1).filter((t) => !t.startsWith("-"));
+    acts.push([cmd + " " + (words[0] === "run" || words[0] === "exec" ? words.slice(0, 2).join(" ") : words[0] || ""), ""]);
+  }
+  else if (["node", "python", "python3", "py", "deno", "pwsh", "powershell", "bash", "sh", "cmd"].includes(cmd)) {
+    const script = toks.slice(1).find((t) => !t.startsWith("-") && /\.\w{1,5}$/.test(t));
+    if (script) acts.push(["运行", ocDescShort(script)]);
+    else if (toks.some((t) => /^(-c|-e|-command|--eval|\/c)$/i.test(t))) acts.push(["运行 " + cmd + " 脚本", ""]);
+    else acts.push(["运行", cmd]);
+  } else if (verb === "skip" || /^\$|^\[|^\(|^\{|^\}|^@/.test(toks[0])) {
+    // 不单独显示
+  } else if (/^[a-z][\w.-]*$/i.test(cmd)) acts.push(["运行", toks[0].replace(/^.*[\\/]/, "")]);
+  if (redir && verb !== "write" && !/^(\$null|null|nul|&1|&2)$/i.test(redir[1])) acts.push(["写", ocDescShort(redir[1])]);
+}
+function ocDescribeCommand(command) {
+  const acts = [];
+  const text = String(command || "").replace(/`\r?\n/g, " ");
+  const vars = new Map();
+  const asg = /\$(\w+)\s*=\s*(@\(([^)]*)\)|"[^"]*"|'[^']*')/g;
+  let am;
+  while ((am = asg.exec(text))) {
+    const lits = (am[3] ?? am[2]).match(/"[^"]*"|'[^']*'/g) || [];
+    const names = lits.map((x) => ocDescShort(x.slice(1, -1).replace(/\$env:\w+/gi, ""))).filter(Boolean);
+    if (names.length) vars.set(am[1].toLowerCase(), names.length > 2 ? names.slice(0, 2).join("、") + " 等 " + names.length + " 个" : names.join("、"));
+  }
+  const loopVar = /foreach\s*\(\s*\$(\w+)\s+in\s+\$(\w+)\s*\)/gi;
+  while ((am = loopVar.exec(text))) if (vars.has(am[2].toLowerCase())) vars.set(am[1].toLowerCase(), vars.get(am[2].toLowerCase()));
+  for (const line of text.split(/\r?\n|[{}]/)) {
+    for (let seg of line.split(/\s*(?:;|&&|\|\||\|)\s*/)) {
+      const kw = /^\s*(?:if|elseif|while|foreach|for|switch)\s*\((.*)\)\s*$/i.exec(seg);
+      if (kw) seg = kw[1].replace(/^\$\w+\s+in\s+/i, "");
+      try { ocDescSegment(seg, acts, vars); } catch { }
+    }
+  }
+  return acts;
+}
+function ocDescJoin(acts) {
+  const seen = new Set();
+  const groups = new Map();
+  for (const [verb, obj] of acts) {
+    const key = verb + "\0" + obj;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!groups.has(verb)) groups.set(verb, []);
+    if (obj) groups.get(verb).push(obj);
+  }
+  const parts = [];
+  for (const [verb, objs] of groups) {
+    if (!objs.length) parts.push(verb);
+    else if (objs.length <= 2) parts.push(verb + " " + objs.join("、"));
+    else parts.push(verb + " " + objs.slice(0, 2).join("、") + " 等 " + objs.length + " 个");
+  }
+  if (!parts.length) return "";
+  return parts.length > 3 ? parts.slice(0, 3).join(" · ") + " 等" : parts.join(" · ");
+}
+// 返回一句短话；认不出时返回 undefined（沿用原来的「正在运行 X」）
+function ocDescribeToolCall(toolName, input) {
+  try {
+    if (typeof input === "string") {
+      try { input = JSON.parse(input); } catch { input = { command: input }; }
+    }
+    if (!input || typeof input !== "object") return void 0;
+    const name = String(toolName || "").toLowerCase();
+    const cmd = input.command ?? input.cmd ?? input.script ?? input.commandLine;
+    if (typeof cmd === "string" && cmd.trim()) {
+      const s = ocDescJoin(ocDescribeCommand(cmd));
+      if (s) return s;
+      const first = cmd.trim().split(/\r?\n/)[0];
+      return "运行 " + (first.length > 40 ? first.slice(0, 39) + "…" : first);
+    }
+    const mode = String(input.mode ?? input.action ?? input.operation ?? "").toLowerCase();
+    const p = ocDescShort(input.path ?? input.file ?? input.filePath ?? input.file_path ?? input.target ?? input.directory ?? input.dir ?? "");
+    const q = input.query ?? input.pattern ?? input.regex ?? input.search;
+    const verbs = { list: "列出", ls: "列出", tree: "遍历", read: "读", view: "读", cat: "读", write: "写", create: "新建", append: "追加", edit: "改", replace: "改", patch: "改", delete: "删除", remove: "删除", copy: "复制", move: "移动", rename: "重命名", search: "搜索", find: "搜索", grep: "搜索", info: "查看", stat: "查看", exists: "检查", mkdir: "新建目录" };
+    let verb = verbs[mode];
+    if (!verb) {
+      for (const k of Object.keys(verbs)) {
+        if (new RegExp("(^|[_\\-.])" + k + "($|[_\\-.]|file|dir)", "i").test(name)) { verb = verbs[k]; break; }
+      }
+    }
+    if (verb === "搜索" || (!verb && typeof q === "string" && q)) {
+      const qs = typeof q === "string" && q ? "“" + (q.length > 30 ? q.slice(0, 29) + "…" : q) + "”" : "";
+      return ["搜索", qs + (p ? "（" + p + "）" : "")].filter(Boolean).join(" ");
+    }
+    if (verb && p) return verb + " " + p;
+    const url = input.url ?? input.uri;
+    if (typeof url === "string") {
+      const h = /^https?:\/\/([^/?#]+)/i.exec(url);
+      if (h) return "请求 " + h[1];
+    }
+    return void 0;
+  } catch {
+    return void 0;
+  }
+}
+
 var McpToolImplementation = class {
   constructor(_tool, _server, _configurationService, _productService, _fileService, _imageResizeService) {
     this._tool = _tool;
@@ -199,10 +397,12 @@ var McpToolImplementation = class {
       }
     }
     const mcpUiEnabled = this._configurationService.getValue(mcpAppsEnabledConfig);
+    // OpenCode: MCP 工具（如 Windows-MCP 的 PowerShell / FileSystem）按参数翻成一句短话，不再全是「正在运行 PowerShell」
+    const ocDesc = ocDescribeToolCall(tool.definition.name, context2.parameters);
     return {
       confirmationMessages: confirm,
-      invocationMessage: new MarkdownString(localize(17157, null, title)),
-      pastTenseMessage: new MarkdownString(localize(17156, null, title)),
+      invocationMessage: ocDesc ? new MarkdownString().appendText(`${ocDesc}…`) : new MarkdownString(localize(17157, null, title)),
+      pastTenseMessage: ocDesc ? new MarkdownString().appendText(ocDesc) : new MarkdownString(localize(17156, null, title)),
       originMessage: localize(17158, null, server.definition.label),
       toolSpecificData: {
         kind: "input",

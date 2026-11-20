@@ -28,6 +28,18 @@ var SETTING_MERGE_REASONING = "opencode.multiModel.mergeReasoningEffort";
 
 var PICK_MERGE_MODEL_COMMAND = "opencode.pickMergeModel";
 
+var SETTING_BRANCH_MODELS = "opencode.multiModel.branchModels";
+
+var SETTING_AUTO_MERGE = "opencode.multiModel.autoMerge";
+
+var SETTING_CODE_BRANCHES = "opencode.multiModel.codeBranches";
+
+var PICK_BRANCH_MODELS_COMMAND = "opencode.pickBranchModels";
+
+var SETTING_BRANCH_ROLES = "opencode.multiModel.branchRoles";
+
+var BRANCH_ROLE_OPTIONS = [{ id: "", label: "No role (answer normally)" }, { id: "critic", label: "Reviewer: find flaws and risks" }, { id: "alternative", label: "Alternative: another viable route" }, { id: "minimal", label: "Minimal change: low risk, easy to roll back" }, { id: "verifier", label: "Verify first: check facts before concluding" }];
+
 var MERGE_REASONING_OPTIONS = ["disabled", "none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"];
 
 function mergeReasoningOptionLabel(option2) {
@@ -68,13 +80,13 @@ var OpenCodeMultiModelWidget = class extends Disposable {
     append(heroBody, $(
       "p.opencode-multimodel-description",
       void 0,
-      localizeMultiModel("opencodeMultiModel.description", "In Plan mode, different models each answer the same question from the context before the previous round. The merge model then reads all branches and, when necessary, performs read-only file verification, producing consensus, disagreements, and the final plan. Only adopted branches continue into subsequent context.")
+      localizeMultiModel("opencodeMultiModel.description", "Different models each answer the same question from the context before the previous round, each branch editing code in its own git worktree. The merge model then reads all branches, verifies when necessary, and produces consensus, disagreements, and the final change. Only adopted branches continue into subsequent context.")
     ));
     const rules = append(heroBody, $("ul.opencode-multimodel-rules"));
     for (const rule of [
-      localizeMultiModel("opencodeMultiModel.rule1", "After asking a question in Plan mode and receiving an answer, clear the input box; the send button becomes the branch send button (accent color)."),
-      localizeMultiModel("opencodeMultiModel.rule2", "Switch models and send an empty input again to create a new branch; branches are generated serially, and the send button is disabled until the previous branch finishes."),
-      localizeMultiModel("opencodeMultiModel.rule3", "Once there are 2 branches, the answer action row shows \u25C0 \u25B6 and \u201CMerge & Summarize\u201D."),
+      localizeMultiModel("opencodeMultiModel.rule1", "After an answer, click \u201CMulti-Model Branches\u201D under it and the configured models re-answer the same question one by one. Each branch edits code in its own git worktree and its diff can be applied to the workspace."),
+      localizeMultiModel("opencodeMultiModel.rule2", "You can still do it manually: clear the input, switch models and send empty input to create one branch; branches run serially and sending is disabled until the previous one finishes."),
+      localizeMultiModel("opencodeMultiModel.rule3", "Once there are 2 branches, the answer action row shows \u25C0 \u25B6, Compare Branches and Merge & Summarize; branch models can be given roles such as reviewer or alternative."),
       localizeMultiModel("opencodeMultiModel.rule4", "The primary merge model synthesizes the final plan from its first answer and verified branch suggestions; the result becomes the main line. You can adopt a branch before merging.")
     ]) {
       append(rules, $("li", void 0, rule));
@@ -104,6 +116,79 @@ var OpenCodeMultiModelWidget = class extends Disposable {
       void this.configurationService.updateValue(SETTING_ENABLED, enabled, 2 /* USER */).catch(() => {
         this.renderEnabledToggle(this.readEnabled());
       });
+    }));
+    const branchModelsField = append(settingsBody, $(".opencode-multimodel-field"));
+    append(branchModelsField, $(
+      "span.opencode-multimodel-field-label",
+      void 0,
+      localizeMultiModel("opencodeMultiModel.branchModelsLabel", "Branch models")
+    ));
+    const branchModelsRow = append(branchModelsField, $(".opencode-multimodel-merge-row"));
+    this.branchModelsValue = append(branchModelsRow, $("code.opencode-multimodel-value"));
+    const branchModelsActions = append(branchModelsRow, $(".opencode-multimodel-actions"));
+    const pickBranchButton = this._register(new Button(branchModelsActions, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
+    pickBranchButton.label = `$(${Codicon.gitCompare.id}) ${localizeMultiModel("opencodeMultiModel.pick", "Select\u2026")}`;
+    pickBranchButton.setTitle(localizeMultiModel("opencodeMultiModel.pickBranchTitle", "Choose, in order, the models that answer when you click Multi-Model Branches"));
+    this._register(pickBranchButton.onDidClick(() => void this.commandService.executeCommand(PICK_BRANCH_MODELS_COMMAND)));
+    const clearBranchButton = this._register(new Button(branchModelsActions, { ...defaultButtonStyles, secondary: true }));
+    clearBranchButton.label = localizeMultiModel("opencodeMultiModel.clearBranchModels", "Clear");
+    this._register(clearBranchButton.onDidClick(() => void this.configurationService.updateValue(SETTING_BRANCH_MODELS, [], 2 /* USER */)));
+    append(branchModelsField, $(
+      "p.opencode-multimodel-help",
+      void 0,
+      localizeMultiModel("opencodeMultiModel.branchModelsHelp", "Multi-Model Branches under an answer asks these models, in order, to re-answer the same question. Models that already answered this round are skipped, and the count is limited by the max branches per round.")
+    ));
+    const branchRolesField = append(settingsBody, $(".opencode-multimodel-field"));
+    append(branchRolesField, $(
+      "span.opencode-multimodel-field-label",
+      void 0,
+      localizeMultiModel("opencodeMultiModel.branchRolesLabel", "Branch roles")
+    ));
+    this.branchRolesList = append(branchRolesField, $(".opencode-multimodel-role-list"));
+    append(branchRolesField, $(
+      "p.opencode-multimodel-help",
+      void 0,
+      localizeMultiModel("opencodeMultiModel.branchRolesHelp", "Give each branch model a perspective so the answers do not all look alike. Also applies to branches created manually with that model; merging labels each branch with its role.")
+    ));
+    const codeBranchesRow = append(settingsBody, $(".opencode-multimodel-row"));
+    this.codeBranchesCheckbox = this._register(new Checkbox(
+      localizeMultiModel("opencodeMultiModel.codeBranchesLabel", "Allow branches in Code mode (each branch edits code in its own git worktree)"),
+      this.readCodeBranches(),
+      defaultCheckboxStyles
+    ));
+    codeBranchesRow.appendChild(this.codeBranchesCheckbox.domNode);
+    append(codeBranchesRow, $(
+      "span.opencode-multimodel-check-label",
+      void 0,
+      localizeMultiModel("opencodeMultiModel.codeBranchesLabel", "Allow branches in Code mode (each branch edits code in its own git worktree)")
+    ));
+    append(codeBranchesRow, $(
+      "span.opencode-multimodel-hint",
+      void 0,
+      localizeMultiModel("opencodeMultiModel.codeBranchesHint", "A workspace snapshot is taken before each Code answer; finished branches show their diff and can replace or be layered onto the workspace. Run \u201COpenCode: Clean Up Multi-Model Worktrees\u201D to remove leftovers.")
+    ));
+    this._register(this.codeBranchesCheckbox.onChange(() => {
+      void this.configurationService.updateValue(SETTING_CODE_BRANCHES, this.codeBranchesCheckbox.checked, 2 /* USER */);
+    }));
+    const autoMergeRow = append(settingsBody, $(".opencode-multimodel-row"));
+    this.autoMergeCheckbox = this._register(new Checkbox(
+      localizeMultiModel("opencodeMultiModel.autoMergeLabel", "Merge & summarize automatically when all branches finish"),
+      this.readAutoMerge(),
+      defaultCheckboxStyles
+    ));
+    autoMergeRow.appendChild(this.autoMergeCheckbox.domNode);
+    append(autoMergeRow, $(
+      "span.opencode-multimodel-check-label",
+      void 0,
+      localizeMultiModel("opencodeMultiModel.autoMergeLabel", "Merge & summarize automatically when all branches finish")
+    ));
+    append(autoMergeRow, $(
+      "span.opencode-multimodel-hint",
+      void 0,
+      localizeMultiModel("opencodeMultiModel.autoMergeHint", "Runs Merge & Summarize once at least two complete branches exist.")
+    ));
+    this._register(this.autoMergeCheckbox.onChange(() => {
+      void this.configurationService.updateValue(SETTING_AUTO_MERGE, this.autoMergeCheckbox.checked, 2 /* USER */);
     }));
     const mergeModelField = append(settingsBody, $(".opencode-multimodel-field"));
     append(mergeModelField, $(
@@ -196,6 +281,56 @@ var OpenCodeMultiModelWidget = class extends Disposable {
     }));
     this.refreshValues();
   }
+  readCodeBranches() {
+    return this.configurationService.getValue(SETTING_CODE_BRANCHES) ?? true;
+  }
+  readAutoMerge() {
+    return this.configurationService.getValue(SETTING_AUTO_MERGE) ?? false;
+  }
+  readBranchModels() {
+    const value = this.configurationService.getValue(SETTING_BRANCH_MODELS);
+    return Array.isArray(value) ? value.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim()) : [];
+  }
+  readBranchRoles() {
+    const value = this.configurationService.getValue(SETTING_BRANCH_ROLES);
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  }
+  renderBranchRoles(branchModels) {
+    const list = this.branchRolesList;
+    while (list.firstChild) {
+      list.firstChild.remove();
+    }
+    if (!branchModels.length) {
+      append(list, $(
+        "p.opencode-multimodel-help",
+        void 0,
+        localizeMultiModel("opencodeMultiModel.branchRolesEmpty", "Choose branch models above first, then give them roles.")
+      ));
+      return;
+    }
+    const roles = this.readBranchRoles();
+    for (const identifier of branchModels) {
+      const row = append(list, $(".opencode-multimodel-merge-row"));
+      append(row, $("code.opencode-multimodel-value", void 0, identifier));
+      const select = append(row, $("select.opencode-multimodel-select"));
+      select.setAttribute("aria-label", `${localizeMultiModel("opencodeMultiModel.branchRolesLabel", "Branch roles")} ${identifier}`);
+      for (const option2 of BRANCH_ROLE_OPTIONS) {
+        const element = append(select, $("option"));
+        element.value = option2.id;
+        element.textContent = localizeMultiModel(`opencodeMultiModel.role.${option2.id || "none"}`, option2.label);
+      }
+      select.value = typeof roles[identifier] === "string" && BRANCH_ROLE_OPTIONS.some((option2) => option2.id === roles[identifier]) ? roles[identifier] : "";
+      select.onchange = () => {
+        const next = { ...this.readBranchRoles() };
+        if (select.value) {
+          next[identifier] = select.value;
+        } else {
+          delete next[identifier];
+        }
+        void this.configurationService.updateValue(SETTING_BRANCH_ROLES, next, 2 /* USER */);
+      };
+    }
+  }
   readEnabled() {
     return this.configurationService.getValue(SETTING_ENABLED) ?? true;
   }
@@ -204,11 +339,16 @@ var OpenCodeMultiModelWidget = class extends Disposable {
   }
   renderEnabledToggle(enabled) {
     this.enabledToggle.setAttribute("aria-checked", String(enabled));
-    this.enabledToggle.title = enabled ? localizeMultiModel("opencodeMultiModel.enabledOn", "In Plan mode, an empty input branches only after a completed answer; ordinary Chat still requires input.") : localizeMultiModel("opencodeMultiModel.enabledOff", "Multi-model rounds are disabled. An empty input no longer triggers branch sending.");
+    this.enabledToggle.title = enabled ? localizeMultiModel("opencodeMultiModel.enabledOn", "An empty input branches only after a completed answer with a workspace snapshot; ordinary Chat still requires input.") : localizeMultiModel("opencodeMultiModel.enabledOff", "Multi-model rounds are disabled. An empty input no longer triggers branch sending.");
   }
   refreshValues() {
     this.renderEnabledToggle(this.readEnabled());
     this.mergeReadToolsCheckbox.checked = this.readMergeReadTools();
+    this.autoMergeCheckbox.checked = this.readAutoMerge();
+    this.codeBranchesCheckbox.checked = this.readCodeBranches();
+    const branchModels = this.readBranchModels();
+    this.branchModelsValue.textContent = branchModels.length ? branchModels.join("  \u2192  ") : localizeMultiModel("opencodeMultiModel.branchModelsEmpty", "Not set (you will be asked to choose when you first click Multi-Model Branches)");
+    this.renderBranchRoles(branchModels);
     const mergeModel = (this.configurationService.getValue(SETTING_MERGE_MODEL) ?? "").trim();
     this.mergeModelValue.textContent = mergeModel || localizeMultiModel("opencodeMultiModel.mergeModelEmpty", "Model that produced the first answer");
     const maxBranches = this.configurationService.getValue(SETTING_MAX_BRANCHES) ?? 3;
@@ -235,4 +375,4 @@ aiCustomizationManagementSectionRegistry.register({
   supportsHarness: () => true,
   create: (instantiationService, container3) => instantiationService.createInstance(OpenCodeMultiModelWidget, container3)
 });
-export { mergeReasoningOptionLabel, SETTING_ENABLED, SETTING_MERGE_MODEL, SETTING_MERGE_READ_TOOLS, SETTING_MAX_BRANCHES, SETTING_MERGE_REASONING, PICK_MERGE_MODEL_COMMAND, MERGE_REASONING_OPTIONS, OpenCodeMultiModelWidget };
+export { mergeReasoningOptionLabel, SETTING_ENABLED, SETTING_MERGE_MODEL, SETTING_MERGE_READ_TOOLS, SETTING_MAX_BRANCHES, SETTING_MERGE_REASONING, PICK_MERGE_MODEL_COMMAND, MERGE_REASONING_OPTIONS, OpenCodeMultiModelWidget, SETTING_BRANCH_MODELS, SETTING_AUTO_MERGE, PICK_BRANCH_MODELS_COMMAND, SETTING_BRANCH_ROLES, BRANCH_ROLE_OPTIONS, SETTING_CODE_BRANCHES };

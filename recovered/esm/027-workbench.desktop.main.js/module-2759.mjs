@@ -28,6 +28,7 @@ import { IEditorService } from "./module-0934.mjs";
 import { IStorageService } from "./module-0512.mjs";
 import { IAccessibilityService } from "./module-0104.mjs";
 import { IConfigurationService } from "./module-0132.mjs";
+import { ICommandService } from "./module-0087.mjs";
 
 
 // src/vs/workbench/contrib/chat/browser/agentSessions/agentSessionsControl.ts
@@ -429,6 +430,12 @@ var AgentSessionsControl = class extends Disposable {
     this.computeRecentRepositoryLabels();
     list2.setInput(model);
     this._register(list2.onDidOpen((e) => this.openAgentSession(e)));
+    // OpenCode sessions-click-1717: 列表内按下中键时不触发浏览器自动滚动，保证 auxclick 正常到达
+    this._register(addDisposableListener(list2.getHTMLElement(), "mousedown", (e) => {
+      if (e.button === 1) {
+        e.preventDefault();
+      }
+    }));
     this._register(list2.onContextMenu((e) => this.showContextMenu(e)));
     this._register(list2.onMouseDblClick(({ element }) => {
       if (element === null) {
@@ -509,6 +516,11 @@ var AgentSessionsControl = class extends Disposable {
       providerType: element.providerType,
       source: this.options.source
     });
+    // OpenCode sessions-click-1717: 中键（auxclick button 1）= 在新页面（编辑器标签）打开该对话，复用原生「以编辑器打开」命令
+    if (e.browserEvent && e.browserEvent.button === 1) {
+      await this.instantiationService.invokeFunction((accessor) => accessor.get(ICommandService).executeCommand("workbench.action.chat.openSessionInEditorGroup", element));
+      return;
+    }
     const options3 = this.options.overrideSessionOpenOptions?.(e) ?? e;
     if (this.options.overrideSessionOpen) {
       await this.options.overrideSessionOpen(element.resource, options3);

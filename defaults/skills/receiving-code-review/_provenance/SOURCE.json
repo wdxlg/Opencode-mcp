@@ -1,0 +1,30 @@
+{
+  "id": "receiving-code-review",
+  "sourceName": "receiving-code-review",
+  "title": "处理代码审查意见",
+  "category": "代码质量",
+  "repo": "obra/superpowers",
+  "commit": "bb92a77741419a4ab5f06e711a283343f1ada0c3",
+  "sourcePath": "skills/receiving-code-review/",
+  "sourceUrl": "https://github.com/obra/superpowers/tree/bb92a77741419a4ab5f06e711a283343f1ada0c3/skills/receiving-code-review",
+  "license": "MIT",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "先判断意见是否适用；不自动跑测试、提交代码或回复远端评论。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "091df1629510af1b92fc4abd6f96732ebedb4cb2c0f3457e8f2740b0504a2438"
+    },
+    {
+      "path": "_provenance/REPOSITORY_LICENSE",
+      "upstreamSha256": "a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400"
+    }
+  ]
+}

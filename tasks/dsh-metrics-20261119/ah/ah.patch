@@ -1,0 +1,169 @@
+diff --git a/recovered/esm/002-agent-host.js/agent-context.mjs b/recovered/esm/002-agent-host.js/agent-context.mjs
+index ccaa04e3..0bd4520c 100644
+--- a/recovered/esm/002-agent-host.js/agent-context.mjs
++++ b/recovered/esm/002-agent-host.js/agent-context.mjs
+@@ -12,13 +12,11 @@ function ocCharTokenWeight(code) {
+   if (code < 0x0800) return 0.5;
+   return 1;
+ }
++// dsh-metrics-20261119 (AH): dsh-token-meter estimator: CHARS_PER_TOKEN=4 over UTF-16 .length, BLOCK_OVERHEAD=4, empty = 0 (ocCharTokenWeight kept exported, unused).
++var OC_CHARS_PER_TOKEN = 4, OC_BLOCK_OVERHEAD = 4;
+ function estimatedTokens(value) {
+   const text = typeof value === "string" ? value : JSON.stringify(value ?? "");
+-  let estimate = 0;
+-  for (const character of text) {
+-    estimate += ocCharTokenWeight(character.codePointAt(0) ?? 0);
+-  }
+-  return Math.max(1, Math.ceil(estimate));
++  return Math.ceil(text.length / OC_CHARS_PER_TOKEN);
+ }
+ var OC_PRIOR_TOOL_CONTEXT_OPEN = "<opencode_prior_tool_context>";
+ var OC_PRIOR_TOOL_CONTEXT_CLOSE = "</opencode_prior_tool_context>";
+@@ -46,7 +44,7 @@ function shrinkPriorToolContextBlocks(messages, uptoIndex, headChars = 4e3, tail
+   }
+   return { freed, count };
+ }
+-var CONTEXT_IMAGE_TOKENS = 1600;
++var CONTEXT_IMAGE_TOKENS = 1024;
+ var CLEARED_TOOL_RESULT_PREFIX = "[Old tool result cleared to save context:";
+ var CONTEXT_FALLBACK_WINDOW = 262144;
+ function contextCompactionSettings(input2) {
+@@ -75,20 +73,24 @@ function contextTextOf(content) {
+   }).filter(Boolean).join("\n");
+ }
+ function contextContentTokens(content) {
+-  if (typeof content === "string") return estimatedTokens(content);
+-  if (!Array.isArray(content)) return content == null ? 0 : estimatedTokens(content);
++  if (typeof content === "string") return content.length ? estimatedTokens(content) + OC_BLOCK_OVERHEAD : 0;
++  if (!Array.isArray(content)) return content == null ? 0 : estimatedTokens(content) + OC_BLOCK_OVERHEAD;
+   let total = 0;
+   for (const part of content) {
+-    if (part?.type === "image_url" || part?.type === "image" || part?.type === "input_image") total += CONTEXT_IMAGE_TOKENS;
+-    else total += estimatedTokens(part?.text ?? part ?? "");
++    if (part?.type === "image_url" || part?.type === "image" || part?.type === "input_image") total += CONTEXT_IMAGE_TOKENS + OC_BLOCK_OVERHEAD;
++    else total += (typeof part?.text === "string" ? estimatedTokens(part.text) : estimatedTokens(part ?? "")) + OC_BLOCK_OVERHEAD;
+   }
+   return total;
+ }
+ function contextMessageTokens(message) {
++  if (message?.role === "system") {
++    const text = contextTextOf(message.content);
++    return text.length ? estimatedTokens(text) + OC_BLOCK_OVERHEAD : 0;
++  }
+   let total = 4 + contextContentTokens(message?.content);
+-  if (Array.isArray(message?.tool_calls)) total += estimatedTokens(message.tool_calls);
+-  if (typeof message?.reasoning_content === "string") total += estimatedTokens(message.reasoning_content);
+-  if (Array.isArray(message?.anthropic_thinking)) total += estimatedTokens(message.anthropic_thinking);
++  if (Array.isArray(message?.tool_calls)) for (const call of message.tool_calls) total += estimatedTokens(String(call?.function?.name ?? call?.name ?? "")) + estimatedTokens(String(call?.function?.arguments ?? call?.arguments ?? "")) + OC_BLOCK_OVERHEAD;
++  if (typeof message?.reasoning_content === "string" && message.reasoning_content) total += estimatedTokens(message.reasoning_content) + OC_BLOCK_OVERHEAD;
++  if (Array.isArray(message?.anthropic_thinking)) total += estimatedTokens(message.anthropic_thinking) + OC_BLOCK_OVERHEAD;
+   return total;
+ }
+ function contextMessagesTokens(list) {
+@@ -122,7 +124,8 @@ function contextBreakdownOf(messages, tools) {
+   return out;
+ }
+ function contextHistoryItemTokens(item) {
+-  return 4 + estimatedTokens(item?.content ?? "") + (Array.isArray(item?.images) ? item.images.length : 0) * CONTEXT_IMAGE_TOKENS;
++  const text = typeof item?.content === "string" ? item.content : item?.content == null ? "" : JSON.stringify(item.content);
++  return 4 + (text.length ? estimatedTokens(text) + OC_BLOCK_OVERHEAD : 0) + (Array.isArray(item?.images) ? item.images.length : 0) * (CONTEXT_IMAGE_TOKENS + OC_BLOCK_OVERHEAD);
+ }
+ function contextClip(text, maxChars) {
+   const value = String(text ?? "");
+diff --git a/recovered/esm/002-agent-host.js/agent-stream-parsers.mjs b/recovered/esm/002-agent-host.js/agent-stream-parsers.mjs
+index 2ed787aa..ea0d4bd6 100644
+--- a/recovered/esm/002-agent-host.js/agent-stream-parsers.mjs
++++ b/recovered/esm/002-agent-host.js/agent-stream-parsers.mjs
+@@ -137,6 +137,8 @@ function createChatEventStreamProcessor(timers, onContentDelta, onReasoningDelta
+       for (const [fallbackIndex, call] of (Array.isArray(delta.tool_calls) ? delta.tool_calls : []).entries()) {
+         const index = Number.isInteger(call?.index) ? Number(call.index) : fallbackIndex;
+         const current = toolCalls.get(index) ?? { name: "", arguments: "" };
++        // dsh-metrics-20261119 (AH): tool-call delta counts toward TTFT (hook set by module-0029 on onContentDelta).
++        if (typeof call?.function?.name === "string" && call.function.name || typeof call?.function?.arguments === "string" && call.function.arguments) onContentDelta?.onToolCallDelta?.();
+         if (typeof call?.id === "string" && call.id) current.id = call.id;
+         if (typeof call?.function?.name === "string" && call.function.name) {
+           if (!current.name) {
+@@ -312,6 +314,8 @@ function createCodexEventStreamProcessor(timers, onContentDelta, onReasoningDelt
+     if (type === "response.function_call_arguments.delta") {
+       const key = typeof payload.item_id === "string" ? payload.item_id : `item-${payload.output_index ?? 0}`;
+       const current = toolCalls.get(key) ?? { arguments: "" };
++      // dsh-metrics-20261119 (AH): tool-call delta counts toward TTFT (hook set by module-0029 on onContentDelta).
++      if (typeof payload.delta === "string" && payload.delta) onContentDelta?.onToolCallDelta?.();
+       if (typeof payload.delta === "string") current.arguments += payload.delta;
+       toolCalls.set(key, current);
+       return;
+@@ -514,6 +518,8 @@ function createAnthropicEventStreamProcessor(timers, onContentDelta, onReasoning
+     if (type === "content_block_start") {
+       const block = payload.content_block;
+       if (block?.type === "tool_use") {
++        // dsh-metrics-20261119 (AH): tool-call delta counts toward TTFT (hook set by module-0029 on onContentDelta).
++        if (typeof block.name === "string" && block.name) onContentDelta?.onToolCallDelta?.();
+         toolCalls.set(payload.index, {
+           id: typeof block.id === "string" ? block.id : void 0,
+           name: typeof block.name === "string" ? block.name : void 0,
+@@ -546,6 +552,7 @@ function createAnthropicEventStreamProcessor(timers, onContentDelta, onReasoning
+         return;
+       }
+       if (delta?.type === "input_json_delta" && typeof delta.partial_json === "string" && delta.partial_json) {
++        onContentDelta?.onToolCallDelta?.();
+         const current = toolCalls.get(payload.index) ?? { arguments: "" };
+         current.arguments += delta.partial_json;
+         toolCalls.set(payload.index, current);
+diff --git a/recovered/esm/002-agent-host.js/module-0029.mjs b/recovered/esm/002-agent-host.js/module-0029.mjs
+index be5b4e23..1e0185da 100644
+--- a/recovered/esm/002-agent-host.js/module-0029.mjs
++++ b/recovered/esm/002-agent-host.js/module-0029.mjs
+@@ -758,7 +758,8 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+     emitTrace({ type: "context_compaction", step, data: { phase: "config_error", reason: "threshold", error: spec.error, window: managedContextWindow } });
+   };
+   // OpenCode context-fixes step05: 估算值 × 校准系数（提供商实测 input / 本地估算，按 提供商+模型 平滑学习）。
+-  let tokenRatio = Number.isFinite(contextSettings.tokenRatio) && contextSettings.tokenRatio >= 0.3 && contextSettings.tokenRatio <= 3 ? contextSettings.tokenRatio : 1;
++  // dsh-metrics-20261119 (AH): dsh has no learned calibration; ratio fixed at 1 (calibrated() = identity).
++  let tokenRatio = 1;
+   let tokenRatioSamples = 0;
+   const calibrated = (tokens) => Math.ceil(tokens * tokenRatio);
+   if (codex && (!input2.codexAuth?.accessToken.trim() || !input2.codexAuth.accountId.trim())) {
+@@ -784,7 +785,7 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+     const executeToolCall = createToolCallExecutor({ input2, client, availableToolNames, externalToolNames, fileToolRequestOptions });
+     const toolNames = availableTools.map((tool) => tool.name);
+     const restoredCheckpoint = usableCheckpoint(input2.checkpoint, input2, availableToolNames);
+-    const toolDefinitionTokens = estimatedTokens(advertisedTools.map((tool) => [tool.name, tool.description ?? "", tool.inputSchema ?? {}]));
++    const toolDefinitionTokens = advertisedTools.length ? estimatedTokens(advertisedTools.map((tool) => [tool.name, tool.description ?? "", tool.inputSchema ?? {}])) + 4 : 0;
+     const contextCompactor = createContextCompactor({ input2, fetchImpl, emitTrace, availableToolNames, toolDefinitionTokens, codex, anthropic, deepSeek, anthropicMaxOutputTokens, responsesReasoningEffort, codexServiceTier, maxOutputTokens, calibrated, usableContextWindow, keepRecentContextTokens, get messages() { return messages; }, get endpoint() { return endpoint; }, get responses() { return responses; }, get managedContextWindow() { return managedContextWindow; } }, { requestModelStream, requestChatCompletion, contextHistoryHash, summarizeEvictedHistory });
+     const cs = contextCompactor.state;
+     const { applyContextCheckpoint, contextCheckpointResult, currentContextTokens, requestPlainCompletion, compactContext } = contextCompactor;
+@@ -898,6 +899,10 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+         firstDeltaAt ??= Date.now();
+         emitTrace({ type: "model_thinking_delta", step, data: { content: reasoning } });
+       };
++      // dsh-metrics-20261119 (AH): dsh counts a tool-call delta (non-empty name/arguments) as the first token too.
++      onContentDelta.onToolCallDelta = () => {
++        firstDeltaAt ??= Date.now();
++      };
+       const requestChat = async (chatEndpoint) => {
+         const usageRouteKey = `${chatEndpoint}\n${input2.model}`;
+         // prompt-cache-step03: 带 prompt_cache_key（同端点+模型+工作区稳定），供应商拒收时去掉重试并按路由记住。
+@@ -1043,19 +1048,10 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+       });
+       overflowRetries = 0;
+       if (completion.usage && completion.usage.input + completion.usage.cacheRead + completion.usage.cacheWrite > 0) {
+-        cs.measuredContext = { tokens: completion.usage.total, length: messages.length };
+-        // OpenCode context-fixes step05: 用提供商实测的输入 token 校准本地估算（平滑，忽略过小样本与 prompt-tools 模式）。
+-        try {
+-          const actualInput = completion.usage.input + completion.usage.cacheRead + completion.usage.cacheWrite;
+-          const rawEstimate = contextMessagesTokens(messages) + toolDefinitionTokens;
+-          if (!promptToolMode && rawEstimate >= 2e3 && actualInput > 0) {
+-            const observed = Math.min(3, Math.max(0.3, actualInput / rawEstimate));
+-            const previousRatio = tokenRatio;
+-            tokenRatio = Number((tokenRatio * 0.7 + observed * 0.3).toFixed(4));
+-            tokenRatioSamples += 1;
+-            if (Math.abs(tokenRatio - previousRatio) >= 0.01 || tokenRatioSamples === 1) emitTrace({ type: "context_learned", step, data: { model: input2.model, tokenRatio, observedRatio: Number(observed.toFixed(4)), samples: tokenRatioSamples, source: "usage" } });
+-          }
+-        } catch {
++        // dsh-metrics-20261119 (AH): dsh measure(): provider usage is the baseline only if it is >= the local estimate of tools + surface + reply; otherwise the estimate. No ratio learning.
++        {
++          const localEstimate = contextMessagesTokens(messages) + toolDefinitionTokens + contextMessageTokens(completion.message);
++          cs.measuredContext = { tokens: completion.usage.total >= localEstimate ? completion.usage.total : localEstimate, length: messages.length };
+         }
+       }
+       const message = completion.message;

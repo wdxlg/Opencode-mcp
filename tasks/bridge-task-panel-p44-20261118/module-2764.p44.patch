@@ -1,0 +1,917 @@
+--- a/recovered/esm/027-workbench.desktop.main.js/module-2764.mjs
++++ b/recovered/esm/027-workbench.desktop.main.js/module-2764.mjs
+@@ -88,7 +88,7 @@
+ const OC_GIT_SUB = { log: "查看提交记录", status: "查看仓库状态", diff: "查看改动", show: "查看提交", add: "暂存文件", commit: "提交", push: "推送", pull: "拉取", fetch: "获取远端", checkout: "切换分支", switch: "切换分支", branch: "查看分支", clone: "克隆仓库", stash: "暂存工作区", reset: "重置", restore: "还原文件", rev_parse: "查询版本", ls_files: "列出受控文件", blame: "查看逐行作者", merge: "合并", rebase: "变基", tag: "标签", remote: "远端设置" };
+ function ocBase(p) { const s = String(p || "").replace(/^["']|["']$/g, "").replace(/[\\/]+$/, ""); const m = s.split(/[\\/]/); return m[m.length - 1] || s; }
+ function ocSplitCommand(cmd) {
+-  const segs = String(cmd || "").split(/\s*(?:&&|\|\||;|\n)\s*/).map((s) => s.trim()).filter(Boolean);
++  const segs = ocP44SplitHeredoc(cmd).head.split(/\s*(?:&&|\|\||;|\n)\s*/).map((s) => s.trim()).filter(Boolean);
+   let folder;
+   const rest = [];
+   for (const seg of segs) {
+@@ -147,7 +147,7 @@
+   }
+   let title = presentation2.title || tool;
+   if (title === tool && OC_TOOL_LABELS[tool]) title = OC_TOOL_LABELS[tool];
+-  title = String(title).replace(/^Read (\d+|workspace) files?$/, (_, n) => n === "workspace" ? "读取文件" : `读取 ${n} 个文件`).replace(/^Read (.+)$/, (_, f) => `读取 · ${ocBase(f)}`).replace(/^Found (\d+) files?$/, "找到 $1 个文件").replace(/^Searched \u201C(.*)\u201D$/, "搜索 · $1").replace(/^Searched workspace$/, "搜索工作区").replace(/^Read command output$/, "读取命令输出").replace(/^(.+) running$/, (_, t) => (OC_TOOL_LABELS[t] || t) + "…");
++  title = String(title).replace(/^Read command output$/, "读取命令输出").replace(/^Command output \xB7 exit (\d+)$/, "读取命令输出 · 退出码 $1").replace(/^Read (\d+|workspace) files?$/, (_, n) => n === "workspace" ? "读取文件" : `读取 ${n} 个文件`).replace(/^Read (.+)$/, (_, f) => `读取 · ${ocBase(f)}`).replace(/^Found (\d+) files?$/, "找到 $1 个文件").replace(/^Searched \u201C(.*)\u201D$/, "搜索 · $1").replace(/^Searched workspace$/, "搜索工作区").replace(/^Read command output$/, "读取命令输出").replace(/^(.+) running$/, (_, t) => (OC_TOOL_LABELS[t] || t) + "…");
+   return { title, subtitle: presentation2.subtitle, command: void 0 };
+ }
+ function ocActorOf(activity) {
+@@ -220,6 +220,13 @@
+     style.textContent = OC_P39_CSS;
+     doc.head.appendChild(style);
+   }
++  // OpenCode p44: 任务面板改进样式（状态色、分组、分段筛选、停止按钮红色、悬停稳定）。
++  if (!doc.getElementById("oc-p44-css")) {
++    const style = doc.createElement("style");
++    style.id = "oc-p44-css";
++    style.textContent = OC_P44_CSS;
++    doc.head.appendChild(style);
++  }
+ }
+ const OC_P39_CSS = `
+ /* OpenCode p39-p41: 任务架 / Bridge 活动 / 底部状态 —— VS Code 原生视图样式（仅主题变量，无圆角卡片/阴影/彩色胶囊） */
+@@ -357,6 +364,208 @@
+ .oc-p39 .opencode-bridge-session-meta,.oc-p39 .opencode-bridge-session-hint{display:none!important}
+ .opencode-bridge-session-view.oc-p39.oc-p41-stopped .opencode-bridge-session-stats{display:none!important}
+ `;
++// ---- OpenCode p44: 任务面板改进（状态按实际结果、命令轮询合并、批量摘要、heredoc 标题、按任务分组） ----
++// heredoc：`cmd <<'TAG'` 之后到 TAG 行为脚本正文，不应按换行拆成「步」。
++function ocP44SplitHeredoc(cmd) {
++  const lines = String(cmd || "").split(/\r?\n/);
++  const head = [];
++  const bodies = [];
++  for (let i = 0; i < lines.length; i++) {
++    const line = lines[i];
++    head.push(line);
++    const re = /<<-?\s*(['"]?)([A-Za-z_][\w.-]*)\1/g;
++    let m;
++    const tags = [];
++    while (m = re.exec(line)) tags.push(m[2]);
++    for (const tag of tags) {
++      const body = [];
++      i++;
++      while (i < lines.length && lines[i].trim() !== tag) body.push(lines[i++]);
++      bodies.push({ tag, line, body });
++    }
++  }
++  return { head: head.join("\n"), bodies };
++}
++// heredoc 摘要：优先写入的文件，其次首条注释 / def / function / class，最后首行正文。
++function ocP44HeredocSummary(doc) {
++  const files = new Set();
++  const redirect = /(?:^|\s)>{1,2}\s*(["']?)([^\s"'<>|&;]+)\1/.exec(doc.line.replace(/<<-?\s*(['"]?)[\w.-]+\1/g, ""));
++  if (redirect && !/^&?\d$/.test(redirect[2]) && redirect[2] !== "/dev/null") files.add(ocBase(redirect[2]));
++  const text2 = doc.body.join("\n");
++  const pats = [
++    /\bopen\(\s*(?:r|rb|f)?["']([^"']+)["']\s*,\s*["'][wax]b?\+?["']/g,
++    /\bPath\(\s*(?:r|f)?["']([^"']+)["']\s*\)\s*\.write_(?:text|bytes)/g,
++    /\bwrite(?:File|FileSync)\(\s*["'`]([^"'`]+)["'`]/g,
++    /\b(?:Set-Content|Out-File|Add-Content)\s+(?:-(?:Path|FilePath|LiteralPath)\s+)?["']?([^\s"']+)/gi,
++    /\bfs\.(?:writeFileSync|appendFileSync)\(\s*["'`]([^"'`]+)["'`]/g
++  ];
++  for (const re of pats) { let m; while (m = re.exec(text2)) files.add(ocBase(m[1])); }
++  if (files.size) { const list = [...files]; return { kind: "files", text: `写入 ${list.slice(0, 3).join(", ")}${list.length > 3 ? ` 等 ${list.length} 个` : ""}` }; }
++  const body = doc.body.map((l) => l.trim()).filter(Boolean);
++  const comment = body.find((l) => /^(#(?!!)|\/\/|--\s|REM\s)/i.test(l));
++  if (comment) return { kind: "comment", text: comment.replace(/^(#+|\/\/+|--|REM)\s*/i, "").slice(0, 120) };
++  const def = body.find((l) => /^(async\s+)?(def|class|function|const\s+\w+\s*=\s*(async\s*)?\()\b/.test(l));
++  if (def) return { kind: "def", text: def.slice(0, 120) };
++  const first = body.find((l) => !/^(import|from|use strict|['"]use strict)/.test(l)) || body[0] || "";
++  return { kind: "line", text: first.slice(0, 120) };
++}
++// 终端类调用的实际结果：退出码 / 子状态（running / failed / cancelled）。
++function ocP44TermTokens(p) {
++  return String(p?.subtitle || "").split(" \xB7 ").map((s) => s.trim().toLowerCase()).filter(Boolean);
++}
++function ocP44TermState(p) {
++  if (!p || p.kind !== "terminal") return void 0;
++  const tokens = ocP44TermTokens(p);
++  if (typeof p.exitCode === "number") return p.exitCode === 0 ? "completed" : "error";
++  if (tokens.some((t) => /^exit (-?\d+)$/.test(t) && t !== "exit 0")) return "error";
++  if (tokens.includes("exit 0")) return "completed";
++  if (tokens.some((t) => t === "cancelled" || t === "canceled" || t === "killed" || t === "aborted")) return "cancelled";
++  if (tokens.some((t) => t === "failed" || t === "error" || t === "timed_out" || t === "timeout")) return "error";
++  if (tokens.includes("running")) return "running";
++  if (tokens.includes("completed")) return "completed";
++  return void 0;
++}
++// 单次调用的有效状态（图标 / 筛选 / 计数都用它）：MCP 调用成功但命令退出码非 0 也算失败。
++function ocP44Status(a) {
++  if (a.status === "progress") return "progress";
++  if (a.status === "cancelled" || a.status === "canceled") return "cancelled";
++  if (a.status === "error" || a.isError === true) return "error";
++  if (a.status === "running") return "running";
++  const p = a.presentation;
++  if (a.tool === "run_command" || a.tool === "get_command_output") {
++    const s = ocP44TermState(p);
++    if (s) return s;
++  }
++  if (a.tool === "bridge_batch" && /失败\s*[1-9]/.test(String(a.message || ""))) return "error";
++  if (/^(error|failed)\b/i.test(String(p?.subtitle || "")) || /failed$/i.test(String(p?.subtitle || ""))) return "error";
++  return "completed";
++}
++// 动词类别（行内小图标）。
++const OC_P44_CATEGORIES = [
++  { re: /^读取/, key: "read", icon: "file", label: "读取" },
++  { re: /^查看文件/, key: "read", icon: "file", label: "查看文件" },
++  { re: /^(搜索|查找)/, key: "search", icon: "search", label: "搜索" },
++  { re: /^列出/, key: "list", icon: "listTree", label: "列出" },
++  { re: /^运行/, key: "run", icon: "terminal", label: "运行" },
++  { re: /^(修改|写入|编辑)/, key: "edit", icon: "edit", label: "修改" },
++  { re: /^Git/, key: "git", icon: "sourceControl", label: "Git" }
++];
++function ocP44Category(verb) {
++  for (const c of OC_P44_CATEGORIES) if (c.re.test(verb)) return c;
++  return void 0;
++}
++function ocP44CodiconClass(name) {
++  const icon2 = Codicon[name] ?? Codicon.tools;
++  return ThemeIcon.asClassNameArray(icon2);
++}
++const OC_P44_BATCH_KIND = { read_files: "读取", read_file: "读取", read_image: "读取", list_skills: "读取", bridge_get_effective_rules: "读取", search_files: "搜索", find_files: "搜索", lsp: "搜索", list_directory: "列出", run_command: "命令", get_command_output: "命令", send_command_input: "命令", cancel_command: "命令", apply_patch: "修改", write_file: "修改", get_diagnostics: "诊断", set_todos: "任务卡", update_plan: "任务卡", report_progress: "任务卡" };
++function ocP44BatchSummary(count2, children) {
++  const kinds = new Map();
++  for (const c of children) { const k = OC_P44_BATCH_KIND[c.a.tool] || OC_TOOL_LABELS[c.a.tool] || c.a.tool; kinds.set(k, (kinds.get(k) || 0) + 1); }
++  const n = count2 || children.length;
++  const parts = [...kinds.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ×${v}`);
++  return parts.length ? `批量 ${n} 项：${parts.join(" \xB7 ")}` : n ? `批量 ${n} 项` : "批量调用";
++}
++function ocP44BatchCount(a) {
++  const p = a.presentation;
++  try { const v = typeof p?.input === "string" ? JSON.parse(p.input) : p?.input; if (Number.isFinite(v?.count)) return v.count; } catch { }
++  const m = /已完成\s*\d+\s*\/\s*(\d+)/.exec(String(a.message || p?.output || ""));
++  return m ? Number(m[1]) : 0;
++}
++function ocP44DurClass(ms) {
++  if (ms === void 0 || !Number.isFinite(ms)) return "";
++  return ms < 1e3 ? "oc-p44-dur-fast" : ms >= 1e4 ? "oc-p44-dur-slow" : "";
++}
++function ocP44Relative(ms, now = Date.now()) {
++  const d = Math.max(0, now - ms);
++  if (d < 6e4) return "刚刚";
++  if (d < 36e5) return `${Math.round(d / 6e4)} 分钟前`;
++  if (d < 864e5) return `${Math.round(d / 36e5)} 小时前`;
++  return `${Math.round(d / 864e5)} 天前`;
++}
++// 列表级统计（与行图标同一口径）：命令轮询并入父命令后再数运行中 / 失败。
++function ocP44CountStates(activities) {
++  const latestPoll = new Map();
++  for (const a of activities) {
++    if (a.tool !== "get_command_output" || !a.presentation?.commandId) continue;
++    const st = ocP44TermState(a.presentation);
++    if (st) latestPoll.set(a.presentation.commandId, st);
++  }
++  let running = 0, failed = 0, failedTool = 0;
++  const cmdIds = new Set();
++  for (const a of activities) if (a.tool === "run_command" && a.presentation?.commandId) cmdIds.add(a.presentation.commandId);
++  for (const a of activities) {
++    if (a.status === "progress") continue;
++    if (a.tool === "get_command_output" && cmdIds.has(a.presentation?.commandId)) continue;
++    let st = ocP44Status(a);
++    if (a.tool === "run_command" && a.status !== "error" && latestPoll.has(a.presentation?.commandId)) st = latestPoll.get(a.presentation.commandId);
++    if (st === "running") running += 1;
++    else if (st === "error") { failed += 1; if (a.status === "error") failedTool += 1; }
++  }
++  return { running, failed, failedTool };
++}
++const OC_P44_TASK_SEG_KEY = "opencode.bridge.p44.taskSegment";
++const OC_P44_GROUPS_KEY = "opencode.bridge.p44.groups";
++function ocP44LoadJson(key, fallback) { try { const v = JSON.parse(globalThis.localStorage?.getItem(key) || "null"); return v ?? fallback; } catch { return fallback; } }
++function ocP44SaveJson(key, value2) { try { globalThis.localStorage?.setItem(key, JSON.stringify(value2)); } catch { } }
++const OC_P44_CSS = `
++/* OpenCode p44: 任务面板改进 */
++.oc-p39 .oc-p40-row{border-left:2px solid transparent}
++.oc-p39 .oc-p40-row.state-completed .oc-p39-icon{color:var(--vscode-testing-iconPassed,var(--vscode-charts-green))}
++.oc-p39 .oc-p40-row.state-error{border-left-color:color-mix(in srgb,var(--vscode-errorForeground) 55%,transparent);background:color-mix(in srgb,var(--vscode-errorForeground) 6%,transparent)}
++.oc-p39 .oc-p40-row.state-error:hover{background:color-mix(in srgb,var(--vscode-errorForeground) 11%,var(--vscode-list-hoverBackground,transparent))}
++.oc-p39 .oc-p40-row.state-error .oc-p39-icon{color:var(--vscode-testing-iconFailed,var(--vscode-errorForeground))}
++.oc-p39 .oc-p40-row.state-cancelled .oc-p39-icon{color:var(--vscode-disabledForeground,var(--vscode-descriptionForeground))}
++.oc-p39 .oc-p40-row.state-cancelled .oc-p40-label{opacity:.7}
++.oc-p39 .oc-p40-row.state-running .oc-p39-icon{color:var(--vscode-charts-blue,var(--vscode-progressBar-background))}
++.oc-p39 .oc-p40-row.oc-p44-child{padding-left:30px}
++.oc-p39 .oc-p40-row.oc-p44-child+.oc-p40-detail{padding-left:66px}
++.oc-p39 .oc-p44-verb-icon{flex:none;display:inline-flex!important;align-items:center;justify-content:center;width:14px;font-size:13px;margin-right:4px;opacity:.75;vertical-align:-2px}
++.oc-p39 .oc-p40-label .oc-p44-verb-rest{opacity:.8;margin-right:.4em}
++.oc-p39 .oc-p40-label .oc-p40-target{margin-left:0}
++.oc-p39 .oc-p44-client{flex:none;display:inline-block;max-width:9em;overflow:hidden;text-overflow:ellipsis;font-size:10px;line-height:15px;padding:0 5px;border-radius:7px;color:hsl(var(--oc-hue,210) 55% 62%);background:hsla(var(--oc-hue,210),60%,55%,.15)}
++.oc-p39 .oc-p44-tail{flex:none;font-size:.9em;opacity:.8;font-variant-numeric:tabular-nums}
++.oc-p39 .oc-p44-tail.bad{color:var(--vscode-errorForeground);opacity:1}
++.oc-p39 .oc-p44-tail.live{color:var(--vscode-charts-blue,var(--vscode-foreground))}
++.oc-p39 .oc-p40-dur.oc-p44-dur-fast{opacity:.45}
++.oc-p39 .oc-p40-dur.oc-p44-dur-slow{opacity:1;color:var(--vscode-charts-orange,#d18616)}
++.oc-p39 .oc-p44-group-head{text-transform:none;font-weight:400;font-size:inherit;gap:6px}
++.oc-p39 .oc-p44-group-head .oc-p40-section-label{flex:0 1 auto;font-weight:600}
++.oc-p39 .oc-p44-group-head .oc-p44-group-meta{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9em;color:var(--vscode-descriptionForeground)}
++.oc-p39 .oc-p44-group-head .oc-p44-group-meta .bad{color:var(--vscode-errorForeground)}
++.oc-p39 .oc-p44-group-head.state-running .oc-p39-icon{color:var(--vscode-charts-blue,var(--vscode-progressBar-background))}
++.oc-p39 .oc-p44-group-head.state-error .oc-p39-icon{color:var(--vscode-errorForeground)}
++.oc-p39 .oc-p44-group-head.state-completed .oc-p39-icon{color:var(--vscode-testing-iconPassed)}
++.oc-p39 .oc-p44-group-head.state-unlinked .oc-p39-icon{color:var(--vscode-descriptionForeground)}
++.oc-p39 .oc-p44-time-sep{display:flex;align-items:center;gap:6px;height:18px;line-height:18px;padding:0 8px 0 30px;font-size:10px;color:var(--vscode-descriptionForeground);font-variant-numeric:tabular-nums;user-select:none}
++.oc-p39 .oc-p44-time-sep::after{content:"";flex:1;height:1px;background:var(--vscode-tree-indentGuidesStroke,var(--vscode-widget-border,rgba(128,128,128,.25)));opacity:.6}
++.oc-p39 .oc-p44-filter-banner{display:flex;align-items:center;gap:6px;height:22px;padding:0 8px 0 10px;font-size:12px;color:var(--vscode-errorForeground);background:color-mix(in srgb,var(--vscode-errorForeground) 8%,transparent)}
++.oc-p39 .oc-p44-filter-banner button{margin-left:auto}
++.oc-p39 .oc-p44-poll{display:flex;gap:8px;line-height:18px;font-size:11px;color:var(--vscode-descriptionForeground);font-variant-numeric:tabular-nums}
++.oc-p39 .oc-p44-poll .bad{color:var(--vscode-errorForeground)}
++/* 任务架：分组标题改为一行分段筛选 */
++.oc-p39 .oc-p44-seg{display:flex;align-items:stretch;gap:0;margin:3px 8px 3px 10px;height:22px;border:1px solid var(--vscode-input-border,var(--vscode-widget-border,rgba(128,128,128,.35)));border-radius:4px;overflow:hidden}
++.oc-p39 .oc-p44-seg button{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:0 4px;border:0;border-left:1px solid var(--vscode-input-border,var(--vscode-widget-border,rgba(128,128,128,.35)));background:transparent;color:var(--vscode-foreground);font:inherit;font-size:12px;white-space:nowrap;overflow:hidden;cursor:pointer;outline-offset:-1px}
++.oc-p39 .oc-p44-seg button:first-child{border-left:0}
++.oc-p39 .oc-p44-seg button:hover{background:var(--vscode-toolbar-hoverBackground)}
++.oc-p39 .oc-p44-seg button.active{background:var(--vscode-button-background);color:var(--vscode-button-foreground)}
++.oc-p39 .oc-p44-seg button .codicon{font-size:13px}
++.oc-p39 .oc-p44-seg button[data-seg="running"]:not(.active) .codicon{color:var(--vscode-charts-yellow)}
++.oc-p39 .oc-p44-seg button[data-seg="unfinished"]:not(.active) .codicon{color:var(--vscode-errorForeground)}
++.oc-p39 .oc-p44-seg button[data-seg="completed"]:not(.active) .codicon{color:var(--vscode-testing-iconPassed)}
++.oc-p39 .oc-p44-seg .oc-p44-seg-n{font-variant-numeric:tabular-nums;opacity:.85}
++.oc-p39 .oc-p44-seg .oc-p44-seg-calls{font-size:10px;opacity:.85}
++.oc-p39.oc-p44-seg-mode summary.opencode-task-group-heading{display:none!important}
++.oc-p39.oc-p44-seg-mode details.opencode-bridge-task-group.oc-p44-seg-hidden{display:none!important}
++.oc-p39.oc-p44-seg-mode .opencode-bridge-task-card>summary{padding-left:10px!important}
++/* 底部：统计行「失败 N」可点击筛选；停止按钮红色；悬停稳定 */
++.oc-p39 .oc-stats-line .oc-p44-fail{cursor:pointer;border-radius:3px;padding:0 2px}
++.oc-p39 .oc-stats-line .oc-p44-fail:hover{text-decoration:underline}
++.oc-p39 .oc-stats-line .oc-p44-fail.active{background:color-mix(in srgb,var(--vscode-errorForeground) 18%,transparent);text-decoration:none}
++.oc-p39 .oc-p41-actionbar .monaco-button.opencode-bridge-session-start-stop-button,.oc-p39 .oc-p41-actionbar .monaco-button.opencode-bridge-session-start-stop-button .codicon{color:var(--vscode-errorForeground,#f14c4c)!important}
++.oc-p39 .oc-p41-actionbar .monaco-button.opencode-bridge-session-start-stop-button:hover:not(.disabled){background:color-mix(in srgb,var(--vscode-errorForeground,#f14c4c) 18%,transparent)!important}
++.oc-p39 .oc-p41-actionbar .monaco-button,.oc-p39 .oc-p41-actionbar .monaco-button *{transition:none!important}
++`;
+ // OpenCode p40: 活动行的人话标签：动词 + 主要对象（命令/路径），其余进描述与悬停提示。
+ function ocP40Describe(activity) {
+   const p = activity.presentation ?? { kind: "generic", title: activity.tool };
+@@ -364,6 +573,7 @@
+   let verb = "";
+   let target = "";
+   let extra = "";
++  let extraTitle = "";
+   let full = "";
+   if (human.command !== void 0) {
+     const { folder, segs } = ocSplitCommand(human.command);
+@@ -379,7 +589,21 @@
+       verb = d.split(" · ")[0];
+     }
+     target = seg.replace(/\s+/g, " ").slice(0, 200) || folder || "";
+-    if (segs.length > 1) extra = `+${segs.length - 1} 步`;
++    // OpenCode p44: 原「+N 步」实为 &&、||、; 或换行串起的后续命令条数（不含开头 cd）；heredoc 正文不再计入。
++    if (segs.length > 1) {
++      extra = `另 ${segs.length - 1} 条命令`;
++      extraTitle = `后续命令：\n${segs.slice(1, 8).map((x) => `· ${x.slice(0, 160)}`).join("\n")}${segs.length > 8 ? `\n… 共 ${segs.length - 1} 条` : ""}`;
++    }
++    const hd = ocP44SplitHeredoc(human.command);
++    if (hd.bodies.length) {
++      const doc = hd.bodies[0];
++      const sm = ocP44HeredocSummary(doc);
++      const prog = ocBase((doc.line.trim().match(/\S+/) || [""])[0]).toLowerCase();
++      if ((prog === "cat" || prog === "tee") && sm.kind === "files") { verb = "写入文件"; target = sm.text.replace(/^写入 /, ""); }
++      else if (sm.text) target = sm.text;
++      const n = hd.bodies.reduce((sum, b) => sum + b.body.length, 0);
++      extra = [extra, `脚本 ${n} 行`].filter(Boolean).join(" \xB7 ");
++    }
+     full = human.command;
+   } else {
+     const t = String(human.title || activity.tool || "");
+@@ -400,7 +624,7 @@
+   const where = human.subtitle ? String(human.subtitle) : "";
+   const paths = (p.items ?? []).map((item) => item.path || "").join("\n");
+   const haystack = [verb, target, where, full, activity.tool, paths, typeof activity.message === "string" ? activity.message : ""].join("\n").toLowerCase();
+-  return { verb: verb || activity.tool || "调用", target, where, extra, full, haystack };
++  return { verb: verb || activity.tool || "调用", target, where, extra, extraTitle, full, haystack };
+ }
+ function ocP40Pretty(value2) {
+   if (value2 === void 0 || value2 === null || value2 === "") return "";
+@@ -902,8 +1126,7 @@
+     setVisibility(!this.footerCollapsed, this.footerDetails);
+     this.collapseButton.label = `$(${this.footerCollapsed ? Codicon.chevronUp.id : Codicon.chevronDown.id})`;
+     const title = this.footerCollapsed ? localizeBridge("opencodeBridgeSession.expandStatus", "Expand Bridge status") : localizeBridge("opencodeBridgeSession.collapseStatus", "Collapse Bridge status");
+-    this.collapseButton.setTitle(title);
+-    this.collapseButton.element.setAttribute("aria-label", title);
++    this.ocP44SetTitle(this.collapseButton, title);
+     this.collapseButton.element.setAttribute("aria-expanded", String(!this.footerCollapsed));
+   }
+   async refresh(force = false) {
+@@ -959,6 +1182,7 @@
+     }
+     this.renderStatus(status2);
+     this.renderControls();
++    this.ocP44Tick();
+   }
+   updateMultiTaskView(count2) {
+     this.multiTaskTabs.hidden = !this.multiTaskLayout;
+@@ -1337,6 +1561,8 @@
+       }
+     }
+     this.taskSnapshot = originalTask;
++    this.ocLastTasks = tasks2;
++    this.ocP44RenderTaskSegments({ slots, unfinished, history }, activities);
+     // OpenCode p39: 任务架标题上的总数徽标。
+     if (this.ocP39ShelfBadge) {
+       this.ocP39ShelfBadge.textContent = String(tasks2.length);
+@@ -1385,6 +1611,53 @@
+     this.restoreTimelineViewport(viewport);
+     this.ocRestoreConvFocus();
+   }
++  // OpenCode p44: 「进行中 / 未完成 / 已完成」改为一行分段筛选（取代三行分组标题）。
++  //   未选中：显示进行中 + 未完成；点某段只看该段（同时筛选下方调用列表）；再点一次取消。
++  //   「进行中」段另标正在运行的调用数（这些调用可能不属于进行中的任务，如未归属或已结束任务的后台命令）。
++  ocP44RenderTaskSegments(parts, activities) {
++    this.ocP44TaskSeg ??= ocP44LoadJson(OC_P44_TASK_SEG_KEY, "") || void 0;
++    const sel = this.ocP44TaskSeg;
++    const lists = { running: parts.slots, unfinished: parts.unfinished, completed: parts.history };
++    this.ocP44SegTaskIds = sel ? new Set(lists[sel].map((t) => t.id)) : void 0;
++    const runningCalls = ocP44CountStates(activities ?? []).running;
++    this.taskShelf.classList.add("oc-p44-seg-mode");
++    const bar = $(".oc-p44-seg", { role: "radiogroup", "aria-label": "按任务状态筛选" });
++    this.todosRegion.insertBefore(bar, this.todosRegion.firstChild);
++    const defs = [["running", "进行中", running0 => running0 ? ThemeIcon.modify(Codicon.sync, "spin") : Codicon.sync], ["unfinished", "未完成", () => Codicon.circleLargeOutline], ["completed", "已完成", () => Codicon.pass]];
++    for (const [key, label, iconOf] of defs) {
++      const n = lists[key].length;
++      const btn = append(bar, $("button", { type: "button", role: "radio" }));
++      btn.dataset.seg = key;
++      btn.classList.toggle("active", sel === key);
++      btn.setAttribute("aria-checked", String(sel === key));
++      const ic = append(btn, $("span", { "aria-hidden": "true" }));
++      ic.classList.add(...ThemeIcon.asClassNameArray(iconOf(n || key === "running" && runningCalls)));
++      append(btn, $("span", void 0, label));
++      append(btn, $("span.oc-p44-seg-n", void 0, String(n)));
++      let tip = `${label}：${n} 个任务`;
++      if (key === "running" && runningCalls) {
++        append(btn, $("span.oc-p44-seg-calls", void 0, `\xB7 ${runningCalls} 运行`));
++        tip += `；${runningCalls} 个工具调用正在运行`;
++      }
++      btn.title = `${tip}\n${sel === key ? "再点一次取消筛选" : "点击只看此类任务及其调用"}`;
++      btn.addEventListener("click", (event) => {
++        event.preventDefault();
++        event.stopPropagation();
++        this.ocP44TaskSeg = this.ocP44TaskSeg === key ? void 0 : key;
++        ocP44SaveJson(OC_P44_TASK_SEG_KEY, this.ocP44TaskSeg || "");
++        if (this.ocLastTimelineArgs) this.renderTimeline(...this.ocLastTimelineArgs);
++        this.todosRegion.querySelector(`.oc-p44-seg button[data-seg="${key}"]`)?.focus({ preventScroll: true });
++        this.onShelfLayout();
++      });
++    }
++    for (const group of this.todosRegion.querySelectorAll(":scope > details.opencode-bridge-task-group")) {
++      const key = group.dataset.taskGroup;
++      const visible = sel ? key === sel : key !== "completed";
++      group.classList.toggle("oc-p44-seg-hidden", !visible);
++      if (visible && !group.open) group.open = true;
++      if (visible && !lists[key]?.length && sel && !group.querySelector(".oc-p39-group-empty")) append(group, $(".oc-p39-group-empty", void 0, "没有任务"));
++    }
++  }
+   // ---- OpenCode p40: VS Code 原生树视图样式的活动区 ----
+   ocP40EnsureFilter() {
+     if (this.ocP40Filter) return;
+@@ -1465,70 +1738,242 @@
+     return multi;
+   }
+   ocP40RenderSections(activities, multiClient) {
++    // OpenCode p44: 按任务卡分组（每组可折叠：标题 · 进度 · 总耗时 · 失败数），无任务的调用归「未归属」；
++    //   命令轮询（get_command_output）并入其 run_command；bridge_batch 的子调用收进批量行；状态按实际结果。
+     const f = this.ocFilter;
+     const q = String(f.text || "").trim().toLowerCase();
++    const all = this.ocAllActivities ?? activities;
++    // 1) 命令轮询并入父命令（按 commandId；只找已存在的 run_command）。
++    const cmdById = new Map();
++    for (const a of all) {
++      const cid = a.tool === "run_command" ? a.presentation?.commandId : void 0;
++      if (cid) cmdById.set(cid, a);
++    }
++    const pollsOf = new Map();
++    const merged = new Set();
++    for (const a of all) {
++      if (a.tool !== "get_command_output") continue;
++      const parent = cmdById.get(a.presentation?.commandId);
++      if (!parent || parent.id > a.id) continue;
++      if (!pollsOf.has(parent.id)) pollsOf.set(parent.id, []);
++      pollsOf.get(parent.id).push(a);
++      merged.add(a.id);
++    }
++    // 2) 批量调用的子调用：批量行之后、批量结束前、同一客户端发起的调用（最多 count 项）。
++    const childrenOf = new Map();
++    const batchOf = new Map();
++    for (let i = 0; i < all.length; i++) {
++      const b = all[i];
++      if (b.tool !== "bridge_batch") continue;
++      const count2 = ocP44BatchCount(b);
++      const start = Date.parse(b.at);
++      const end = b.status === "running" ? Infinity : start + (Number(b.durationMs) || 0) + 50;
++      const actorId = ocActorOf(b).id;
++      const kids = [];
++      for (let j = i + 1; j < all.length && (!count2 || kids.length < count2); j++) {
++        const c = all[j];
++        const t = Date.parse(c.at);
++        if (Number.isFinite(t) && t > end) break;
++        if (c.status === "progress" || c.tool === "bridge_batch" || ocActorOf(c).id !== actorId || batchOf.has(c.id)) continue;
++        kids.push(c);
++        batchOf.set(c.id, b.id);
++      }
++      childrenOf.set(b.id, kids);
++    }
++    const effOf = (a) => {
++      let s = ocP44Status(a);
++      const polls = pollsOf.get(a.id);
++      if (polls?.length && a.status !== "error") {
++        for (let k = polls.length - 1; k >= 0; k--) {
++          const ps = ocP44TermState(polls[k].presentation);
++          if (ps) { s = ps; break; }
++        }
++      }
++      if (a.tool === "bridge_batch" && s !== "error" && (childrenOf.get(a.id) ?? []).some((c) => ocP44Status(c) === "error")) s = "error";
++      return s;
++    };
++    const failedOnly = !!this.ocP44FailedOnly;
++    const seg = this.ocP44TaskSeg;
++    const segTaskIds = this.ocP44SegTaskIds;
+     const items = [];
++    const mk = (a) => {
++      const actor = ocActorOf(a);
++      const v = ocP40Describe(a);
++      return { a, v, actor, eff: effOf(a), polls: pollsOf.get(a.id) ?? [], children: [] };
++    };
++    const childItems = new Map();
+     for (const a of activities) {
++      if (merged.has(a.id)) continue;
+       if (a.status === "progress") {
+-        if (!q && f.actor === "all") items.push({ a, progress: true });
++        if (!q && f.actor === "all" && !failedOnly) items.push({ a, progress: true, eff: "progress" });
+         continue;
+       }
+-      const actor = ocActorOf(a);
+-      if (f.actor !== "all" && actor.id !== f.actor) continue;
+-      const v = ocP40Describe(a);
+-      if (q && !v.haystack.includes(q) && !actor.label.toLowerCase().includes(q) && !String(actor.client || "").toLowerCase().includes(q)) continue;
+-      items.push({ a, v, actor });
++      const it = mk(a);
++      if (batchOf.has(a.id)) {
++        const pid = batchOf.get(a.id);
++        if (!childItems.has(pid)) childItems.set(pid, []);
++        childItems.get(pid).push(it);
++        continue;
++      }
++      items.push(it);
+     }
+-    if (!items.length) {
+-      append(this.timeline, $(".oc-p40-empty", void 0, q || f.actor !== "all" ? "没有符合筛选条件的调用。" : "暂无工具调用。"));
++    const passes = (it) => {
++      if (it.progress) return true;
++      if (f.actor !== "all" && it.actor.id !== f.actor) return false;
++      if (q && !it.v.haystack.includes(q) && !it.actor.label.toLowerCase().includes(q) && !String(it.actor.client || "").toLowerCase().includes(q)) return false;
++      if (failedOnly && it.eff !== "error") return false;
++      return true;
++    };
++    const shown = [];
++    for (const it of items) {
++      if (it.a.tool === "bridge_batch") {
++        it.children = childItems.get(it.a.id) ?? [];
++        it.batchCount = ocP44BatchCount(it.a) || it.children.length;
++        const kidsPass = it.children.filter(passes);
++        if (!passes(it) && !kidsPass.length) continue;
++        it.taskId = it.a.taskId ?? it.children.find((c) => c.a.taskId)?.a.taskId;
++      } else if (!passes(it)) continue;
++      it.taskId ??= it.a.taskId;
++      shown.push(it);
++    }
++    // 子调用在其批量行被筛掉时也要能单独出现（例如只看失败）。
++    for (const [pid, kids] of childItems) {
++      if (shown.some((it) => it.a.id === pid)) continue;
++      for (const k of kids) if (passes(k)) { k.taskId = k.a.taskId; shown.push(k); }
++    }
++    shown.sort((x, y) => x.a.id - y.a.id);
++    const actorsShown = new Set(shown.filter((it) => !it.progress).map((it) => it.actor.id));
++    const showClient = f.actor === "all" && actorsShown.size > 1;
++    if (failedOnly) {
++      const banner = append(this.timeline, $(".oc-p44-filter-banner"));
++      const ic = append(banner, $("span.oc-p39-icon", { "aria-hidden": "true" }));
++      ic.classList.add(...ThemeIcon.asClassNameArray(Codicon.error));
++      append(banner, $("span", void 0, "仅显示失败的调用"));
++      const clear = append(banner, $("button.oc-p40-link", void 0, "清除"));
++      clear.type = "button";
++      clear.addEventListener("click", () => this.ocP44SetFailedOnly(false));
++    }
++    if (!shown.some((it) => !it.progress)) {
++      append(this.timeline, $(".oc-p40-empty", void 0, q || f.actor !== "all" || failedOnly || seg ? "没有符合筛选条件的调用。" : "暂无工具调用。"));
+       return;
+     }
+-    this.ocP40Collapsed ??= ocP40LoadSections();
+-    const running = items.filter((it) => !it.progress && it.a.status === "running").reverse();
+-    const failed = items.filter((it) => !it.progress && it.a.status === "error").reverse();
+-    const recent = items.filter((it) => it.progress || it.a.status !== "running").reverse().slice(0, 300);
+-    const section = (key, label, list2, collapseRepeats) => {
+-      const collapsed = !!this.ocP40Collapsed[key];
+-      const sec = append(this.timeline, $(`.oc-p40-section.oc-p40-section-${key}`, { role: "group" }));
+-      const head = append(sec, $(".oc-p40-section-head", { role: "treeitem", tabindex: "0" }));
+-      head.setAttribute("aria-expanded", String(!collapsed));
+-      const tw = append(head, $("span.oc-p39-twistie", { "aria-hidden": "true" }));
+-      tw.classList.add(...ThemeIcon.asClassNameArray(collapsed ? Codicon.chevronRight : Codicon.chevronDown));
+-      append(head, $("span.oc-p40-section-label", void 0, label));
+-      const toggle = () => {
+-        this.ocP40Collapsed[key] = !this.ocP40Collapsed[key];
+-        try { globalThis.localStorage?.setItem(OC_P40_SECTIONS_KEY, JSON.stringify(this.ocP40Collapsed)); } catch { }
+-        this.ocP40FocusAfter = `head:${key}`;
+-        if (this.ocLastTimelineArgs) this.renderTimeline(...this.ocLastTimelineArgs);
+-      };
+-      head.dataset.section = key;
+-      head.addEventListener("click", toggle);
+-      head.addEventListener("keydown", (event) => {
+-        if (event.key === "Enter" || event.key === " " || event.key === "ArrowLeft" && !collapsed || event.key === "ArrowRight" && collapsed) {
+-          event.preventDefault();
+-          toggle();
+-        } else {
+-          this.ocP40TreeKey(event, head);
+-        }
+-      });
+-      if (collapsed) return;
++    const known = new Map((this.ocLastTasks ?? []).map((t) => [t.id, t]));
++    const inConv = !!this.ocConvId;
++    // 分组（对话页只有一个任务，不再加组标题）。
++    const groups = new Map();
++    for (const it of shown) {
++      const gid = it.taskId && known.has(it.taskId) && !this.hiddenTaskIds.has(it.taskId) ? it.taskId : OC_CONV_UNLINKED_ID;
++      if (!groups.has(gid)) groups.set(gid, { id: gid, task: known.get(gid), items: [] });
++      groups.get(gid).items.push(it);
++    }
++    let list = [...groups.values()];
++    if (seg && !inConv) {
++      list = list.filter((g) => g.task ? segTaskIds?.has(g.id) || seg === "running" && g.items.some((it) => it.eff === "running") : seg === "running" && g.items.some((it) => it.eff === "running"));
++      if (!list.length) {
++        append(this.timeline, $(".oc-p40-empty", void 0, "所选分段没有工具调用。"));
++        return;
++      }
++    }
++    const lastId = (g) => g.items.reduce((m, it) => Math.max(m, it.a.id), 0);
++    list.sort((x, y) => Number(y.items.some((it) => it.eff === "running")) - Number(x.items.some((it) => it.eff === "running")) || lastId(y) - lastId(x));
++    this.ocP44GroupState ??= ocP44LoadJson(OC_P44_GROUPS_KEY, {});
++    let budget = 300;
++    list.forEach((g, index) => {
++      if (budget <= 0) return;
++      const rows = g.items.filter((it) => !it.progress).length;
++      const calls = g.items.filter((it) => !it.progress);
++      const failed = calls.filter((it) => it.eff === "error").length;
++      const running = calls.some((it) => it.eff === "running");
++      const totalMs = calls.reduce((s, it) => s + (Number(it.a.durationMs) || 0), 0);
++      let sec = this.timeline;
++      if (!inConv) {
++        const stored = this.ocP44GroupState[g.id];
++        const collapsed = stored === void 0 ? !(index < 3 || running || failedOnly) : stored === true;
++        sec = append(this.timeline, $(".oc-p40-section.oc-p44-group", { role: "group" }));
++        const head = append(sec, $(`.oc-p40-section-head.oc-p44-group-head.state-${g.task ? running ? "running" : failed ? "error" : "completed" : running ? "running" : "unlinked"}`, { role: "treeitem", tabindex: "0" }));
++        head.dataset.section = `g:${g.id}`;
++        head.setAttribute("aria-expanded", String(!collapsed));
++        const tw = append(head, $("span.oc-p39-twistie", { "aria-hidden": "true" }));
++        tw.classList.add(...ThemeIcon.asClassNameArray(collapsed ? Codicon.chevronRight : Codicon.chevronDown));
++        const ic = append(head, $("span.oc-p39-icon", { "aria-hidden": "true" }));
++        ic.classList.add(...ThemeIcon.asClassNameArray(running ? ThemeIcon.modify(Codicon.loading, "spin") : !g.task ? Codicon.inbox ?? Codicon.circleLargeOutline : failed ? Codicon.error : Codicon.checklist ?? Codicon.pass));
++        const title = g.task ? this.taskDisplayTitle(g.task) : "未归属";
++        append(head, $("span.oc-p40-section-label", void 0, title));
++        const meta = append(head, $("span.oc-p44-group-meta"));
++        const todos = g.task?.todos ?? [];
++        const bits = [];
++        if (todos.length) bits.push(`${todos.filter((t) => t.status === "completed").length}/${todos.length}`);
++        bits.push(`${rows} 次`);
++        if (totalMs) bits.push(formatDuration4(totalMs));
++        meta.textContent = bits.join(" \xB7 ");
++        if (failed) append(meta, $("span.bad", void 0, ` \xB7 失败 ${failed}`));
++        head.title = [title, g.task ? `任务状态：${OC_CONV_STATE_LABELS[g.task.state] || g.task.state}` : "没有关联任务卡的调用", todos.length ? `步骤 ${todos.filter((t) => t.status === "completed").length}/${todos.length}` : "", `${rows} 次调用 · 合计 ${formatDuration4(totalMs) || "0 ms"}${failed ? ` · 失败 ${failed}` : ""}`, "新的在上"].filter(Boolean).join("\n");
++        const toggle = () => {
++          this.ocP44GroupState[g.id] = !collapsed;
++          ocP44SaveJson(OC_P44_GROUPS_KEY, this.ocP44GroupState);
++          this.ocP40FocusAfter = `head:g:${g.id}`;
++          if (this.ocLastTimelineArgs) this.renderTimeline(...this.ocLastTimelineArgs);
++        };
++        head.addEventListener("click", toggle);
++        head.addEventListener("dblclick", (event) => { if (g.task) { event.preventDefault(); this.ocOpenConversation(g.id); } });
++        head.addEventListener("keydown", (event) => {
++          if (event.key === "Enter" || event.key === " " || event.key === "ArrowLeft" && !collapsed || event.key === "ArrowRight" && collapsed) {
++            event.preventDefault();
++            toggle();
++          } else {
++            this.ocP40TreeKey(event, head);
++          }
++        });
++        if (collapsed) return;
++      }
++      // 组内：新的在上；每 5 分钟一个时间分隔（HH:MM · n 分钟前）。
++      const ordered = [...g.items].reverse();
+       let prev;
+-      for (const it of list2) {
+-        if (collapseRepeats && prev && !it.progress && !prev.it.progress && it.a.status === "completed" && prev.it.a.status === "completed" && it.actor.id === prev.it.actor.id && it.a.tool === prev.it.a.tool && it.v.verb === prev.it.v.verb && it.v.target === prev.it.v.target && !this.expandedToolActivities.has(it.a.id) && !this.expandedToolActivities.has(prev.it.a.id)) {
++      let lastBucket;
++      const now = Date.now();
++      for (const it of ordered) {
++        if (budget <= 0) break;
++        const t = Date.parse(it.a.at);
++        if (Number.isFinite(t)) {
++          const bucket = Math.floor(t / 3e5);
++          if (bucket !== lastBucket) {
++            lastBucket = bucket;
++            const d = new Date(t);
++            const sep = append(sec, $(".oc-p44-time-sep", { "aria-hidden": "true" }));
++            sep.textContent = `${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} \xB7 ${ocP44Relative(t, now)}`;
++            prev = void 0;
++          }
++        }
++        if (prev && !it.progress && !prev.it.progress && it.eff === "completed" && prev.it.eff === "completed" && !it.children.length && !it.polls.length && it.actor.id === prev.it.actor.id && it.a.tool === prev.it.a.tool && it.v.verb === prev.it.v.verb && it.v.target === prev.it.v.target && !this.expandedToolActivities.has(it.a.id) && !this.expandedToolActivities.has(prev.it.a.id)) {
+           prev.count += 1;
+-          prev.repeat.textContent = ` ×${prev.count}`;
++          if (prev.repeat) prev.repeat.textContent = ` \xD7${prev.count}`;
+           continue;
+         }
+-        const row = this.ocP40RenderRow(sec, it, multiClient);
++        const row = this.ocP40RenderRow(sec, it, showClient);
++        budget -= 1;
+         prev = { it, count: 1, repeat: row.querySelector(".oc-p40-repeat") };
+       }
+-    };
+-    if (running.length) section("running", `正在运行 (${running.length})`, running, false);
+-    if (failed.length) section("failed", `失败 (${failed.length})`, failed, false);
+-    section("recent", "最近", recent, true);
++    });
+     const want = this.ocP40FocusAfter;
+     this.ocP40FocusAfter = void 0;
+-    if (want?.startsWith("head:")) this.timeline.querySelector(`.oc-p40-section-head[data-section="${want.slice(5)}"]`)?.focus({ preventScroll: true });
++    if (want?.startsWith("head:")) [...this.timeline.querySelectorAll(".oc-p40-section-head")].find((h) => h.dataset.section === want.slice(5))?.focus({ preventScroll: true });
++  }
++  ocP44SetFailedOnly(on) {
++    this.ocP44FailedOnly = !!on;
++    if (this.lastStatus) this.renderStatus(this.lastStatus);
++    if (this.ocLastTimelineArgs) this.renderTimeline(...this.ocLastTimelineArgs);
++  }
++  // OpenCode p44: 运行中的耗时每秒原地更新文字（不重建 DOM）。
++  ocP44Tick() {
++    const now = Date.now();
++    if (this.ocP44LastTick && now - this.ocP44LastTick < 900) return;
++    this.ocP44LastTick = now;
++    for (const el of this.timeline.querySelectorAll("[data-oc-live-start]")) {
++      const start = Number(el.dataset.ocLiveStart);
++      if (!Number.isFinite(start)) continue;
++      const text2 = `${el.dataset.ocLivePrefix || ""}${formatDuration4(Math.max(0, now - start))}`;
++      if (el.textContent !== text2) el.textContent = text2;
++    }
+   }
+   ocP40TreeKey(event, el) {
+     if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Home" && event.key !== "End") return;
+@@ -1539,7 +1984,7 @@
+     if (next) next.focus();
+     else if (event.key === "ArrowUp") this.ocP40Filter?.input.focus();
+   }
+-  ocP40RenderRow(parent, it, multiClient) {
++  ocP40RenderRow(parent, it, multiClient, child = false) {
+     const { a } = it;
+     if (it.progress) {
+       const row = append(parent, $(".oc-p40-row.state-progress", { role: "treeitem", tabindex: "-1" }));
+@@ -1556,33 +2001,80 @@
+     }
+     const v = it.v;
+     const actor = it.actor;
++    const eff = it.eff ?? ocP44Status(a);
++    const polls = it.polls ?? [];
++    const kids = it.children ?? [];
+     const expanded2 = this.expandedToolActivities.has(a.id);
+-    const row = append(parent, $(`.oc-p40-row.state-${a.status}`, { role: "treeitem", tabindex: "0" }));
++    const row = append(parent, $(`.oc-p40-row.state-${eff}`, { role: "treeitem", tabindex: "0" }));
++    if (child) row.classList.add("oc-p44-child");
+     row.dataset.activityId = String(a.id);
+     row.setAttribute("aria-expanded", String(expanded2));
+     const tw = append(row, $("span.oc-p39-twistie", { "aria-hidden": "true" }));
+     tw.classList.add(...ThemeIcon.asClassNameArray(Codicon.chevronRight));
+     if (expanded2) tw.style.transform = "rotate(90deg)";
+     const icon2 = append(row, $("span.oc-p39-icon", { "aria-hidden": "true" }));
+-    icon2.classList.add(...ThemeIcon.asClassNameArray(a.status === "running" ? ThemeIcon.modify(Codicon.loading, "spin") : a.status === "error" ? Codicon.error : Codicon.pass));
++    icon2.classList.add(...ThemeIcon.asClassNameArray(eff === "running" ? ThemeIcon.modify(Codicon.loading, "spin") : eff === "error" ? Codicon.error : eff === "cancelled" ? Codicon.circleSlash ?? Codicon.stopCircle ?? Codicon.close : Codicon.pass));
+     const label3 = append(row, $("span.oc-p40-label"));
+-    append(label3, $("span.oc-p40-verb", void 0, v.verb));
+-    if (v.target) append(label3, $("span.oc-p40-target", void 0, v.target));
+-    const desc = append(row, $("span.oc-p40-desc", void 0, [v.where, multiClient ? actor.label : "", v.extra].filter(Boolean).join(" \xB7 ")));
++    // OpenCode p44: 常见动词（读取 / 搜索 / 运行 / 列出 / 修改 / Git）改为小图标，节省宽度；完整动词在悬停提示里。
++    const isBatch = a.tool === "bridge_batch";
++    const cat = isBatch ? { icon: "layers", label: "批量调用" } : v.target ? ocP44Category(v.verb) : void 0;
++    if (cat) {
++      const vi = append(label3, $("span.oc-p44-verb-icon", { "aria-hidden": "true", title: cat.label }));
++      vi.classList.add(...ocP44CodiconClass(cat.icon));
++      const rest = isBatch ? "" : v.verb.replace(cat.re ?? /^$/, "").replace(/^\s*·?\s*/, "").replace(/^(命令|文件|文本|目录|\d+ 个文件)$/, "");
++      if (rest) append(label3, $("span.oc-p44-verb-rest", void 0, rest));
++      append(label3, $("span.oc-p40-target", void 0, isBatch ? ocP44BatchSummary(it.batchCount, kids) : v.target));
++    } else {
++      append(label3, $("span.oc-p40-verb", void 0, v.verb));
++      if (v.target) append(label3, $("span.oc-p40-target", void 0, v.target));
++    }
++    // 结果（失败 / 退出码 / running …）由行尾注显示，说明列不再重复。
++    const whereText = a.tool === "get_command_output" ? "" : a.tool === "run_command" ? String(v.where || "").split(" \xB7 ").filter((x) => !/^(失败|退出码 -?\d+|running|completed|cancelled|canceled|killed|timed_out|timeout|failed)$/i.test(x.trim())).join(" \xB7 ") : v.where;
++    const desc = append(row, $("span.oc-p40-desc", void 0, [whereText, v.extra].filter(Boolean).join(" \xB7 ")));
+     append(desc, $("span.oc-p40-repeat"));
++    // 客户端：仅在列表里混有多个客户端时显示为小彩色标签。
++    if (multiClient) {
++      const tag = append(row, $("span.oc-p44-client", void 0, actor.label));
++      tag.style.setProperty("--oc-hue", String(actor.kind === "local" ? 205 : ocActorHue(actor.id)));
++      tag.title = `客户端: ${actor.label}${actor.client ? ` (${actor.client})` : ""}`;
++    }
++    // 命令尾注：运行中 Ns / 已完成 · 退出码 N（并入了轮询记录时按最新一次轮询）。
+     const started = Date.parse(a.at);
+-    const dur = a.status === "running" ? Number.isFinite(started) ? formatDuration4(Math.max(0, Date.now() - started)) : "" : formatDuration4(a.durationMs);
+-    append(row, $("span.oc-p40-dur", void 0, dur));
+-    const statusText = a.status === "running" ? "运行中" : a.status === "error" ? "失败" : "成功";
++    let exitCode;
++    for (const p2 of [a.presentation, ...polls.map((x) => x.presentation)]) if (typeof p2?.exitCode === "number") exitCode = p2.exitCode;
++    if (a.tool === "run_command" && a.status !== "running") {
++      const tail = append(row, $("span.oc-p44-tail"));
++      if (eff === "running") {
++        tail.classList.add("live");
++        if (Number.isFinite(started)) { tail.dataset.ocLiveStart = String(started); tail.dataset.ocLivePrefix = "运行中 "; tail.textContent = `运行中 ${formatDuration4(Math.max(0, Date.now() - started))}`; } else tail.textContent = "运行中";
++      } else if (eff === "cancelled") tail.textContent = "已取消";
++      else if (exitCode !== void 0) { tail.textContent = exitCode === 0 ? "已完成 \xB7 退出码 0" : `失败 \xB7 退出码 ${exitCode}`; if (exitCode !== 0) tail.classList.add("bad"); }
++      else if (eff === "error") { tail.textContent = "失败"; tail.classList.add("bad"); }
++      else tail.remove();
++      if (polls.length) tail.title = `已合并 ${polls.length} 次「读取命令输出」`;
++    }
++    const durEl = append(row, $("span.oc-p40-dur"));
++    if (a.tool === "run_command" && a.status !== "running" && eff === "running") {
++      durEl.remove(); // 后台命令仍在运行：尾注「运行中 Ns」已给出实时耗时，不再并列显示本次调用的耗时。
++    } else if (a.status === "running") {
++      if (Number.isFinite(started)) { durEl.dataset.ocLiveStart = String(started); durEl.textContent = formatDuration4(Math.max(0, Date.now() - started)); }
++    } else {
++      durEl.textContent = formatDuration4(a.durationMs);
++      const cls = ocP44DurClass(a.durationMs);
++      if (cls) durEl.classList.add(cls);
++    }
++    const statusText = eff === "running" ? "运行中" : eff === "error" ? "失败" : eff === "cancelled" ? "已取消" : "成功";
+     row.title = [
+-      `${v.verb}${v.target ? ` ${v.target}` : ""}`,
+-      v.full && v.full !== v.target ? v.full : "",
++      isBatch ? ocP44BatchSummary(it.batchCount, kids) : `${v.verb}${v.target ? ` ${v.target}` : ""}`,
++      v.full && v.full !== v.target ? v.full.length > 1500 ? `${v.full.slice(0, 1500)}…` : v.full : "",
++      v.extraTitle || "",
+       `工具: ${a.tool}`,
+       `客户端: ${actor.label}${actor.client ? ` (${actor.client})` : ""}`,
+       v.where ? `位置: ${v.where}` : "",
+       `开始: ${formatTime(a.at)}`,
+-      `状态: ${statusText}${a.durationMs !== void 0 ? ` · ${formatDuration4(a.durationMs)}` : ""}`,
+-      a.status === "error" && a.message ? `错误: ${String(a.message).slice(0, 400)}` : ""
++      `状态: ${statusText}${exitCode !== void 0 ? ` · 退出码 ${exitCode}` : ""}${a.durationMs !== void 0 ? ` · ${formatDuration4(a.durationMs)}` : ""}`,
++      polls.length ? `轮询输出: ${polls.length} 次（展开查看）` : "",
++      eff === "error" && a.message ? `错误: ${String(a.message).slice(0, 400)}` : ""
+     ].filter(Boolean).join("\n");
+     const toggle = () => {
+       const open = !this.expandedToolActivities.has(a.id);
+@@ -1590,7 +2082,7 @@
+       else this.expandedToolActivities.delete(a.id);
+       row.setAttribute("aria-expanded", String(open));
+       tw.style.transform = open ? "rotate(90deg)" : "";
+-      if (open) this.ocP40RenderDetail(row, a, v, actor);
++      if (open) this.ocP40RenderDetail(row, a, v, actor, it, multiClient);
+       else if (row.nextElementSibling?.classList.contains("oc-p40-detail")) row.nextElementSibling.remove();
+     };
+     row.addEventListener("click", toggle);
+@@ -1603,10 +2095,10 @@
+         this.ocP40TreeKey(event, row);
+       }
+     });
+-    if (expanded2) this.ocP40RenderDetail(row, a, v, actor);
++    if (expanded2) this.ocP40RenderDetail(row, a, v, actor, it, multiClient);
+     return row;
+   }
+-  ocP40RenderDetail(row, a, v, actor) {
++  ocP40RenderDetail(row, a, v, actor, it, multiClient) {
+     const p = a.presentation ?? { kind: "generic", title: a.tool };
+     const d = $(".oc-p40-detail");
+     row.after(d);
+@@ -1618,12 +2110,35 @@
+       const pre = append(d, $(`pre.oc-p40-pre${cls}`));
+       pre.textContent = text2;
+     };
++    // OpenCode p44: 批量调用展开为子调用行。
++    const kids = it?.children ?? [];
++    if (a.tool === "bridge_batch" && kids.length) {
++      append(d, $(".oc-p40-detail-label", void 0, `子调用（${kids.length}）`));
++      const host = append(d, $(".oc-p44-children"));
++      host.addEventListener("click", (event) => event.stopPropagation());
++      for (const k of kids) this.ocP40RenderRow(host, k, multiClient, true);
++    }
+     const args = v.full ? (p.kind === "terminal" ? v.full : ocP40Pretty(v.full)) : ocP40Pretty(p.input);
+     block(p.kind === "terminal" ? "命令" : "参数", args);
+     if (p.kind === "edit") this.renderMiniDiff(d, p);
+     else this.renderToolItems(d, p);
+     if (p.kind === "edit" && !p.diffPreview?.length) this.renderToolItems(d, p);
+-    block("输出", ocP40Head(p.output));
++    // OpenCode p44: 并入的「读取命令输出」轮询：逐次列出，输出取最新一次。
++    const polls = it?.polls ?? [];
++    if (polls.length) {
++      append(d, $(".oc-p40-detail-label", void 0, `轮询输出（${polls.length} 次）`));
++      for (const x of polls) {
++        const line = append(d, $(".oc-p44-poll"));
++        const ps = ocP44TermState(x.presentation);
++        append(line, $("span", void 0, formatTime(x.at)));
++        const stText = ps === "running" ? "运行中" : ps === "cancelled" ? "已取消" : typeof x.presentation?.exitCode === "number" ? `退出码 ${x.presentation.exitCode}` : ps === "error" ? "失败" : ps === "completed" ? "已完成" : x.status === "error" ? "读取失败" : "—";
++        const st = append(line, $("span", void 0, stText));
++        if (ps === "error" || x.status === "error") st.classList.add("bad");
++        append(line, $("span", void 0, formatDuration4(x.durationMs)));
++      }
++    }
++    const lastOut = [...polls].reverse().find((x) => x.presentation?.output)?.presentation?.output;
++    block("输出", ocP40Head(lastOut || p.output));
+     if (a.status === "error" && a.message && a.message !== p.output) block("错误", ocP40Head(a.message), ".error");
+     const actions = append(d, $(".oc-p40-detail-actions"));
+     if (args) {
+@@ -2607,17 +3122,8 @@
+     } else {
+       this.connectionDescription.textContent = status2.connected ? localizeBridge("opencodeBridgeSession.connected", "Connected \xB7 OpenCode tools are available to the external Agent for the workspace currently open in OpenCode on this Windows PC") : status2.state === "running" ? localizeBridge("opencodeBridgeSession.waitingConnection", "Bridge is running and awaiting an external MCP client connection for the workspace currently open in OpenCode on this Windows PC") : failure2?.title ?? localizeBridge("opencodeBridgeSession.notRunning", "Bridge is not running");
+     }
+-    clearNode(this.statsContainer);
+-    {
+-      const line = append(this.statsContainer, $(".oc-stats-line"));
+-      const st = status2.stats;
+-      append(line, $("span", void 0, `${st.toolCalls} \u6B21\u8C03\u7528 \xB7 \u6210\u529F\u7387 ${st.successRate.toFixed(st.successRate === 100 ? 0 : 1)}% \xB7 \u5E73\u5747 ${formatDuration4(st.averageDurationMs) || "\u2014"}`));
+-      if (st.failedToolCalls) append(line, $("span.oc-bad", void 0, ` \xB7 \u5931\u8D25 ${st.failedToolCalls}`));
+-      // OpenCode p41: 最近工具与时间并入同一条暗色统计行。
+-      if (st.lastTool) append(line, $("span", void 0, ` \xB7 最近 ${st.lastTool}${formatTime(st.lastToolAt) ? ` ${formatTime(st.lastToolAt)}` : ""}`));
+-      line.title = line.textContent;
+-      this.statsContainer.style.display = "block";
+-    }
++    // OpenCode p44: 统计行只在文字变化时更新（不再每 350 ms 清空重建，悬停/点击稳定）；「失败 N」可点击筛选失败调用。
++    this.ocP44RenderStats(status2);
+     this.renderHealth(status2.health);
+     const pieces = [localizeBridge("opencodeBridgeSession.transport", "Streamable HTTP")];
+     if (status2.activeRequests > 0) {
+@@ -2639,6 +3145,43 @@
+     this.connectionTitle.title = [this.connectionDescription.textContent, this.footerHint.textContent].filter(Boolean).join("\n\n");
+     this.connectionDot.title = this.connectionTitle.title;
+   }
++  ocP44RenderStats(status2) {
++    if (!this.ocP44Stats) {
++      clearNode(this.statsContainer);
++      const line = append(this.statsContainer, $(".oc-stats-line"));
++      const main = append(line, $("span"));
++      const fail = append(line, $("span.oc-bad.oc-p44-fail", { role: "button", tabindex: "0" }));
++      const last = append(line, $("span"));
++      const onFail = (event) => {
++        event.preventDefault();
++        event.stopPropagation();
++        this.ocP44SetFailedOnly(!this.ocP44FailedOnly);
++      };
++      fail.addEventListener("click", onFail);
++      fail.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") onFail(event); });
++      this.ocP44Stats = { line, main, fail, last };
++      this.statsContainer.style.display = "block";
++    }
++    const { line, main, fail, last } = this.ocP44Stats;
++    const st = status2.stats;
++    const setText = (el, text2) => { if (el.textContent !== text2) el.textContent = text2; };
++    setText(main, `${st.toolCalls} \u6B21\u8C03\u7528 \xB7 \u6210\u529F\u7387 ${st.successRate.toFixed(st.successRate === 100 ? 0 : 1)}% \xB7 \u5E73\u5747 ${formatDuration4(st.averageDurationMs) || "\u2014"}`);
++    // 成功率按 Bridge 统计（工具报错）；列表里退出码非 0 的命令另计为「命令失败」，两者都可点击筛选。
++    const counts = ocP44CountStates(status2.activities ?? []);
++    const cmdFailed = Math.max(0, counts.failed - counts.failedTool);
++    const failText = [st.failedToolCalls ? `\u5931\u8D25 ${st.failedToolCalls}` : "", cmdFailed ? `\u547D\u4EE4\u5931\u8D25 ${cmdFailed}` : ""].filter(Boolean).join(" \xB7 ");
++    const showFail = !!failText || !!this.ocP44FailedOnly;
++    fail.hidden = !showFail;
++    setText(fail, showFail ? ` \xB7 ${failText || "\u5931\u8D25 0"}${this.ocP44FailedOnly ? " \u2715" : ""}` : "");
++    fail.classList.toggle("active", !!this.ocP44FailedOnly);
++    fail.setAttribute("aria-pressed", String(!!this.ocP44FailedOnly));
++    const failTitle = this.ocP44FailedOnly ? "\u6B63\u5728\u53EA\u663E\u793A\u5931\u8D25\u7684\u8C03\u7528\uFF1B\u70B9\u51FB\u53D6\u6D88" : `\u70B9\u51FB\u53EA\u663E\u793A\u5931\u8D25\u7684\u8C03\u7528\uFF08\u5DE5\u5177\u62A5\u9519 ${st.failedToolCalls}\uFF1B\u5217\u8868\u4E2D\u9000\u51FA\u7801\u975E 0 \u7684\u547D\u4EE4 ${cmdFailed}\uFF09`;
++    if (fail.title !== failTitle) fail.title = failTitle;
++    // OpenCode p41: 最近工具与时间并入同一条暗色统计行。
++    setText(last, st.lastTool ? ` \xB7 最近 ${st.lastTool}${formatTime(st.lastToolAt) ? ` ${formatTime(st.lastToolAt)}` : ""}` : "");
++    const title = line.textContent;
++    if (line.title !== title) line.title = title;
++  }
+   appendStat(label3, value2) {
+     const stat = append(this.statsContainer, $(".opencode-bridge-session-stat"));
+     append(stat, $("span", void 0, label3));
+@@ -2706,11 +3249,13 @@
+     // OpenCode p41: 操作按钮为图标（debug-stop / clear-all / pulse，悬停提示）；Bridge 未运行时只显示一个主按钮「启动 Bridge」。
+     const running = this.lastStatus?.state === "running";
+     const starting = this.lastStatus?.state === "starting";
++    // OpenCode p44: 悬停闪烁修复——render() 每 350 ms 调一次这里；Button.setTitle → 托管悬停 update()
++    //   会销毁并重建正在显示的悬停框（module-1756 show(): oldHoverWidget.dispose()），按钮因此一闪一闪。
++    //   现在只有文字真的变了才调用 setTitle / 写属性。
+     const setIcon = (button, icon2, title, enabled) => {
+-      button.enabled = enabled;
++      if (button.enabled !== enabled) button.enabled = enabled;
+       button.label = `$(${icon2})`;
+-      button.setTitle(title);
+-      button.element.setAttribute("aria-label", title);
++      this.ocP44SetTitle(button, title);
+     };
+     setIcon(this.startStopButton, this.busy && running ? "loading~spin" : Codicon.debugStop.id, this.busy && running ? "正在停止…" : "停止 Bridge", !this.busy && running);
+     this.startStopButton.element.hidden = !running;
+@@ -2719,13 +3264,19 @@
+     setIcon(this.healthButton, this.checkingHealth ? "loading~spin" : Codicon.pulse.id, this.checkingHealth ? "正在检查…" : "健康检查", !this.checkingHealth && !starting);
+     if (this.ocStartRow) {
+       this.ocStartRow.hidden = running || !this.lastStatus;
+-      this.ocStartButton.enabled = !this.busy && !starting;
++      if (this.ocStartButton.enabled !== (!this.busy && !starting)) this.ocStartButton.enabled = !this.busy && !starting;
+       this.ocStartButton.label = this.busy || starting ? `$(loading~spin) 正在启动…` : "启动 Bridge";
+-      this.ocStartButton.setTitle("启动 Bridge");
++      this.ocP44SetTitle(this.ocStartButton, "启动 Bridge", false);
+     }
+     this.root.classList.toggle("oc-p41-stopped", !!this.lastStatus && !running);
+     this.renderFooterCollapsedState();
+   }
++  ocP44SetTitle(button, title, aria = true) {
++    if (button.ocP44Title === title) return;
++    button.ocP44Title = title;
++    button.setTitle(title);
++    if (aria) button.element.setAttribute("aria-label", title);
++  }
+ };
+ OpenCodeBridgeSessionView = __decorateClass([
+   __decorateParam(3, ICommandService),

@@ -357,44 +357,6 @@ var OpenModelPickerAction = class _OpenModelPickerAction extends Action2 {
   }
 };
 
-var OpenPermissionPickerAction = class _OpenPermissionPickerAction extends Action2 {
-  static {
-    this.ID = "workbench.action.chat.openPermissionPicker";
-  }
-  constructor() {
-    super({
-      id: _OpenPermissionPickerAction.ID,
-      title: localize2(8661, "Open Permission Picker"),
-      tooltip: localize(8672, null),
-      category: CHAT_CATEGORY,
-      f1: false,
-      precondition: ChatContextKeys.enabled,
-      menu: {
-        id: MenuId.ChatInputSecondary,
-        order: 1,
-        group: "navigation",
-        when: ContextKeyExpr.and(
-          ChatContextKeys.enabled,
-          ChatContextKeys.location.isEqualTo("panel" /* Chat */),
-          ChatContextKeys.chatModeKind.notEqualsTo("ask" /* Ask */),
-          ChatContextKeys.inQuickChat.negate(),
-          ContextKeyExpr.or(
-            ChatContextKeys.lockedToCodingAgent.negate(),
-            ChatContextKeys.lockedCodingAgentId.isEqualTo(AgentSessionProviders.Background)
-          )
-        )
-      }
-    });
-  }
-  async run(accessor) {
-    const widgetService = accessor.get(IChatWidgetService);
-    const widget = widgetService.lastFocusedWidget;
-    if (widget) {
-      widget.input.openPermissionPicker();
-    }
-  }
-};
-
 var OpenModePickerAction = class _OpenModePickerAction extends Action2 {
   static {
     this.ID = "workbench.action.chat.openModePicker";
@@ -420,6 +382,7 @@ var OpenModePickerAction = class _OpenModePickerAction extends Action2 {
           id: MenuId.ChatInput,
           order: 1,
           when: ContextKeyExpr.and(
+            ContextKeyExpr.false(), // OpenCode: 去掉输入框「Agent」模式按钮（其下拉只剩打开供应商配置一项，已由模型下拉底部「配置供应商」取代）
             ChatContextKeys.enabled,
             ChatContextKeys.location.isEqualTo("panel" /* Chat */),
             ChatContextKeys.inQuickChat.negate(),
@@ -467,6 +430,7 @@ var OpenSessionTargetPickerAction = class _OpenSessionTargetPickerAction extends
           id: MenuId.ChatInput,
           order: 0,
           when: ContextKeyExpr.and(
+            ContextKeyExpr.false(), // OpenCode: 移除「设置会话目标」
             ChatContextKeys.enabled,
             ChatContextKeys.location.isEqualTo("panel" /* Chat */),
             ChatContextKeys.inQuickChat.negate(),
@@ -479,6 +443,7 @@ var OpenSessionTargetPickerAction = class _OpenSessionTargetPickerAction extends
           id: MenuId.ChatInputSecondary,
           order: 0,
           when: ContextKeyExpr.and(
+            ContextKeyExpr.false(), // OpenCode: 移除「设置会话目标」
             ChatContextKeys.enabled,
             ChatContextKeys.location.isEqualTo("panel" /* Chat */),
             ChatContextKeys.inQuickChat.negate(),
@@ -516,6 +481,7 @@ var OpenDelegationPickerAction = class _OpenDelegationPickerAction extends Actio
           id: MenuId.ChatInputSecondary,
           order: 0.5,
           when: ContextKeyExpr.and(
+            ContextKeyExpr.false(), // OpenCode: 移除输入框下方「本地」(委托会话 / 继续于) 按钮；新对话用面板顶部「新对话」
             ChatContextKeys.enabled,
             ChatContextKeys.location.isEqualTo("panel" /* Chat */),
             ChatContextKeys.inQuickChat.negate(),
@@ -1043,7 +1009,6 @@ function registerChatExecuteActions() {
   store.add(registerAction2(SwitchToNextModelAction));
   store.add(registerAction2(SwitchToNextPinnedModelAction));
   store.add(registerAction2(OpenModelPickerAction));
-  store.add(registerAction2(OpenPermissionPickerAction));
   store.add(registerAction2(OpenModePickerAction));
   store.add(registerAction2(OpenSessionTargetPickerAction));
   store.add(registerAction2(OpenDelegationPickerAction));
@@ -1055,4 +1020,4 @@ function registerChatExecuteActions() {
   store.add(registerAction2(ExecuteHandoffAction));
   return store;
 }
-export { registerChatExecuteActions, SubmitAction, whenNoActiveRequest, whenNotInProgress, ChatSubmitAction, ToggleAgentModeActionId, ToggleChatModeAction, SwitchToNextModelAction, SwitchToNextPinnedModelAction, OpenModelPickerAction, OpenPermissionPickerAction, OpenModePickerAction, OpenSessionTargetPickerAction, OpenDelegationPickerAction, OpenWorkspacePickerAction, ChatSessionPrimaryPickerAction, ChangeChatModelActionId, ChangeChatModelAction, ChatEditingSessionSubmitAction, SubmitWithoutDispatchingAction, ChatSubmitWithCodebaseAction, SendToNewChatAction, CancelChatActionId, CancelAction, CancelChatEditId, CancelEdit, GetHandoffsActionId, GetHandoffsAction, ExecuteHandoffActionId, ExecuteHandoffAction };
+export { registerChatExecuteActions, SubmitAction, whenNoActiveRequest, whenNotInProgress, ChatSubmitAction, ToggleAgentModeActionId, ToggleChatModeAction, SwitchToNextModelAction, SwitchToNextPinnedModelAction, OpenModelPickerAction, OpenModePickerAction, OpenSessionTargetPickerAction, OpenDelegationPickerAction, OpenWorkspacePickerAction, ChatSessionPrimaryPickerAction, ChangeChatModelActionId, ChangeChatModelAction, ChatEditingSessionSubmitAction, SubmitWithoutDispatchingAction, ChatSubmitWithCodebaseAction, SendToNewChatAction, CancelChatActionId, CancelAction, CancelChatEditId, CancelEdit, GetHandoffsActionId, GetHandoffsAction, ExecuteHandoffActionId, ExecuteHandoffAction };

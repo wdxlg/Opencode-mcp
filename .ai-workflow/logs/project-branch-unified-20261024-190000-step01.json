@@ -1,0 +1,70 @@
+{
+  "task_id": "project-branch-unified-20261024-190000-step01",
+  "status": "completed",
+  "base": "c60c0bec7a3273be94144f0ae316359ae39d1aff",
+  "snapshot": "pre/project-branch-unified-20261024-190000-step01",
+  "source": "recovered/esm/027-workbench.desktop.main.js/module-3136.mjs",
+  "scope": "merge project and branch statusbar UI, preserve original command object and arguments",
+  "functional_tests": "not_run",
+  "skills": [
+    "frontend-design (read fully; guide only)"
+  ],
+  "source_commit": "97bb22eb6d2cfaf12668eae06fba1f7419ce0d47",
+  "branch": "task/project-branch-unified-20261024",
+  "staticInspection": "passed",
+  "buildVerification": {
+    "bundledSkills": 27,
+    "bundledDefaultFiles": 6982,
+    "editableStaticAssets": 1018,
+    "success": true,
+    "recoveredESModules": 12062,
+    "compiledBundles": 28,
+    "compiledStandaloneFiles": 70,
+    "compiledApplicationJavaScriptFiles": 98,
+    "productIntegrityChecks": 10,
+    "mode": "recovered-JavaScript-source-build",
+    "originalTypeScriptTypesRestored": false,
+    "nativeDependencies": "vendored",
+    "errors": [],
+    "verifiedAt": "2026-10-24T10:49:51.849Z"
+  },
+  "runtimeUpdate": {
+    "success": true,
+    "elapsedMs": 22398,
+    "hashedFiles": 6,
+    "hashingMode": "sha256-with-size-mtime-cache",
+    "destination": "E:\\OpenCode-Source-Recovery-20261013\\opencode",
+    "changedFiles": 3,
+    "unchangedFiles": 17615,
+    "removedFiles": 0,
+    "userDataPreserved": true,
+    "backup": "E:\\OpenCode-Source-Recovery-20261013/.update-backup/1792838991973-c2dffab9",
+    "sourceCommit": "97bb22eb6d2cfaf12668eae06fba1f7419ce0d47",
+    "sourceDirty": false,
+    "at": "2026-10-24T10:50:14.371Z"
+  },
+  "runtimeMarkerVerified": true,
+  "mandatoryReads": [
+    {
+      "path": "OpenCode-Source-Recovery-20261013/AGENTS.md",
+      "read": "full",
+      "sha256": "1d1d07f43c1a2487fd40211d606326517e51b4ebab307a416168963976b6590d"
+    },
+    {
+      "path": "frontend-design/SKILL.md",
+      "read": "full",
+      "sha256": "9032bbe914526b62d57ac4d110c8f9657b821d5b334155aec08d22a58b5668b9"
+    },
+    {
+      "path": "OpenCode-Source-Recovery-20261013/recovered/esm/027-workbench.desktop.main.js/module-3136.mjs",
+      "read": "full_before_edit",
+      "sha256": "d8e506e5b61af4341a90aacde8ee9f1118075213c8654ef48a6dfcae140ea70f"
+    }
+  ],
+  "user_acceptance": "not_performed",
+  "receipts": {
+    "build": "cmd_4cc51bb954b61bbd3a7c77179524c4c4b76a27a55afd49da",
+    "snapshot": "cmd_57fbcdca85531c9c0b726f809da49e2a16a916912cac2532",
+    "static_and_commit": "cmd_670f98989b938cae41132d8c0b3bce30904f287279a5575b"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "id": "webapp-testing",
+  "sourceName": "webapp-testing",
+  "title": "Web交互测试",
+  "category": "代码质量",
+  "repo": "anthropics/skills",
+  "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+  "sourcePath": "skills/webapp-testing/",
+  "sourceUrl": "https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/webapp-testing",
+  "license": "Apache-2.0",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "仅在用户明确要求测试时使用；需要Python、Playwright及浏览器。with_server.py会启动/停止进程且使用shell=True；须先读脚本并限定命令。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance.",
+    "Replaced upstream execute-before-reading paragraph with review-before-execution requirement."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "LICENSE.txt",
+      "upstreamSha256": "bc6b3af2f331cbc7fb0da1344efb2cbe5877a31498b4d70dbc7000f3405a1362"
+    },
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "51b7349e77ec63b7744a6f63647e7566a0b4d2e301121cc10e8c2113af6556a2"
+    },
+    {
+      "path": "_provenance/THIRD_PARTY_NOTICES.md",
+      "upstreamSha256": "a8ff7a84dee9dfb42ab448de281784387ceafdf63881b7c070ee2de7f6ed865c"
+    },
+    {
+      "path": "examples/console_logging.py",
+      "upstreamSha256": "ea46877289acb82da7e7ce59d0bc37c8977cd57e2a006d0c88d7a1c625bf95da"
+    },
+    {
+      "path": "examples/element_discovery.py",
+      "upstreamSha256": "d63c89604a22f8845d724e95dda45db49b1bf57c25ce0a83afbb7b8da3d402f0"
+    },
+    {
+      "path": "examples/static_html_automation.py",
+      "upstreamSha256": "9d533aafb875ee3ab8b8ebf8f5b9003ac8d999da3d09b285cce252e623140064"
+    },
+    {
+      "path": "scripts/with_server.py",
+      "upstreamSha256": "b0dcf4918935b795f4eda9821579b9902119235ff4447f687a30286e7d0925fd"
+    }
+  ]
+}

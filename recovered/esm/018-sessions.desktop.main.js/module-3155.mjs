@@ -125,7 +125,7 @@ var SendToTerminalTool = class extends Disposable {
       confirmationMessage.appendMarkdown(baseMessage);
     }
     const chatSessionResource = context2.chatSessionResource;
-    const isSessionAutoApproved = chatSessionResource && (isSessionAutoApproveLevel(chatSessionResource, this._configurationService, this._chatWidgetService, this._chatService) || this._terminalChatService.hasChatSessionAutoApproval(chatSessionResource));
+    const isSessionAutoApproved = chatSessionResource && (isSessionAutoApproveLevel(chatSessionResource, this._configurationService) || this._terminalChatService.hasChatSessionAutoApproval(chatSessionResource));
     const isAnsweringQuestion = questionText !== void 0;
     const shouldShowConfirmation = !isSessionAutoApproved && !isAnsweringQuestion || context2.forceConfirmationReason !== void 0;
     const confirmationMessages = shouldShowConfirmation ? {

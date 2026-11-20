@@ -215,33 +215,19 @@ var platformSessionSchema = createSchema({
     type: "string",
     title: localize(1973, null),
     description: localize(1980, null),
-    enum: ["interactive", "plan", "autopilot"],
+    enum: ["interactive", "plan"],
     enumLabels: [
       localize(1976, null),
-      localize(1978, null),
-      localize(1974, null)
+      localize(1978, null)
     ],
     enumDescriptions: [
       localize(1977, null),
-      localize(1979, null),
-      localize(1975, null)
+      localize(1979, null)
     ],
     default: "interactive",
     sessionMutable: true
   })
 });
-
-function migrateLegacyAutopilotConfig(config) {
-  if (!config || config["autoApprove" /* AutoApprove */] !== "autopilot") {
-    return config;
-  }
-  const migrated = { ...config };
-  if (migrated["mode" /* Mode */] !== "plan") {
-    migrated["mode" /* Mode */] = "autopilot";
-  }
-  migrated["autoApprove" /* AutoApprove */] = "default";
-  return migrated;
-}
 
 var AgentHostTelemetryLevelConfigKey = "telemetryLevel";
 
@@ -603,4 +589,17 @@ var clientOwnedApprovalRootConfigKeys = /* @__PURE__ */ new Set([
   AgentHostEditAutoApprovePatternsConfigKey,
   AgentHostAutoReplyEnabledConfigKey
 ]);
-export { schemaProperty, createSchema, buildAssert, buildPrimitiveAssert, invalidParams, joinPath2, safeStringify2, migrateLegacyAutopilotConfig, getAgentHostTerminalAutoApproveRulesConfig, normalizeAgentHostTerminalAutoApproveRulesConfig, isDefaultOnlyAutoApproveRule, getAutoApproveRuleSourceTarget, hasMatchingRule, telemetryLevelToAgentHostConfigValue, permissionsProperty, platformSessionSchema, AgentHostTelemetryLevelConfigKey, AgentHostEditTelemetryEnabledConfigKey, AgentHostDisableRepoInfoTelemetryConfigKey, DISABLE_REPO_INFO_TELEMETRY_SETTING_ID, AgentHostSessionSyncEnabledConfigKey, AgentHostByokModelsEnabledConfigKey, AgentHostCodexEnabledConfigKey, AgentHostEditAutoApprovePatternsConfigKey, AgentHostTerminalAutoApproveEnabledConfigKey, TERMINAL_AUTO_APPROVE_ENABLED_SETTING_ID, GLOBAL_AUTO_APPROVE_SETTING_ID, ELIGIBLE_FOR_AUTO_APPROVAL_SETTING_ID, AgentHostGlobalAutoApproveEnabledConfigKey, AgentHostAutoApprovePolicyRestrictedConfigKey, AgentHostAutoReplyEnabledConfigKey, AgentHostAutoReplyAnswer, AgentHostSystemProxyEnabledConfigKey, AgentHostGitHubMcpServerEnabledConfigKey, AgentHostProxyConfigKey, agentHostProxyConfigDefinition, agentHostProxyConfigSchema, AgentHostActiveAgentTitleGenerationConfigKey, AgentHostMarkdownPlanRichLinksEnabledConfigKey, AgentHostArtifactToolsConfigKey, AgentHostMigrateLegacyCopilotCliEnabledConfigKey, AgentHostShowExternalSessionsConfigKey, AgentHostCopilotMultiRootEnabledConfigKey, AgentHostClaudeMultiRootEnabledConfigKey, AgentHostCodexMultiRootEnabledConfigKey, AgentHostTerminalAutoApproveRulesConfigKey, TERMINAL_AUTO_APPROVE_SETTING_ID, TERMINAL_IGNORE_DEFAULT_AUTO_APPROVE_RULES_SETTING_ID, AgentHostMcpServersConfigKey, mcpServerConfigProperties, mcpServersValueProperties, platformRootSchema, clientOwnedApprovalRootConfigKeys };
+// OpenCode 018 compat: legacy autopilot config migration kept for sessions providers
+function migrateLegacyAutopilotConfig(config) {
+  if (!config || config["autoApprove"] !== "autopilot") {
+    return config;
+  }
+  const migrated = { ...config };
+  if (migrated["mode"] !== "plan") {
+    migrated["mode"] = "autopilot";
+  }
+  migrated["autoApprove"] = "default";
+  return migrated;
+}
+
+export { migrateLegacyAutopilotConfig, schemaProperty, createSchema, buildAssert, buildPrimitiveAssert, invalidParams, joinPath2, safeStringify2, getAgentHostTerminalAutoApproveRulesConfig, normalizeAgentHostTerminalAutoApproveRulesConfig, isDefaultOnlyAutoApproveRule, getAutoApproveRuleSourceTarget, hasMatchingRule, telemetryLevelToAgentHostConfigValue, permissionsProperty, platformSessionSchema, AgentHostTelemetryLevelConfigKey, AgentHostEditTelemetryEnabledConfigKey, AgentHostDisableRepoInfoTelemetryConfigKey, DISABLE_REPO_INFO_TELEMETRY_SETTING_ID, AgentHostSessionSyncEnabledConfigKey, AgentHostByokModelsEnabledConfigKey, AgentHostCodexEnabledConfigKey, AgentHostEditAutoApprovePatternsConfigKey, AgentHostTerminalAutoApproveEnabledConfigKey, TERMINAL_AUTO_APPROVE_ENABLED_SETTING_ID, GLOBAL_AUTO_APPROVE_SETTING_ID, ELIGIBLE_FOR_AUTO_APPROVAL_SETTING_ID, AgentHostGlobalAutoApproveEnabledConfigKey, AgentHostAutoApprovePolicyRestrictedConfigKey, AgentHostAutoReplyEnabledConfigKey, AgentHostAutoReplyAnswer, AgentHostSystemProxyEnabledConfigKey, AgentHostGitHubMcpServerEnabledConfigKey, AgentHostProxyConfigKey, agentHostProxyConfigDefinition, agentHostProxyConfigSchema, AgentHostActiveAgentTitleGenerationConfigKey, AgentHostMarkdownPlanRichLinksEnabledConfigKey, AgentHostArtifactToolsConfigKey, AgentHostMigrateLegacyCopilotCliEnabledConfigKey, AgentHostShowExternalSessionsConfigKey, AgentHostCopilotMultiRootEnabledConfigKey, AgentHostClaudeMultiRootEnabledConfigKey, AgentHostCodexMultiRootEnabledConfigKey, AgentHostTerminalAutoApproveRulesConfigKey, TERMINAL_AUTO_APPROVE_SETTING_ID, TERMINAL_IGNORE_DEFAULT_AUTO_APPROVE_RULES_SETTING_ID, AgentHostMcpServersConfigKey, mcpServerConfigProperties, mcpServersValueProperties, platformRootSchema, clientOwnedApprovalRootConfigKeys };

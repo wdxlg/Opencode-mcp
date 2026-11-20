@@ -1,0 +1,94 @@
+--- /tmp/module-2812.before.mjs	2026-11-11 23:53:58.848599700 +0800
++++ recovered/esm/027-workbench.desktop.main.js/module-2812.mjs	2026-11-11 23:53:59.203320200 +0800
+@@ -101,7 +101,58 @@
+ function ocChatPermissionMode(configurationService) {
+   return normalizeOpenCodePermissionMode(configurationService.getValue("opencode.chat.permissionMode"));
+ }
+-function ocToolPermissionDecision(configurationService, toolData) {
++
++// auto-review-step01: 「每次询问」模式下，只读命令和用户白名单里的命令自动放行，其余照常确认。
++// 只认简单命令：可用 && || ; | 串联；出现重定向、$( )、反引号、变量展开、后台 & 一律不自动放行。
++var OC_READONLY_COMMANDS = new Set(["ls", "dir", "pwd", "cd", "cat", "type", "head", "tail", "wc", "grep", "rg", "findstr", "find", "echo", "which", "where", "whoami", "hostname", "tree", "stat", "file", "du", "df", "printenv", "uname", "ver", "get-childitem", "gci", "get-content", "gc", "select-string", "get-location", "get-item", "test-path", "get-command", "get-process", "resolve-path", "measure-object", "sort", "uniq", "cut", "diff", "fc", "comm", "md5sum", "sha256sum", "nvidia-smi", "ipconfig", "netstat", "tasklist", "systeminfo"]);
++var OC_READONLY_GIT = new Set(["status", "log", "diff", "show", "rev-parse", "ls-files", "blame", "describe", "shortlog", "show-ref", "cat-file", "grep", "reflog", "remote", "branch", "tag", "config", "worktree", "stash"]);
++var OC_VERSION_FLAGS = /^(--version|-v|-V|version|--help|-h|help)$/;
++function ocSplitCommand(text2) {
++  if (/[<>`]|\$\(|\$\{|\$[A-Za-z_]|%[A-Za-z_]+%|(^|[^&])&($|[^&])/.test(text2)) return void 0;
++  const segments = text2.split(/&&|\|\||;|\|/).map((part) => part.trim());
++  if (segments.some((part) => !part)) return void 0;
++  return segments.map((part) => part.match(/"[^"]*"|'[^']*'|\S+/g) ?? []);
++}
++function ocSegmentReadOnly(words) {
++  const head = (words[0] ?? "").replace(/^["']|["']$/g, "").toLowerCase().replace(/\.exe$/, "");
++  const rest = words.slice(1);
++  if (head === "git") {
++    const sub = (rest.find((w) => !w.startsWith("-")) ?? "").toLowerCase();
++    if (!OC_READONLY_GIT.has(sub)) return false;
++    if (rest.some((w) => /^--(output|exec|upload-pack|receive-pack|ext-diff)/.test(w) || w === "-o")) return false;
++    if (sub === "branch" || sub === "tag") return !rest.some((w) => /^(-d|-D|-m|-M|-c|-C|-f|--delete|--move|--copy|--force|-a.*d)$/.test(w)) && rest.filter((w) => !w.startsWith("-")).length <= 1;
++    if (sub === "config") return rest.some((w) => /^(--get|--get-all|--list|-l|--get-regexp)$/.test(w));
++    if (sub === "remote") return rest.filter((w) => !w.startsWith("-")).length <= 1;
++    if (sub === "worktree" || sub === "stash") return rest.some((w) => w === "list");
++    return true;
++  }
++  if (head === "find") return !rest.some((w) => /^-(exec|execdir|delete|fprint|fprintf|fls|ok|okdir)$/.test(w));
++  if (head === "rg") return !rest.some((w) => w.startsWith("--pre"));
++  if (head === "sort") return !rest.some((w) => /^(-o|--output)/.test(w));
++  if (OC_READONLY_COMMANDS.has(head)) return true;
++  // 任意程序的 --version / --help
++  return rest.length === 1 && OC_VERSION_FLAGS.test(rest[0]);
++}
++function ocCommandAutoApproval(configurationService, parameters) {
++  const command = typeof parameters?.command === "string" ? parameters.command.trim() : "";
++  if (!command || command.length > 2000 || /[\r\n]/.test(command)) return void 0;
++  const allowlist = configurationService.getValue("opencode.chat.commandAllowlist");
++  const allowed = Array.isArray(allowlist) ? allowlist.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim().toLowerCase()) : [];
++  const readOnly = configurationService.getValue("opencode.chat.autoApproveReadOnlyCommands") !== false;
++  if (!allowed.length && !readOnly) return void 0;
++  if (allowed.some((item) => item === command.toLowerCase())) return "OpenCode \u547d\u4ee4\u767d\u540d\u5355\uff1a\u81ea\u52a8\u5141\u8bb8";
++  const segments = ocSplitCommand(command);
++  if (!segments) return void 0;
++  let viaAllowlist = false;
++  for (const words of segments) {
++    const text2 = words.join(" ").toLowerCase();
++    if (allowed.some((item) => text2 === item || text2.startsWith(item + " "))) { viaAllowlist = true; continue; }
++    if (readOnly && ocSegmentReadOnly(words)) continue;
++    return void 0;
++  }
++  return viaAllowlist ? "OpenCode \u547d\u4ee4\u767d\u540d\u5355\uff1a\u81ea\u52a8\u5141\u8bb8" : "OpenCode \u53ea\u8bfb\u547d\u4ee4\uff1a\u81ea\u52a8\u5141\u8bb8";
++}
++function ocToolPermissionDecision(configurationService, toolData, parameters) {
+   if (!toolData) return void 0;
+   const mode = ocChatPermissionMode(configurationService);
+   const defaults = OC_PERMISSION_MODE_DEFAULTS[mode];
+@@ -132,7 +183,12 @@
+     const toolRule = ocNormalizePermission(ocPermissionMap(configurationService.getValue("opencode.chat.toolPermissions"))[name]);
+     if (toolRule) return { decision: toolRule, reason: `OpenCode \u6743\u9650\uff1a\u5de5\u5177 ${name} \u8bbe\u4e3a${OC_PERMISSION_LABEL[toolRule]}` };
+     const category = OC_PERMISSION_CATEGORY_OF.get(name);
+-    return category ? fromCategory(category) : fromMode("other");
++    const ocBase = category ? fromCategory(category) : fromMode("other");
++    if (name === "run_command" && parameters && ocBase?.decision === "ask") {
++      const ocAuto = ocCommandAutoApproval(configurationService, parameters);
++      if (ocAuto) return { decision: "allow", reason: ocAuto };
++    }
++    return ocBase;
+   }
+   return fromMode("other");
+ }
+@@ -525,7 +581,7 @@
+       }));
+       token = source.token;
+     }
+-    const preToolUseHookResult = dto.context?.sessionResource ? ocMergePermissionHookResult(dto.preToolUseResult, ocToolPermissionDecision(this._configurationService, toolData)) : dto.preToolUseResult;
++    const preToolUseHookResult = dto.context?.sessionResource ? ocMergePermissionHookResult(dto.preToolUseResult, ocToolPermissionDecision(this._configurationService, toolData, dto.parameters)) : dto.preToolUseResult;
+     if (preToolUseHookResult?.permissionDecision === "deny") {
+       const denialResult = this._handlePreToolUseDenial(dto, preToolUseHookResult, toolData, toolInvocation, request2);
+       if (pendingToolCallKey) {
+@@ -1099,7 +1155,7 @@
+   async shouldAutoConfirmPostExecution(toolId, runsInWorkspace, source, parameters, chatSessionResource, chatRequestId, workingDirectory) {
+     // OpenCode: 「权限」按钮允许的工具（自动允许 / 全自动，或单独设为允许）执行后也不再要求确认结果；询问 / 禁止的照常
+     if (chatSessionResource && !toolIdsThatCannotBeAutoApproved.has(toolId)) {
+-      const ocDecision = ocToolPermissionDecision(this._configurationService, this._tools.get(toolId)?.data);
++      const ocDecision = ocToolPermissionDecision(this._configurationService, this._tools.get(toolId)?.data, parameters);
+       if (ocDecision?.decision === "allow") {
+         return { type: 1 /* ConfirmationNotNeeded */, reason: ocDecision.reason };
+       }

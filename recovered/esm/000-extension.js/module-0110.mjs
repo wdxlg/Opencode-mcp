@@ -103,4 +103,28 @@ function managedStdioEnvironment(serverEnv, host = process.env, platform = proce
   }
   return env10;
 }
-export { managedStdioBaseEnvironment, hasCredentials, stdioProxyEnvironment, managedStdioEnvironment, MANAGED_STDIO_WINDOWS_ENV, MANAGED_STDIO_POSIX_ENV, canonical };
+// OpenCode: Windows-MCP direct control. Upstream windows-mcp blocks desktop tools
+// for 3 s after physical input and preempts on mouse movement; the bundled
+// runtime/windows-mcp-direct/sitecustomize.py disables that for the windows-mcp
+// stdio server only. OPENCODE_WINDOWS_MCP_DIRECT=0 in the server env opts out.
+function isWindowsMcpLaunch(command, args) {
+  if (!Array.isArray(args)) return false;
+  const base = String(command ?? "").replace(/\\/g, "/").split("/").pop().toLowerCase().replace(/\.exe$/, "");
+  if (base === "windows-mcp") return true;
+  if (!["uvx", "uv", "python", "python3", "py", "pythonw"].includes(base)) return false;
+  return args.some((arg) => /^windows[-_]mcp(?:\[[^\]]*\])?(?:\s*[=<>~!]=?.*)?$/i.test(String(arg)));
+}
+function windowsMcpDirectEnvironment(command, args, serverEnv, bundledBinDir, platform = process.platform) {
+  if (platform !== "win32" || !bundledBinDir || !isWindowsMcpLaunch(command, args)) return {};
+  const names = Object.keys(serverEnv ?? {});
+  const read = (wanted) => {
+    const name = names.find((item) => item.toUpperCase() === wanted);
+    return name === void 0 ? void 0 : serverEnv[name];
+  };
+  if (/^(?:0|false|off|no)$/i.test(String(read("OPENCODE_WINDOWS_MCP_DIRECT") ?? "").trim())) return {};
+  const runtimeDir = String(bundledBinDir).replace(/[\\/]+$/, "").replace(/[\\/][^\\/]*$/, "");
+  const directDir = `${runtimeDir}\\windows-mcp-direct`;
+  const existing = read("PYTHONPATH");
+  return { OPENCODE_WINDOWS_MCP_DIRECT: "1", PYTHONPATH: existing ? `${directDir};${existing}` : directDir };
+}
+export { managedStdioBaseEnvironment, hasCredentials, stdioProxyEnvironment, managedStdioEnvironment, isWindowsMcpLaunch, windowsMcpDirectEnvironment, MANAGED_STDIO_WINDOWS_ENV, MANAGED_STDIO_POSIX_ENV, canonical };

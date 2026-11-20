@@ -11,10 +11,10 @@ import { localize } from "./module-0001.mjs";
 import { DEFAULT_LOCAL_TRANSCRIPTION_MODEL } from "./module-1340.mjs";
 import { CONFIGURE_DICTATION_INSTRUCTIONS_ACTION_ID, registerConfigureSpeechInstructionsActions } from "./module-2032.mjs";
 import { isMacintosh } from "./module-0014.mjs";
-import { AgentHostAutoReplyEnabledConfigKey, AgentHostEditAutoApprovePatternsConfigKey, AgentHostGlobalAutoApproveEnabledConfigKey, AgentHostMigrateLegacyCopilotCliEnabledConfigKey, AgentHostSessionSyncEnabledConfigKey, AgentHostShowExternalSessionsConfigKey } from "./module-1741.mjs";
+import { AgentHostAutoReplyEnabledConfigKey, AgentHostEditAutoApprovePatternsConfigKey, AgentHostMigrateLegacyCopilotCliEnabledConfigKey, AgentHostSessionSyncEnabledConfigKey, AgentHostShowExternalSessionsConfigKey } from "./module-1741.mjs";
 import { product_default } from "./module-0139.mjs";
-import { COPILOT_ALLOWED_MCP_SERVERS_KEY, COPILOT_ALLOW_MANAGED_HOOKS_ONLY_CONFIG, COPILOT_ALLOW_MANAGED_HOOKS_ONLY_KEY, COPILOT_ALLOW_MANAGED_MCP_SERVERS_ONLY_CONFIG, COPILOT_ALLOW_MANAGED_MCP_SERVERS_ONLY_KEY, COPILOT_DENIED_MCP_SERVERS_KEY, COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY, COPILOT_ENABLED_PLUGINS_KEY, COPILOT_EXTRA_MARKETPLACES_KEY, COPILOT_MODEL_KEY, COPILOT_STRICT_MARKETPLACES_KEY, COPILOT_STRICT_PLUGIN_ONLY_CUSTOMIZATION_CONFIG, COPILOT_STRICT_PLUGIN_ONLY_CUSTOMIZATION_KEY, COPILOT_TOP_LEVEL_MODEL_KEY, managedModelValue, managedSettingValue } from "./module-0956.mjs";
-import { LanguageModelToolsService, globalAutoApproveDescription } from "./module-2787.mjs";
+import { COPILOT_ALLOWED_MCP_SERVERS_KEY, COPILOT_ALLOW_MANAGED_HOOKS_ONLY_CONFIG, COPILOT_ALLOW_MANAGED_HOOKS_ONLY_KEY, COPILOT_ALLOW_MANAGED_MCP_SERVERS_ONLY_CONFIG, COPILOT_ALLOW_MANAGED_MCP_SERVERS_ONLY_KEY, COPILOT_DENIED_MCP_SERVERS_KEY, COPILOT_ENABLED_PLUGINS_KEY, COPILOT_EXTRA_MARKETPLACES_KEY, COPILOT_MODEL_KEY, COPILOT_STRICT_MARKETPLACES_KEY, COPILOT_STRICT_PLUGIN_ONLY_CUSTOMIZATION_CONFIG, COPILOT_STRICT_PLUGIN_ONLY_CUSTOMIZATION_KEY, COPILOT_TOP_LEVEL_MODEL_KEY, managedModelValue, managedSettingValue } from "./module-0956.mjs";
+import { LanguageModelToolsService } from "./module-2787.mjs";
 import { ChatAIDisabledSettingId, ChatMicrosoftAuthenticationEnabledSettingId, DEFAULT_EDIT_AUTO_APPROVE_PATTERNS, mergeChatEditAutoApprovePatterns } from "./module-0951.mjs";
 import { ChatSessionArchiveActionWordingSettingId } from "./module-2468.mjs";
 import { AgentHostAhpJsonlLoggingSettingId, AgentHostAllowSignedOutWhenUsableSettingId, AgentHostSdkSandboxEnabledSettingId, AgentHostSdkSandboxWindowsEnabledSettingId, CodexPreferAgentHostEditorSettingId } from "./module-1108.mjs";
@@ -180,7 +180,6 @@ import { ToolResultCompressorService } from "./module-2788.mjs";
 import { ILanguageModelToolsConfirmationService } from "./module-1473.mjs";
 import { LanguageModelToolsConfirmationService } from "./module-2786.mjs";
 import { ChatToolRiskAssessmentService, IChatToolRiskAssessmentService } from "./module-2279.mjs";
-import { ChatGoalSummaryService, IChatGoalSummaryService } from "./module-1991.mjs";
 import { ChatSubmitRequestHandlerService, IChatSubmitRequestHandlerService } from "./module-2367.mjs";
 import { IVoiceChatService, VoiceChatService } from "./module-2494.mjs";
 import { ChatCodeBlockContextProviderService } from "./module-2767.mjs";
@@ -620,74 +619,22 @@ configurationRegistry13.registerConfiguration({
       tags: ["experimental", "advanced"],
       agentHost: { key: AgentHostAutoReplyEnabledConfigKey }
     },
-    ["chat.autopilot.advanced.enabled" /* AutopilotAdvancedEnabled */]: {
-      type: "boolean",
-      markdownDescription: localize(10015, null),
-      default: false,
-      tags: ["experimental"]
-    },
-    ["chat.permissions.default" /* DefaultPermissionLevel */]: {
-      type: "string",
-      enum: ["default" /* Default */, "autoApprove" /* AutoApprove */, "autopilot" /* Autopilot */],
-      enumItemLabels: [
-        localize(10164, null),
-        localize(10160, null),
-        localize(10162, null)
-      ],
-      enumDescriptions: [
-        localize(10163, null),
-        localize(10159, null),
-        localize(10161, null)
-      ],
-      description: localize(10165, null),
-      default: "default" /* Default */
-    },
-    ["chat.assistedPermissions.enabled" /* AssistedPermissionsEnabled */]: {
-      type: "boolean",
-      default: product_default.quality !== "stable",
-      description: localize(10014, null),
-      tags: ["experimental"],
-      experiment: {
-        mode: "auto"
-      }
-    },
-    ["chat.experimental.permissionsSandboxToggle.enabled" /* PermissionsSandboxToggleEnabled */]: {
-      type: "boolean",
-      default: true,
-      markdownDescription: localize(10078, null),
-      tags: ["experimental"],
-      experiment: {
-        mode: "auto"
-      }
-    },
     ["chat.defaultConfiguration" /* DefaultConfiguration */]: {
       type: "object",
       additionalProperties: false,
       properties: {
         mode: {
           type: "string",
-          enum: ["interactive", "plan", "autopilot"],
+          enum: ["interactive", "plan"],
           enumDescriptions: [
             localize(10045, null),
-            localize(10046, null),
-            localize(10043, null)
+            localize(10046, null)
           ],
           default: "interactive",
           description: localize(10044, null)
-        },
-        approvals: {
-          type: "string",
-          enum: ["manual" /* Manual */, "assisted" /* Assisted */, "allowAll" /* AllowAll */],
-          enumDescriptions: [
-            localize(10042, null),
-            localize(10040, null),
-            localize(10039, null)
-          ],
-          default: "manual" /* Manual */,
-          description: localize(10041, null)
         }
       },
-      default: { mode: "interactive", approvals: "manual" /* Manual */ },
+      default: { mode: "interactive" },
       markdownDescription: localize(10047, null)
     },
     ["chat.defaultModel" /* DefaultModel */]: {
@@ -710,29 +657,6 @@ configurationRegistry13.registerConfiguration({
           description: {
             key: "chat.defaultModel.policy",
             value: localize(10049, null)
-          }
-        }
-      }
-    },
-    ["chat.tools.global.autoApprove" /* GlobalAutoApprove */]: {
-      default: false,
-      markdownDescription: globalAutoApproveDescription.value,
-      type: "boolean",
-      scope: 3 /* APPLICATION_MACHINE */,
-      tags: ["experimental"],
-      agentHost: { key: AgentHostGlobalAutoApproveEnabledConfigKey },
-      policy: {
-        name: "ChatToolsAutoApprove",
-        category: "InteractiveSession" /* InteractiveSession */,
-        minimumVersion: "1.99",
-        value: (policyData) => policyData.managedSettings?.[COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY] === "disable" || policyData.chat_preview_features_enabled === false ? false : void 0,
-        managedSettings: {
-          [COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY]: { type: "string" }
-        },
-        localization: {
-          description: {
-            key: "autoApprove3.description",
-            value: localize(9931, null)
           }
         }
       }
@@ -2437,22 +2361,16 @@ function isStringKeyedObject(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 
+// OpenCode: 旧审批体系（approvals：manual / assisted / allowAll，以及 Autopilot 模式）已删除，迁移时去掉这些值
 function migrateChatDefaultConfiguration(value2) {
   if (!isStringKeyedObject(value2)) {
     return void 0;
   }
-  let approvals;
-  switch (value2.approvals) {
-    case "default" /* Default */:
-      approvals = "manual" /* Manual */;
-      break;
-    case "autoApprove" /* AutoApprove */:
-      approvals = "allowAll" /* AllowAll */;
-      break;
-    default:
-      return void 0;
+  if (!("approvals" in value2) && value2.mode !== "autopilot") {
+    return void 0;
   }
-  return { ...value2, approvals };
+  const { approvals: _approvals, ...rest } = value2;
+  return rest.mode === "autopilot" ? { ...rest, mode: "interactive" } : rest;
 }
 
 function migrateAgentMergeMergePullRequest(value2) {
@@ -2470,16 +2388,6 @@ Registry.as(Extensions14.ConfigurationMigration).registerConfigurationMigrations
   {
     key: "chat.defaultConfiguration" /* DefaultConfiguration */,
     migrateFn: (value2) => ({ value: migrateChatDefaultConfiguration(value2) ?? value2 })
-  },
-  {
-    key: "chat.experimental.autoApprovals.enabled",
-    migrateFn: (value2, accessor) => {
-      const pairs2 = [["chat.experimental.autoApprovals.enabled", { value: void 0 }]];
-      if (accessor("chat.assistedPermissions.enabled" /* AssistedPermissionsEnabled */) === void 0) {
-        pairs2.push(["chat.assistedPermissions.enabled" /* AssistedPermissionsEnabled */, { value: value2 }]);
-      }
-      return pairs2;
-    }
   },
   {
     key: "chat.experimental.detectParticipant.enabled",
@@ -3311,8 +3219,6 @@ registerSingleton(IToolResultCompressor, ToolResultCompressorService, 1 /* Delay
 registerSingleton(ILanguageModelToolsConfirmationService, LanguageModelToolsConfirmationService, 1 /* Delayed */);
 
 registerSingleton(IChatToolRiskAssessmentService, ChatToolRiskAssessmentService, 1 /* Delayed */);
-
-registerSingleton(IChatGoalSummaryService, ChatGoalSummaryService, 1 /* Delayed */);
 
 registerSingleton(IChatSubmitRequestHandlerService, ChatSubmitRequestHandlerService, 1 /* Delayed */);
 

@@ -1,0 +1,53 @@
+{
+  "task": "mcp-quick-tunnel-reconnect-20261110-112000-step01",
+  "files": [
+    {
+      "path": "recovered/esm/000-extension.js/module-0114.mjs",
+      "purpose": "Bridge server (cloudflare recovery observer)",
+      "status": "modified",
+      "task": "mcp-quick-tunnel-reconnect-20261110-112000-step01",
+      "mtime": "2026-11-10T03:11:06.460Z",
+      "sha256": "165a40eb20bde30a5f9fa096cff908896daba2adbd1b9a47d02901a11197ea42"
+    },
+    {
+      "path": "scripts/test-cloudflare-reconnect.mjs",
+      "purpose": "offline tests",
+      "status": "added",
+      "task": "mcp-quick-tunnel-reconnect-20261110-112000-step01",
+      "mtime": "2026-11-10T03:11:06.454Z",
+      "sha256": "2311c2c54177387189e86486c2d08489ff89d46527e42937d7fa5f1a10d52266"
+    },
+    {
+      "path": "tasks/mcp-quick-tunnel-reconnect-20261110-112000-step01/task.md",
+      "purpose": "task record",
+      "status": "added",
+      "task": "mcp-quick-tunnel-reconnect-20261110-112000-step01",
+      "mtime": "2026-11-10T03:11:06.432Z",
+      "sha256": "a598948e122b8166fc8e00cba6f2ce9bcf0c4a01ba4bb00de9dab2e057f8bac6"
+    },
+    {
+      "path": "tasks/mcp-quick-tunnel-reconnect-20261110-112000-step01/progress.md",
+      "purpose": "task record",
+      "status": "added",
+      "task": "mcp-quick-tunnel-reconnect-20261110-112000-step01",
+      "mtime": "2026-11-10T03:11:06.441Z",
+      "sha256": "f2cb4ffe147c49cff931aff26698bbc32c8416d94c2992c0f94eaee98ce586a6"
+    },
+    {
+      "path": "tasks/mcp-quick-tunnel-reconnect-20261110-112000-step01/stage.cjs",
+      "purpose": "task record",
+      "status": "added",
+      "task": "mcp-quick-tunnel-reconnect-20261110-112000-step01",
+      "mtime": "2026-11-10T03:11:06.447Z",
+      "sha256": "9ff415f001bafa623d503c689a53e76e37f1674a2f5265db421c2c156b099d60"
+    },
+    {
+      "path": "tasks/mcp-quick-tunnel-reconnect-20261110-112000-step01/stage-pairs.json",
+      "purpose": "task record",
+      "status": "added",
+      "task": "mcp-quick-tunnel-reconnect-20261110-112000-step01",
+      "mtime": "2026-11-10T03:11:06.451Z",
+      "sha256": "8478ea259cfc15cc1f48be606f8b52af67b25be36eca02eb672f0c45a9457411"
+    }
+  ]
+}

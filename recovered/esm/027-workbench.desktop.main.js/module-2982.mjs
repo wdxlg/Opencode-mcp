@@ -22,6 +22,7 @@ import { ILogService } from "./module-0095.mjs";
 import { IConfigurationService } from "./module-0132.mjs";
 import { IStorageService } from "./module-0512.mjs";
 import { derived } from "./module-0054.mjs";
+import { CancellationToken } from "./module-0025.mjs";
 
 
 // src/vs/workbench/contrib/mcp/common/mcpService.ts
@@ -48,6 +49,346 @@ var McpService = class extends Disposable {
       }
       updateThrottle.schedule(500);
     }));
+    this._initGuardian();
+  }
+  // ---------------------------------------------------------------------------------------------
+  // OpenCode「MCP 守护」：自动连接开关打开时常驻运行，不再只在发消息时启动。
+  //  - 打开开关 / 启动 OpenCode：立即启动所有已启用的服务器
+  //  - 退出或断线：1、2、4、8…秒退避重连（最长 30 秒，不限次数）；网络恢复、窗口重新可见时立即重试
+  //  - 连续 5 次都没启动成功（命令错、找不到程序等）：改为每 5 分钟试一次，状态记为失败并保留最后一条错误
+  //  - 需要登录/授权：不自动重试，状态记为「需授权」
+  //  - 假死：每 30 秒 ping，连续 2 次 5 秒超时即强制重启
+  //  - 配置改了：updateCollectedServers 会停掉定义变化的服务器，守护随后用新配置拉起
+  //  - 被删除或禁用：不再启动（删除的由 updateCollectedServers 释放）
+  // ---------------------------------------------------------------------------------------------
+  _guardianEnabled() {
+    return this.configurationService.getValue(mcpAutoStartConfig) !== "never" /* Never */;
+  }
+  _guardianSeconds(key, def, min, max) {
+    const v = Number(this.configurationService.getValue(key));
+    return Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : def;
+  }
+  _initGuardian() {
+    this._guard = /* @__PURE__ */ new Map();
+    this._guardActivated = false;
+    this._guardStatus = observableValue(this, { enabled: this._guardianEnabled(), state: "off", servers: [] });
+    this.guardianStatus = this._guardStatus;
+    const kick = (force) => {
+      if (this._store.isDisposed) return;
+      if (this._guardianEnabled()) {
+        void this._guardTick(force);
+      } else {
+        this._guardActivated = false;
+        for (const g of this._guard.values()) {
+          g.fails = 0;
+          g.nextAt = 0;
+          g.pingMisses = 0;
+        }
+        this._publishGuardStatus();
+      }
+    };
+    this._register(this.configurationService.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration(mcpAutoStartConfig)) {
+        if (this._guardianEnabled()) this._logService.info("[MCP 守护] 自动连接已开启，立即启动已启用的服务器");
+        else this._logService.info("[MCP 守护] 自动连接已关闭，停止守护（不停止已连接的服务器）");
+        kick(true);
+      }
+    }));
+    const first = setTimeout(() => kick(true), 1500);
+    const tick = setInterval(() => kick(false), 1e3);
+    let lastPing = Date.now();
+    const beat = setInterval(() => {
+      const every = this._guardianSeconds("chat.mcp.autostartHeartbeatSeconds", 30, 10, 600) * 1e3;
+      if (Date.now() - lastPing < every) return;
+      lastPing = Date.now();
+      if (this._guardianEnabled()) void this._guardHeartbeat();
+    }, 5e3);
+    this._register(toDisposable(() => {
+      clearTimeout(first);
+      clearInterval(tick);
+      clearInterval(beat);
+    }));
+    const retryNow = () => {
+      if (!this._guardianEnabled()) return;
+      for (const g of this._guard.values()) {
+        if (!g.needsAuth && g.fails < 5) g.nextAt = 0;
+      }
+      kick(true);
+    };
+    try {
+      const w = globalThis;
+      if (w?.addEventListener) {
+        const onVis = () => {
+          if (!w.document || w.document.visibilityState === "visible") retryNow();
+        };
+        w.addEventListener("online", retryNow);
+        w.document?.addEventListener?.("visibilitychange", onVis);
+        this._register(toDisposable(() => {
+          w.removeEventListener("online", retryNow);
+          w.document?.removeEventListener?.("visibilitychange", onVis);
+        }));
+      }
+    } catch {
+    }
+    this._register(autorun((reader) => {
+      for (const s of this.servers.read(reader)) {
+        s.connectionState.read(reader);
+        s.enablement.read(reader);
+        s.tools.read(reader);
+      }
+      this._publishGuardStatus();
+    }));
+  }
+  _guardRec(server) {
+    const id2 = server.definition.id;
+    let g = this._guard.get(id2);
+    if (!g) {
+      g = { fails: 0, nextAt: 0, inFlight: false, needsAuth: false, lastError: void 0, pingMisses: 0, wasRunning: false, restarts: 0 };
+      this._guard.set(id2, g);
+    }
+    return g;
+  }
+  _guardDelay(fails) {
+    if (fails >= 5) return 5 * 60e3;
+    return Math.min(30e3, 1e3 * Math.pow(2, Math.max(0, fails - 1)));
+  }
+  async _guardTick(force) {
+    if (this._guardTicking) return;
+    this._guardTicking = true;
+    try {
+      if (!this._guardActivated) {
+        this._guardActivated = true;
+        try {
+          await this._activateCollections();
+        } catch (err) {
+          this._guardActivated = false;
+          this._logService.warn("[MCP 守护] 读取 MCP 配置失败", err);
+          return;
+        }
+      }
+      const now = Date.now();
+      const live = new Set();
+      for (const server of this.servers.get()) {
+        live.add(server.definition.id);
+        if (!isContributionEnabled(server.enablement.get())) continue;
+        const g = this._guardRec(server);
+        const st = server.connectionState.get();
+        if (st.state === McpConnectionState.Kind.Running) {
+          if (!g.wasRunning) {
+            g.wasRunning = true;
+            g.fails = 0;
+            g.needsAuth = false;
+            g.lastError = void 0;
+            g.pingMisses = 0;
+          }
+          continue;
+        }
+        if (st.state === McpConnectionState.Kind.Starting) continue;
+        if (g.wasRunning) {
+          g.wasRunning = false;
+          g.fails = 0;
+          g.nextAt = now + this._guardDelay(1);
+          if (st.state === McpConnectionState.Kind.Error) g.lastError = st.message;
+          this._logService.warn(`[MCP 守护] ${server.definition.label} 已断开（${McpConnectionState.toKindString(st.state)}${st.message ? "：" + st.message : ""}），1 秒后重连`);
+          continue;
+        }
+        if (st.state === McpConnectionState.Kind.Stopped && st.reason === "needs-user-interaction") {
+          g.needsAuth = true;
+        }
+        if (g.needsAuth && !force) continue;
+        if (g.inFlight) continue;
+        if (!force && now < g.nextAt) continue;
+        if (force && g.fails >= 5 && now < g.nextAt) continue;
+        g.inFlight = true;
+        this._guardStart(server, g);
+      }
+      for (const id2 of [...this._guard.keys()]) {
+        if (!live.has(id2)) this._guard.delete(id2);
+      }
+    } finally {
+      this._guardTicking = false;
+      this._publishGuardStatus();
+    }
+  }
+  _guardStart(server, g) {
+    const label = server.definition.label;
+    const started = Date.now();
+    this._publishGuardStatus();
+    startServerAndWaitForLiveTools(server, { interaction: new McpStartServerInteraction(), errorOnUserInteraction: true }, CancellationToken.None).then((ok2) => {
+      const st = server.connectionState.get();
+      if (ok2 || st.state === McpConnectionState.Kind.Running) {
+        g.fails = 0;
+        g.needsAuth = false;
+        g.lastError = void 0;
+        g.restarts++;
+        g.wasRunning = true;
+        this._logService.info(`[MCP 守护] ${label} 已连接（${Date.now() - started} ms，工具 ${server.tools.get().length} 个）`);
+      } else {
+        g.fails++;
+        if (st.state === McpConnectionState.Kind.Error && st.message) g.lastError = st.message;
+        else if (!g.lastError) g.lastError = "启动后未就绪（" + McpConnectionState.toKindString(st.state) + "）";
+        const d = this._guardDelay(g.fails);
+        g.nextAt = Date.now() + d;
+        this._logService.warn(`[MCP 守护] ${label} 第 ${g.fails} 次启动失败：${g.lastError}；${Math.round(d / 1e3)} 秒后重试`);
+      }
+    }, (err) => {
+      if (err instanceof UserInteractionRequiredError && String(err.message || "").includes("auth")) {
+        g.needsAuth = true;
+        g.lastError = "需要登录或授权";
+        this._logService.info(`[MCP 守护] ${label} 需要登录或授权，暂停自动重试`);
+      } else {
+        g.fails++;
+        const st = server.connectionState.get();
+        g.lastError = st.state === McpConnectionState.Kind.Error && st.message ? st.message : String(err?.message || err);
+        const d = this._guardDelay(g.fails);
+        g.nextAt = Date.now() + d;
+        this._logService.warn(`[MCP 守护] ${label} 第 ${g.fails} 次启动失败：${g.lastError}；${Math.round(d / 1e3)} 秒后重试`);
+      }
+    }).finally(() => {
+      g.inFlight = false;
+      this._publishGuardStatus();
+    });
+  }
+  async _guardHeartbeat() {
+    await Promise.all(this.servers.get().map(async (server) => {
+      if (!isContributionEnabled(server.enablement.get())) return;
+      if (server.connectionState.get().state !== McpConnectionState.Kind.Running) return;
+      const handler = server.connection.get()?.handler.get();
+      if (!handler) return;
+      const g = this._guardRec(server);
+      const cts = new CancellationTokenSource();
+      let timer;
+      const ok2 = await Promise.race([
+        handler.sendRequest({ method: "ping" }, cts.token).then(() => true, (e) => {
+          const msg = String(e?.message || e || "");
+          return /method not found|-32601|not supported/i.test(msg);
+        }),
+        new Promise((r2) => {
+          timer = setTimeout(() => r2(false), 5e3);
+        })
+      ]);
+      clearTimeout(timer);
+      cts.dispose(true);
+      if (ok2) {
+        g.pingMisses = 0;
+        return;
+      }
+      g.pingMisses++;
+      this._logService.warn(`[MCP 守护] ${server.definition.label} ping 超时（第 ${g.pingMisses} 次）`);
+      if (g.pingMisses >= 2) {
+        g.pingMisses = 0;
+        g.lastError = "无响应（连续 2 次 ping 超时），已强制重启";
+        this._logService.warn(`[MCP 守护] ${server.definition.label} 无响应，强制重启`);
+        try {
+          await server.stop();
+        } catch {
+        }
+      }
+    }));
+  }
+  _publishGuardStatus() {
+    if (!this._guardStatus) return;
+    const enabled = this._guardianEnabled();
+    const servers = [];
+    for (const server of this.servers.get()) {
+      if (!isContributionEnabled(server.enablement.get())) continue;
+      const g = this._guard.get(server.definition.id);
+      const st = server.connectionState.get();
+      let state;
+      if (st.state === McpConnectionState.Kind.Running) state = "running";
+      else if (g?.needsAuth) state = "auth";
+      else if (st.state === McpConnectionState.Kind.Starting || g?.inFlight) state = "starting";
+      else if (g && g.fails >= 5) state = "failed";
+      else if (st.state === McpConnectionState.Kind.Error || g && g.fails > 0) state = enabled ? "retrying" : "error";
+      else state = enabled ? "starting" : "stopped";
+      let tools = 0;
+      try {
+        tools = server.tools.get().length;
+      } catch {
+      }
+      servers.push({
+        id: server.definition.id,
+        label: server.definition.label,
+        state,
+        tools,
+        fails: g?.fails || 0,
+        nextAt: g?.nextAt || 0,
+        lastError: g?.lastError || (st.state === McpConnectionState.Kind.Error ? st.message : void 0)
+      });
+    }
+    let overall = "off";
+    if (enabled) {
+      if (!servers.length) overall = "empty";
+      else if (servers.some((s) => s.state === "failed" || s.state === "error")) overall = "error";
+      else if (servers.some((s) => s.state !== "running")) overall = "pending";
+      else overall = "ready";
+    }
+    const prev = this._guardStatus.get();
+    const next = { enabled, state: overall, servers };
+    if (JSON.stringify(prev) !== JSON.stringify(next)) this._guardStatus.set(next, void 0);
+  }
+  /** 手动重启一个服务器（悬停面板里点服务器名用），清掉退避计数。 */
+  async guardianRestart(id2) {
+    const server = this.servers.get().find((s) => s.definition.id === id2);
+    if (!server) return;
+    const g = this._guardRec(server);
+    g.fails = 0;
+    g.needsAuth = false;
+    g.nextAt = 0;
+    g.pingMisses = 0;
+    try {
+      await server.stop();
+    } catch {
+    }
+    g.wasRunning = false;
+    if (!g.inFlight) {
+      g.inFlight = true;
+      this._guardStart(server, g);
+    }
+  }
+  /**
+   * 发送前门槛：有服务器正在启动时最多等 chat.mcp.autostartWaitSeconds 秒（默认 8）。
+   * 超时也照常发送（用可用的工具），返回未就绪的服务器名；每次写一行日志。
+   */
+  async ensureReady(token) {
+    const enabled = this._guardianEnabled();
+    const waitMs = this._guardianSeconds("chat.mcp.autostartWaitSeconds", 8, 0, 120) * 1e3;
+    const started = Date.now();
+    if (enabled) {
+      if (!this._guardActivated) await this._guardTick(true);
+      else await this._guardTick(false);
+      const busy = () => this.servers.get().some((s) => {
+        if (!isContributionEnabled(s.enablement.get())) return false;
+        const g = this._guard.get(s.definition.id);
+        if (g?.needsAuth || g && g.fails >= 5) return false;
+        const k = s.connectionState.get().state;
+        return k === McpConnectionState.Kind.Starting || !!g?.inFlight || k !== McpConnectionState.Kind.Running && !!g && g.nextAt - Date.now() < waitMs;
+      });
+      while (busy() && Date.now() - started < waitMs && !token?.isCancellationRequested) {
+        await new Promise((r2) => setTimeout(r2, 200));
+      }
+    }
+    this._publishGuardStatus();
+    const status = this._guardStatus.get();
+    const notReady = status.servers.filter((s) => s.state !== "running").map((s) => s.label);
+    const toolsets = [];
+    let fp = 0;
+    for (const server of this.servers.get()) {
+      if (server.connectionState.get().state !== McpConnectionState.Kind.Running) continue;
+      let tools = [];
+      try {
+        tools = server.tools.get();
+      } catch {
+      }
+      for (const tool of tools) {
+        const s = `${server.definition.label}/${tool.definition?.name ?? tool.id}:${JSON.stringify(tool.definition?.inputSchema ?? {})}`;
+        for (let i2 = 0; i2 < s.length; i2++) fp = Math.imul(fp ^ s.charCodeAt(i2), 16777619) >>> 0;
+      }
+    }
+    const fingerprint = fp.toString(16).padStart(8, "0");
+    const line = status.servers.map((s) => `${s.label}=${s.state}(${s.tools})`).join(", ") || "无服务器";
+    this._logService.info(`[MCP 发送前] 自动连接=${enabled ? "开" : "关"} 等待=${Date.now() - started}ms ${line} 工具指纹=${fingerprint}${notReady.length ? " 未就绪=" + notReady.join("、") : ""}`);
+    return { enabled, waitedMs: Date.now() - started, notReady, fingerprint, servers: status.servers };
   }
   get lazyCollectionState() {
     return this._mcpRegistry.lazyCollectionState;

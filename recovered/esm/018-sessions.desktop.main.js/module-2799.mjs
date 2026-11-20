@@ -6,14 +6,12 @@ import { DisposableMap } from "./module-0012.mjs";
 import { CommandsRegistry } from "./module-0087.mjs";
 import { assertType } from "./module-0010.mjs";
 import { ChatDynamicVariableModel } from "./module-0985.mjs";
-import { IDialogService } from "./module-0267.mjs";
-import { IStorageService } from "./module-0512.mjs";
 import { IAgentHostService } from "./module-1108.mjs";
 import { IAgentHostUntitledProvisionalSessionService } from "./module-1760.mjs";
 import { IAgentHostSessionWorkingDirectoryResolver } from "./module-2101.mjs";
 import { IWorkspaceContextService } from "./module-0509.mjs";
 import { IConfigurationService } from "./module-0132.mjs";
-import { applyAgentHostCompletionAction, isPolicyBlockedCompletionAction } from "./module-2796.mjs";
+import { applyAgentHostCompletionAction, isBlockedCompletionAction } from "./module-2796.mjs";
 import { applyAgentHostSessionConfigChange } from "./module-2797.mjs";
 import { IChatSessionsService, isAgentHostTarget } from "./module-0961.mjs";
 import { Schemas } from "./module-0033.mjs";
@@ -54,8 +52,6 @@ var AgentHostInputCompletions = class extends AgentHostInputCompletionsBase {
       if (!sessionResource) {
         return;
       }
-      const dialogService = accessor.get(IDialogService);
-      const storageService = accessor.get(IStorageService);
       const services = {
         agentHostService: accessor.get(IAgentHostService),
         provisionalService: accessor.get(IAgentHostUntitledProvisionalSessionService),
@@ -63,7 +59,7 @@ var AgentHostInputCompletions = class extends AgentHostInputCompletionsBase {
         workspaceContextService: accessor.get(IWorkspaceContextService),
         configurationService: accessor.get(IConfigurationService)
       };
-      const applied = await applyAgentHostCompletionAction(arg.action, dialogService, storageService, async (config) => {
+      const applied = await applyAgentHostCompletionAction(arg.action, async (config) => {
         await applyAgentHostSessionConfigChange(sessionResource, config, services);
       });
       if (applied && arg.reference) {
@@ -132,7 +128,7 @@ var AgentHostInputCompletions = class extends AgentHostInputCompletionsBase {
       case "command": {
         const action = getCompletionAction(attachment._meta);
         if (action) {
-          if (isPolicyBlockedCompletionAction(action, this._configurationService)) {
+          if (isBlockedCompletionAction(action)) {
             return void 0;
           }
           const keep = item.insertText !== "";

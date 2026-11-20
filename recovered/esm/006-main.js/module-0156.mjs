@@ -325,6 +325,21 @@ var init_nativeHostMainService = __esm({
         const window2 = this.windowById(options?.targetWindowId, windowId);
         window2?.win?.minimize();
       }
+      // OpenCode: hide the window as soon as closing is confirmed (shutdown then finishes in the background),
+      // and show it again when the close is vetoed or a dialog needs the user.
+      async ocSetWindowHidden(windowId, hidden, options) {
+        const window2 = this.windowById(options?.targetWindowId, windowId);
+        const win = window2?.win;
+        if (!win || win.isDestroyed()) {
+          return;
+        }
+        if (hidden) {
+          win.hide();
+        } else if (!win.isVisible()) {
+          win.show();
+          win.focus();
+        }
+      }
       async moveWindowTop(windowId, options) {
         const window2 = this.windowById(options?.targetWindowId, windowId);
         window2?.win?.moveTop();

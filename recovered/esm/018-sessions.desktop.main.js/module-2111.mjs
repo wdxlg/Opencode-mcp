@@ -18,7 +18,6 @@ var ChatPetAchievementIds = {
   AgentChangesReviewed: "agentChangesReviewed",
   ChatReferenceOpened: "chatReferenceOpened",
   UsefulOutputCopied: "usefulOutputCopied",
-  AutopilotEnabled: "autopilotEnabled",
   IntegratedBrowserShared: "integratedBrowserShared",
   ChatOutputCopied: "chatOutputCopied",
   CustomSkillPresent: "customSkillPresent",
@@ -225,20 +224,6 @@ var enabledChatPetAchievements = [
       id: ChatPetAccessoryIds.PinkPartyHat,
       label: localize(10943, null),
       atlasName: "pink-party-hat",
-      atlasCellSize: 96,
-      coversAntennae: true
-    }]
-  },
-  {
-    id: ChatPetAchievementIds.AutopilotEnabled,
-    title: localize(10962, null),
-    description: localize(10960, null),
-    hint: localize(10961, null),
-    enabled: true,
-    accessories: [{
-      id: ChatPetAccessoryIds.WizardHat,
-      label: localize(10950, null),
-      atlasName: "wizard-hat",
       atlasCellSize: 96,
       coversAntennae: true
     }]

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>自动化</title>
+<link rel="stylesheet" href="work.css">
+</head>
+<body class="wk-app automations-page">
+<header class="wk-toolbar" role="toolbar" aria-label="自动化工具栏">
+  <div class="wk-title"><span class="codicon codicon-history" aria-hidden="true"></span><h1>自动化</h1><span id="summary" class="wk-sub"></span></div>
+  <div class="wk-search"><span class="codicon codicon-search" aria-hidden="true"></span><input id="search" class="wk-input" type="search" placeholder="搜索名称、提示词或文件夹（/）" aria-label="搜索自动化"></div>
+  <span class="wk-spacer"></span>
+  <button id="refresh" class="wk-icon-btn" type="button" title="刷新" aria-label="刷新" data-label="刷新"><span class="codicon codicon-refresh" aria-hidden="true"></span></button>
+  <button id="new-automation" class="wk-btn primary" type="button"><span class="codicon codicon-add" aria-hidden="true"></span>新建</button>
+</header>
+<nav class="wk-tabs" role="tablist" aria-label="自动化视图">
+  <button id="tab-list" class="wk-tab" role="tab" type="button" aria-selected="true" aria-controls="panel-list"><span class="codicon codicon-list-unordered" aria-hidden="true"></span>自动化<span id="count-list" class="wk-count"></span></button>
+  <button id="tab-runs" class="wk-tab" role="tab" type="button" aria-selected="false" aria-controls="panel-runs" tabindex="-1"><span class="codicon codicon-history" aria-hidden="true"></span>运行历史<span id="count-running" class="wk-count wk-hidden"></span></button>
+  <button id="tab-sched" class="wk-tab" role="tab" type="button" aria-selected="false" aria-controls="panel-sched" tabindex="-1"><span class="codicon codicon-server-process" aria-hidden="true"></span>后台调度</button>
+</nav>
+<main class="wk-main">
+  <div class="wk-content">
+    <section id="panel-list" class="wk-scroll" role="tabpanel" aria-labelledby="tab-list">
+      <div id="list"></div>
+      <p class="ap-note wk-mt3">按计划让 OpenCode 执行一段提示词。OpenCode 关闭时由 Windows 计划任务在到期时启动一次，完成后自动退出；平时不常驻任何进程。</p>
+    </section>
+    <section id="panel-runs" class="wk-scroll" role="tabpanel" aria-labelledby="tab-runs" hidden>
+      <div class="ap-runs-bar">
+        <select id="runs-filter" class="wk-select" aria-label="按自动化筛选"></select>
+        <select id="runs-status" class="wk-select" aria-label="按状态筛选"><option value="">全部状态</option><option value="ok">成功</option><option value="failed">失败</option><option value="skipped">跳过</option><option value="running">运行中</option></select>
+        <span id="runs-count" class="wk-muted wk-small"></span>
+      </div>
+      <div id="runs"></div>
+      <details class="wk-collapse wk-mt3"><summary class="wk-section-title"><span class="codicon codicon-chevron-right" aria-hidden="true"></span>跳过与失败的原因说明</summary>
+        <div class="ap-legend"><code>missed_older</code><span>错过多次，只补最近一次</span><code>missed</code><span>错过计划时间且超过宽限，按策略跳过</span><code>install_moved</code><span>计划任务触发时安装目录已不在原位置</span><code>interrupted</code><span>运行中途 OpenCode 被关闭</span><code>timeout</code><span>超过单次超时</span></div>
+      </details>
+    </section>
+    <section id="panel-sched" class="wk-scroll" role="tabpanel" aria-labelledby="tab-sched" hidden>
+      <dl id="sched" class="ap-kv"></dl>
+      <div class="wk-row wk-my3"><button id="reregister" class="wk-btn" type="button"><span class="codicon codicon-sync" aria-hidden="true"></span>重新登记计划任务</button></div>
+      <p class="ap-note">只在至少有一个已启用的自动化时登记一个 Windows 计划任务（当前用户、一次性触发器，触发时间为最近一次到期时间）；没有已启用的自动化时会删除它。启动器位于 %LOCALAPPDATA%\OpenCode\automation-launcher，不在安装目录里，所以 OpenCode 关闭时可以随意移动安装文件夹；移动后启动一次 OpenCode 即可刷新路径。</p>
+    </section>
+  </div>
+
+  <aside id="editor" class="wk-drawer" aria-labelledby="editor-title" hidden>
+    <header class="wk-drawer-head"><div class="wk-grow"><h2 id="editor-title">编辑自动化</h2></div><button id="editor-close" class="wk-icon-btn" type="button" title="关闭（Esc）" aria-label="关闭" data-label="关闭"><span class="codicon codicon-close" aria-hidden="true"></span></button></header>
+    <div class="wk-drawer-body" id="editor-body">
+      <section class="wk-section">
+        <h3 class="wk-section-title">基本信息</h3>
+        <div class="wk-field"><label for="f-name">名称</label><input id="f-name" class="wk-input" maxlength="120" placeholder="例如：每日提交汇总"></div>
+        <div class="wk-field"><label for="f-prompt">提示词</label><textarea id="f-prompt" class="wk-textarea" rows="6" placeholder="每次运行发给模型的任务，例如：汇总昨天所有仓库的提交，按项目分组写成简短日报。"></textarea></div>
+        <div class="wk-field"><label for="f-mode">运行方式</label><select id="f-mode" class="wk-select"></select></div>
+      </section>
+      <section class="wk-section">
+        <h3 class="wk-section-title">计划</h3>
+        <div class="ap-seg" id="s-kind" role="radiogroup" aria-label="计划类型">
+          <button type="button" role="radio" data-kind="daily" aria-checked="true">每天</button><button type="button" role="radio" data-kind="weekly" aria-checked="false">每周</button><button type="button" role="radio" data-kind="interval" aria-checked="false">每隔</button><button type="button" role="radio" data-kind="cron" aria-checked="false">cron</button>
+        </div>
+        <div id="s-days-wrap" class="ap-days wk-hidden" role="group" aria-label="星期"></div>
+        <div class="wk-grid2">
+          <div class="wk-field" id="s-time-wrap"><label for="s-time">时间</label><input id="s-time" class="wk-input" type="time" value="09:00"></div>
+          <div class="wk-field wk-hidden" id="s-interval-wrap"><label for="s-interval">间隔（分钟）</label><input id="s-interval" class="wk-input" type="number" min="5" step="5" value="60"></div>
+          <div class="wk-field wk-hidden" id="s-cron-wrap"><label for="s-cron">cron 表达式</label><input id="s-cron" class="wk-input wk-mono" placeholder="分 时 日 月 周，例如 0 9 * * 1-5"></div>
+          <div class="wk-field"><label for="s-tz">时区</label><input id="s-tz" class="wk-input" value="Asia/Shanghai"></div>
+        </div>
+        <div id="s-preview" class="ap-preview" aria-live="polite"></div>
+      </section>
+      <section class="wk-section">
+        <h3 class="wk-section-title">运行环境</h3>
+        <div class="wk-field"><label for="f-folder">目标工作区文件夹</label><div class="wk-row"><input id="f-folder" class="wk-input wk-grow" placeholder="绝对路径"><button id="f-pick" class="wk-btn" type="button"><span class="codicon codicon-folder-opened" aria-hidden="true"></span>选择…</button></div></div>
+        <div class="wk-grid2">
+          <div class="wk-field" id="f-project-wrap"><label for="f-project">工作项所属项目</label><select id="f-project" class="wk-select"></select></div>
+          <div class="wk-field"><label for="f-model">模型</label><select id="f-model" class="wk-select"></select></div>
+        </div>
+      </section>
+      <section class="wk-section">
+        <h3 class="wk-section-title">高级</h3>
+        <div class="wk-grid2">
+          <div class="wk-field"><label for="f-end">结束时间（可选）</label><input id="f-end" class="wk-input" type="datetime-local"></div>
+          <div class="wk-field"><label for="f-timeout">单次超时（分钟）</label><input id="f-timeout" class="wk-input" type="number" min="1" max="180" value="20"></div>
+        </div>
+        <div class="wk-field"><label for="f-policy">错过运行的处理</label><select id="f-policy" class="wk-select"></select></div>
+        <div class="wk-row"><button id="f-enabled" class="wk-switch" type="button" role="switch" aria-checked="true" aria-labelledby="f-enabled-label"></button><span id="f-enabled-label">启用</span><span class="wk-muted wk-xs">停用后不会按计划运行，仍可手动运行。</span></div>
+      </section>
+    </div>
+    <footer class="wk-drawer-foot"><button id="save" class="wk-btn primary" type="button"><span class="codicon codicon-check" aria-hidden="true"></span>保存</button><button id="cancel" class="wk-btn" type="button">取消</button><span class="wk-dirty" id="editor-hint"></span></footer>
+  </aside>
+
+  <aside id="transcript-drawer" class="wk-drawer" aria-labelledby="transcript-title" hidden>
+    <header class="wk-drawer-head"><div class="wk-grow"><h2 id="transcript-title">运行过程</h2></div><button id="transcript-close" class="wk-icon-btn" type="button" title="关闭（Esc）" aria-label="关闭" data-label="关闭"><span class="codicon codicon-close" aria-hidden="true"></span></button></header>
+    <div class="wk-drawer-body"><div id="transcript" class="ap-transcript"></div></div>
+  </aside>
+</main>
+<div id="feedback" class="wk-feedback" role="status" aria-live="polite"></div>
+<script src="automations.js"></script>
+</body>
+</html>

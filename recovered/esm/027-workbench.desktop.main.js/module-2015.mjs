@@ -87,6 +87,12 @@ var ChatBranchService = class extends Disposable {
       if (variant.modelId) {
         existing.modelId = variant.modelId;
       }
+      if (variant.modelIdentifier) {
+        existing.modelIdentifier = variant.modelIdentifier;
+      }
+      if (variant.role !== void 0) {
+        existing.role = variant.role;
+      }
       if (variant.kind === "merge") {
         group2.mergedRequestId = variant.requestId;
         group2.canonicalRequestId = variant.requestId;
@@ -95,7 +101,7 @@ var ChatBranchService = class extends Disposable {
       this.applyPendingCanonical(sessionResource, group2);
       return false;
     }
-    group2.variants.push({ requestId: variant.requestId, responseId: variant.responseId, kind: variant.kind, modelId: variant.modelId, canceled: variant.canceled });
+    group2.variants.push({ requestId: variant.requestId, responseId: variant.responseId, kind: variant.kind, modelId: variant.modelId, canceled: variant.canceled, modelIdentifier: variant.modelIdentifier, role: variant.role });
     group2.activeRequestId = variant.requestId;
     group2.pendingActiveRequestId = void 0;
     this.activeGroup.set(key3, variant.groupId);
@@ -250,6 +256,8 @@ var ChatBranchService = class extends Disposable {
       variantKind: variant.kind,
       variantCount: group2.variants.length,
       modelId: variant.modelId,
+      modelIdentifier: variant.modelIdentifier,
+      role: variant.role,
       isCanonical,
       isMerged,
       canMerge: variant.kind === "branch" && branchCount >= 2 && !group2.mergedRequestId && isActiveGroup,

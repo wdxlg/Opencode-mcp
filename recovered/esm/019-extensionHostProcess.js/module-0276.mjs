@@ -329,6 +329,20 @@ var ExtHostLanguageModels = class {
         break;
       }
     }
+    if (!defaultModelId) {
+      // OpenCode: 没有 Copilot 模型时，回退到 OpenCode 供应商的默认模型（再退到第一个可选模型），避免 "Language model unavailable"
+      const openCodeVendors = /* @__PURE__ */ new Set(["opencode", "opencode-codex"]);
+      let firstOpenCode;
+      for (const [modelIdentifier, modelData] of this._localModels) {
+        if (!openCodeVendors.has(modelData.metadata.vendor)) continue;
+        if (modelData.metadata.isDefaultForLocation["panel" /* Chat */]) {
+          defaultModelId = modelIdentifier;
+          break;
+        }
+        if (!firstOpenCode && modelData.metadata.isUserSelectable !== false) firstOpenCode = modelIdentifier;
+      }
+      defaultModelId = defaultModelId ?? firstOpenCode;
+    }
     if (!defaultModelId && !forceResolveModels) {
       return this.getDefaultLanguageModel(extension, true);
     }

@@ -1,0 +1,246 @@
+diff --git a/recovered/esm/000-extension.js/module-0177.mjs b/recovered/esm/000-extension.js/module-0177.mjs
+index b99dc46e..b69a709b 100644
+--- a/recovered/esm/000-extension.js/module-0177.mjs
++++ b/recovered/esm/000-extension.js/module-0177.mjs
+@@ -2267,10 +2267,11 @@ function ocLiveTurnSnapshot(live) {
+     meta = live.meta?.() ?? {};
+   } catch {
+   }
+-  const previous = meta.previous ?? { turns: 0, steps: 0, reportedSteps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, total: 0 };
++  const previous = meta.previous ?? { turns: 0, steps: 0, reportedSteps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, total: 0, speedTokens: 0, speedMs: 0, ttftMsTotal: 0, ttftCount: 0, llmMs: 0, toolMs: 0 };
+   const usage = turnUsageMetadata(stats, previous, meta.provider, Date.now() - live.startedAt);
+   // 当前这一步还没返回用量：按已流出的字符粗估输出（约 4 字符 1 token，中文按 1 字 1 token 偏大估）
+-  const estimate = live.pendingChars > 0 ? Math.max(1, Math.round(live.pendingChars / 2.5)) : 0;
++  // OpenCode dsh-metrics: dsh shows no live token estimate while streaming; usage changes only when a step reports it
++  const estimate = 0;
+   if (estimate) {
+     usage.output += estimate;
+     usage.total += estimate;
+@@ -2314,7 +2315,7 @@ function ocLearnedContextGet(context, baseUrl, model) {
+     if (!entry || typeof entry !== "object") return {};
+     const out = {};
+     if (Number.isInteger(entry.window) && entry.window >= 1024 && entry.window <= 1e7) out.learnedWindow = entry.window;
+-    if (typeof entry.tokenRatio === "number" && Number.isFinite(entry.tokenRatio) && entry.tokenRatio >= 0.3 && entry.tokenRatio <= 3) out.tokenRatio = entry.tokenRatio;
++    // OpenCode dsh-metrics: no learned tokenRatio (dsh has no calibration); stored ratios are ignored
+     return out;
+   } catch {
+     return {};
+@@ -2367,7 +2368,8 @@ function ocReportContextUsage(stream, item) {
+     const estimated = OC_CONTEXT_USAGE_PARTS.reduce((sum, [key]) => sum + usageCount(breakdown[key]), 0);
+     const reported = usageCount(usage.input) + usageCount(usage.cacheRead) + usageCount(usage.cacheWrite);
+     const ratio = typeof data.tokenRatio === "number" && Number.isFinite(data.tokenRatio) && data.tokenRatio >= 0.3 && data.tokenRatio <= 3 ? data.tokenRatio : 1;
+-    const promptTokens = reported || Math.round(estimated * ratio);
++    // OpenCode dsh-metrics: ring uses provider-reported prompt tokens only; no usage -> no ring update (dsh hides it)
++    const promptTokens = reported;
+     if (!promptTokens) return;
+     // OpenCode context-fixes step05: 提供商没返回 usage 时圆环里的数字是本地估算，分项标签加「≈估算」区分实测。
+     const estimateMark = reported ? "" : " \u2248\u4F30\u7B97";
+@@ -2406,7 +2408,8 @@ function collectTurnUsageStats(trace) {
+     stats.cacheWrite += usageCount(usage.cacheWrite);
+     stats.output += usageCount(usage.output);
+     stats.reasoning += usageCount(usage.reasoning);
+-    if (usageCount(usage.output) > 0 && usageCount(data.generationMs) > 0) {
++    // OpenCode dsh-metrics: like dsh, every step with a first token and a numeric output counts (output 0 included)
++    if (typeof data.generationMs === "number" && data.generationMs >= 0 && typeof usage.output === "number" && usage.output >= 0) {
+       stats.speedTokens += usage.output;
+       stats.speedMs += data.generationMs;
+     }
+@@ -2415,12 +2418,12 @@ function collectTurnUsageStats(trace) {
+   return stats.steps > 0 ? stats : void 0;
+ }
+ function sessionUsageFromHistory(history) {
+-  const session = { turns: 0, steps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, total: 0, reportedSteps: 0 };
++  const session = { turns: 0, steps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, total: 0, reportedSteps: 0, speedTokens: 0, speedMs: 0, ttftMsTotal: 0, ttftCount: 0, llmMs: 0, toolMs: 0 };
+   for (const turn of Array.isArray(history) ? history : []) {
+     const usage = turn?.result?.metadata?.[OPENCODE_TURN_USAGE_METADATA_KEY];
+     if (!usage || typeof usage !== "object") continue;
+     session.turns += 1;
+-    for (const key of ["steps", "input", "cacheRead", "cacheWrite", "output", "total", "reportedSteps"]) session[key] += usageCount(usage[key]);
++    for (const key of ["steps", "input", "cacheRead", "cacheWrite", "output", "total", "reportedSteps", "speedTokens", "speedMs", "ttftMsTotal", "ttftCount", "llmMs", "toolMs"]) session[key] += usageCount(usage[key]);
+   }
+   return session;
+ }
+@@ -2441,7 +2444,10 @@ function turnUsageMetadata(stats, previous, providerLabel, durationMs) {
+     durationMs: usageCount(durationMs),
+     ttftMs: stats.ttftCount > 0 ? Math.round(stats.ttftMsTotal / stats.ttftCount) : void 0,
+     ttftCount: stats.ttftCount,
+-    tps: stats.speedMs > 0 && stats.speedTokens > 0 ? Math.round(stats.speedTokens / (stats.speedMs / 1e3) * 10) / 10 : void 0,
++    tps: stats.speedMs > 0 ? stats.speedTokens / (stats.speedMs / 1e3) : void 0,
++    speedTokens: stats.speedTokens,
++    speedMs: stats.speedMs,
++    ttftMsTotal: stats.ttftMsTotal,
+     provider: providerLabel || void 0,
+     models: stats.models.slice(0, 8),
+     session: {
+@@ -2452,7 +2458,14 @@ function turnUsageMetadata(stats, previous, providerLabel, durationMs) {
+       cacheRead: previous.cacheRead + stats.cacheRead,
+       cacheWrite: previous.cacheWrite + stats.cacheWrite,
+       output: previous.output + stats.output,
+-      total: previous.total + stats.total
++      total: previous.total + stats.total,
++      // OpenCode dsh-metrics: session-wide decode speed, average TTFT, LLM and tool time (dsh ActivityPill)
++      speedTokens: usageCount(previous.speedTokens) + stats.speedTokens,
++      speedMs: usageCount(previous.speedMs) + stats.speedMs,
++      ttftMsTotal: usageCount(previous.ttftMsTotal) + stats.ttftMsTotal,
++      ttftCount: usageCount(previous.ttftCount) + stats.ttftCount,
++      llmMs: usageCount(previous.llmMs) + stats.llmMs,
++      toolMs: usageCount(previous.toolMs) + stats.toolMs
+     }
+   };
+ }
+diff --git a/recovered/esm/027-workbench.desktop.main.js/module-2198.mjs b/recovered/esm/027-workbench.desktop.main.js/module-2198.mjs
+index 6e6ad595..63ea15f3 100644
+--- a/recovered/esm/027-workbench.desktop.main.js/module-2198.mjs
++++ b/recovered/esm/027-workbench.desktop.main.js/module-2198.mjs
+@@ -274,7 +274,8 @@ var ChatContextUsageWidget = class extends Disposable {
+     const modelConfiguration = this._modelConfigurationResolver?.(modelId) ?? this.languageModelsService.getModelConfiguration(modelId);
+     const maxInputTokens = resolveContextWindowInputTokens(modelConfiguration, modelMetadata.configurationSchema, modelMetadata.maxInputTokens);
+     const maxOutputTokens = modelMetadata.maxOutputTokens;
+-    const totalContextWindow = (maxInputTokens ?? 0) + (maxOutputTokens ?? 0);
++    // OpenCode dsh-metrics: ring denominator = context window only (dsh percent = used / contextWindow)
++    const totalContextWindow = maxInputTokens ?? 0;
+     if (totalContextWindow <= 0) {
+       return void 0;
+     }
+@@ -296,7 +297,7 @@ var ChatContextUsageWidget = class extends Disposable {
+     const promptTokenDetails = usage.promptTokenDetails;
+     const usedTokens = promptTokens + completionTokens;
+     const percentage = usedTokens / totalContextWindow * 100;
+-    const outputBufferPercentage = maxOutputTokens !== void 0 ? Math.max(0, maxOutputTokens - completionTokens) / totalContextWindow * 100 : void 0;
++    const outputBufferPercentage = void 0; // OpenCode dsh-metrics: dsh shows no output-reserve band
+     this.render({
+       usedTokens,
+       completionTokens,
+diff --git a/recovered/esm/027-workbench.desktop.main.js/module-2372.mjs b/recovered/esm/027-workbench.desktop.main.js/module-2372.mjs
+index e99c2c2d..9fcd3b78 100644
+--- a/recovered/esm/027-workbench.desktop.main.js/module-2372.mjs
++++ b/recovered/esm/027-workbench.desktop.main.js/module-2372.mjs
+@@ -362,12 +362,18 @@ function renderChatResponseDetails(container3, details, completedAt, elapsedMs,
+ function openCodeUsageNumber(value) {
+   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+ }
++// OpenCode dsh-metrics: dsh formatTokens (517 / 12.2K / 517K / 1.2M)
+ function formatOpenCodeCompactTokens(value) {
+-  const n = openCodeUsageNumber(value);
+-  if (n >= 1e6) return `${(Math.round(n / 1e4) / 100).toFixed(2)}M`;
+-  if (n >= 1e5) return `${Math.round(n / 1e3)}k`;
+-  if (n >= 1e3) return `${(Math.round(n / 100) / 10).toFixed(1)}k`;
+-  return String(Math.round(n));
++  const n = Math.round(openCodeUsageNumber(value));
++  const scaled = (c) => c >= 100 ? String(Math.round(c)) : String(Math.round(c * 10) / 10);
++  if (n < 1e3) return String(n);
++  if (n < 1e6) return `${scaled(n / 1e3)}K`;
++  return `${scaled(n / 1e6)}M`;
++}
++// OpenCode dsh-metrics: dsh formatTokensPerSecond (>=10 whole, else one decimal)
++function formatOpenCodeTps(value) {
++  const c = Math.max(0, typeof value === "number" && Number.isFinite(value) ? value : 0);
++  return c >= 10 ? String(Math.round(c)) : String(Math.round(c * 10) / 10);
+ }
+ function formatOpenCodeExactTokens(value) {
+   return `${Math.round(openCodeUsageNumber(value)).toLocaleString("en-US")} tok`;
+@@ -379,13 +385,64 @@ function formatOpenCodeDuration(ms) {
+   const seconds = total % 60;
+   return `${hours > 0 ? `${hours}\u5C0F\u65F6` : ""}${total >= 60 ? `${minutes}\u5206` : ""}${seconds}\u79D2`;
+ }
++// OpenCode dsh-metrics: dsh formatDuration (<60s -> one decimal seconds, else rounded m/s)
+ function formatOpenCodeShortDuration(ms) {
+-  const n = openCodeUsageNumber(ms);
+-  return n > 0 && n < 1e4 ? `${(Math.round(n / 100) / 10).toFixed(1)}\u79D2` : formatOpenCodeDuration(n);
++  const s = openCodeUsageNumber(ms) / 1e3;
++  if (s < 60) return `${Math.round(s * 10) / 10}\u79D2`;
++  const whole = Math.round(s);
++  return `${Math.floor(whole / 60)}\u5206${whole % 60}\u79D2`;
++}
++// OpenCode dsh-metrics: verbatim port of dsh-client-ui-chat formatCacheHitPercent (CHAT:6719-6773)
++function ocRoundedPercentUnits(cacheReadTokens, denominator, decimalPlaces) {
++  const scale = (decimalPlaces === 0 ? 1 : 10) * 100;
++  const doubledScale = scale * 2;
++  const denominatorQuotient = Math.floor(denominator / doubledScale);
++  const denominatorRemainder = denominator % doubledScale;
++  let lower = 0;
++  let upper = scale;
++  while (lower < upper) {
++    const candidate = Math.floor((lower + upper + 1) / 2);
++    const factor = candidate * 2 - 1;
++    if (cacheReadTokens >= factor * denominatorQuotient + Math.ceil(factor * denominatorRemainder / doubledScale)) lower = candidate;
++    else upper = candidate - 1;
++  }
++  return lower;
++}
++function ocDisplayPercentUnits(units, decimalPlaces) {
++  if (decimalPlaces === 0) return String(units);
++  const whole = Math.floor(units / 10);
++  const tenths = units % 10;
++  return tenths === 0 ? String(whole) : `${whole}.${tenths}`;
++}
++function ocFormatCacheHitPercent(cacheReadTokens, promptTokens, decimalPlaces = 0) {
++  if (promptTokens === 0) return null;
++  const missedInputTokens = promptTokens - cacheReadTokens;
++  if (missedInputTokens === 0) return "100";
++  const roundedUnits = ocRoundedPercentUnits(cacheReadTokens, promptTokens, decimalPlaces);
++  if (roundedUnits < (decimalPlaces === 0 ? 100 : 1e3)) return ocDisplayPercentUnits(roundedUnits, decimalPlaces);
++  let distinguishingPlaces = 1;
++  let scaledDoubleGap = missedInputTokens * 200;
++  const denominatorTens = Math.floor(promptTokens / 10);
++  while (scaledDoubleGap <= denominatorTens) {
++    scaledDoubleGap *= 10;
++    distinguishingPlaces += 1;
++  }
++  const denominatorOnes = promptTokens % 10;
++  let roundedLoss = 5;
++  for (let loss = 1; loss < 5; loss += 1) {
++    const factor = loss * 2 + 1;
++    const threshold = factor * denominatorTens + Math.floor(factor * denominatorOnes / 10);
++    if (scaledDoubleGap <= threshold) {
++      roundedLoss = loss;
++      break;
++    }
++  }
++  return `99.${"9".repeat(distinguishingPlaces - 1)}${10 - roundedLoss}`;
+ }
+-function openCodeCacheHit(usage) {
++function openCodeCacheHit(usage, places = 1) {
+   const prompt = openCodeUsageNumber(usage?.input) + openCodeUsageNumber(usage?.cacheRead) + openCodeUsageNumber(usage?.cacheWrite);
+-  return prompt > 0 ? `${Math.round(openCodeUsageNumber(usage.cacheRead) / prompt * 1e3) / 10}%` : void 0;
++  const p = ocFormatCacheHitPercent(Math.round(openCodeUsageNumber(usage?.cacheRead)), Math.round(prompt), places);
++  return p === null ? void 0 : `${p}%`;
+ }
+ function openCodeUsageRows(dl, rows) {
+   for (const [label, value, extra] of rows) {
+@@ -422,8 +479,8 @@ function buildOpenCodeUsagePanel(usage) {
+   ]);
+   append(panel, $55(".opencode-usage-panel-section", void 0, "\u6027\u80FD"));
+   openCodeUsageRows(append(panel, $55("dl.opencode-usage-panel-details")), [
+-    ["\u8F93\u51FA\u901F\u5EA6", openCodeUsageNumber(usage.tps) > 0 ? `${usage.tps >= 10 ? Math.round(usage.tps) : usage.tps} tok/s` : void 0],
+-    ["\u9996 token", usage.ttftMs !== void 0 && usage.ttftMs !== null ? `${formatOpenCodeShortDuration(Math.max(1, usage.ttftMs))}${openCodeUsageNumber(usage.ttftCount) > 1 ? "\uFF08\u5E73\u5747\uFF09" : ""}` : void 0],
++    ["\u8F93\u51FA\u901F\u5EA6", typeof usage.tps === "number" ? `${formatOpenCodeTps(usage.tps)} tok/s` : void 0],
++    ["\u9996 token", usage.ttftMs !== void 0 && usage.ttftMs !== null ? `${formatOpenCodeShortDuration(usage.ttftMs)}${openCodeUsageNumber(usage.ttftCount) > 1 ? "\uFF08\u5E73\u5747\uFF09" : ""}` : void 0],
+     ["\u6A21\u578B\u7528\u65F6", openCodeUsageNumber(usage.llmMs) > 0 ? formatOpenCodeShortDuration(usage.llmMs) : void 0],
+     ["\u5DE5\u5177\u8C03\u7528\u7528\u65F6", openCodeUsageNumber(usage.toolMs) > 0 ? formatOpenCodeShortDuration(usage.toolMs) : void 0],
+     ["\u672C\u8F6E\u7528\u65F6", openCodeUsageNumber(usage.durationMs) > 0 ? formatOpenCodeDuration(Math.max(1e3, usage.durationMs)) : void 0],
+@@ -435,8 +492,13 @@ function buildOpenCodeUsagePanel(usage) {
+     openCodeUsageRows(append(panel, $55("dl.opencode-usage-panel-details")), [
+       ["\u8F6E\u6B21", `${session.turns} \u8F6E \xB7 ${openCodeUsageNumber(session.steps)} \u6B65`],
+       ["Token \u7528\u91CF", openCodeUsageNumber(session.reportedSteps) > 0 ? formatOpenCodeExactTokens(session.total) : void 0],
+-      ["\u7F13\u5B58\u547D\u4E2D", openCodeUsageNumber(session.reportedSteps) > 0 ? openCodeCacheHit(session) : void 0],
+-      ["\u8F93\u51FA", openCodeUsageNumber(session.reportedSteps) > 0 ? formatOpenCodeExactTokens(session.output) : void 0]
++      ["\u7F13\u5B58\u547D\u4E2D", openCodeUsageNumber(session.reportedSteps) > 0 ? openCodeCacheHit(session, 0) : void 0],
++      ["\u8F93\u51FA", openCodeUsageNumber(session.reportedSteps) > 0 ? formatOpenCodeExactTokens(session.output) : void 0],
++      // OpenCode dsh-metrics: session-wide speed / average TTFT / LLM time / tool time (dsh ActivityPill)
++      ["\u8F93\u51FA\u901F\u5EA6", openCodeUsageNumber(session.speedMs) > 0 ? `${formatOpenCodeTps(openCodeUsageNumber(session.speedTokens) / (session.speedMs / 1e3))} tok/s` : void 0],
++      ["\u9996 token", openCodeUsageNumber(session.ttftCount) > 0 ? `${formatOpenCodeShortDuration(openCodeUsageNumber(session.ttftMsTotal) / session.ttftCount)}\uFF08\u5E73\u5747\uFF09` : void 0],
++      ["\u6A21\u578B\u7528\u65F6", openCodeUsageNumber(session.llmMs) > 0 ? formatOpenCodeShortDuration(session.llmMs) : void 0],
++      ["\u5DE5\u5177\u8C03\u7528\u7528\u65F6", openCodeUsageNumber(session.toolMs) > 0 ? formatOpenCodeShortDuration(session.toolMs) : void 0]
+     ]);
+   }
+   return panel;
+@@ -454,7 +516,7 @@ function renderOpenCodeTurnUsage(container3, usage, hoverRef, hoverService) {
+   append(pill, $55("span.codicon.codicon-database"));
+   append(pill, $55("span.opencode-usage-pill-label", void 0, reported ? `\u7528\u91CF ${formatOpenCodeCompactTokens(usage.total)} tok` : "\u7528\u91CF\u672A\u8FD4\u56DE"));
+   const meta = [];
+-  if (openCodeUsageNumber(usage.tps) > 0) meta.push(`${usage.tps >= 10 ? Math.round(usage.tps) : usage.tps} tok/s`);
++  if (typeof usage.tps === "number") meta.push(`${formatOpenCodeTps(usage.tps)} tok/s`);
+   if (openCodeUsageNumber(usage.durationMs) > 0) meta.push(formatOpenCodeDuration(Math.max(1e3, usage.durationMs)));
+   if (meta.length) append(container3, $55("span.opencode-usage-meta", void 0, meta.join(" \xB7 ")));
+   pill.ariaLabel = `\u672C\u8F6E\u7528\u91CF ${reported ? formatOpenCodeExactTokens(usage.total) : "\u672A\u8FD4\u56DE"}`;

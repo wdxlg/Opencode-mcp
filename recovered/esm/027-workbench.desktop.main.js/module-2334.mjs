@@ -982,7 +982,7 @@ var McpTool = class {
       this._server.runningToolCalls.add(context2);
     }
     try {
-      return await this._callWithProgress(params, void 0, context2, token);
+      return await this._ocGuardedCall(params, void 0, context2, token);
     } finally {
       if (context2) {
         this._server.runningToolCalls.delete(context2);
@@ -994,11 +994,47 @@ var McpTool = class {
       this._server.runningToolCalls.add(context2);
     }
     try {
-      return await this._callWithProgress(params, progress, context2, token);
+      return await this._ocGuardedCall(params, progress, context2, token);
     } finally {
       if (context2) {
         this._server.runningToolCalls.delete(context2);
       }
+    }
+  }
+  /**
+   * OpenCode: 调用时的兜底——
+   *  - 单次调用默认 120 秒超时，超时取消并返回明确错误；
+   *  - 调用时服务器刚好断开：立即重连（callOn 会启动服务器），成功后重试 1 次；
+   *  - 仍失败：返回「某某 MCP 未连接，正在重连」这类明确错误，不让对话卡住（MCP 守护会继续在后台重连）。
+   */
+  async _ocGuardedCall(params, progress, context2, token = CancellationToken.None) {
+    const label = this._server.definition?.label ?? "MCP";
+    const cts = new CancellationTokenSource(token);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      cts.cancel();
+    }, 120e3);
+    const timeoutError = () => new Error(`MCP 工具调用超时（120 秒），已取消：${label} / ${this._definition.name}`);
+    try {
+      try {
+        return await this._callWithProgress(params, progress, context2, cts.token);
+      } catch (err) {
+        if (timedOut) throw timeoutError();
+        if (token?.isCancellationRequested) throw err;
+        const lost = err instanceof McpConnectionFailedError || !McpConnectionState.isRunning(this._server.connectionState.get());
+        if (!lost) throw err;
+        try {
+          return await this._callWithProgress(params, progress, context2, cts.token);
+        } catch (err2) {
+          if (timedOut) throw timeoutError();
+          if (token?.isCancellationRequested) throw err2;
+          throw new McpConnectionFailedError(`MCP 服务器「${label}」未连接，正在后台重连（${err2?.message || err2}）。请稍后再调用这个工具，或先用其他工具继续。`);
+        }
+      }
+    } finally {
+      clearTimeout(timer);
+      cts.dispose();
     }
   }
   _callWithProgress(params, progress, context2, token = CancellationToken.None, allowRetry = true) {

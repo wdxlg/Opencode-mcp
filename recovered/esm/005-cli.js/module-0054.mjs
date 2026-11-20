@@ -130,6 +130,15 @@ function configurePortable(product3) {
   } else {
     delete process.env["VSCODE_PORTABLE"];
   }
+  // OpenCode p35: data\tmp 只给 OpenCode 自己的进程用。改写前把用户原来的 TEMP/TMP/TMPDIR 记到 OPENCODE_ORIG_TEMP_ENV（已有就不覆盖，保证重启/子进程拿到的是最初的值），ptyHost 启动集成终端和任务时据此还原
+  if (isTempPortable) {
+    if (!process.env["OPENCODE_ORIG_TEMP_ENV"]) {
+      const ocOrig = {};
+      for (const k of ["TEMP", "TMP", "TMPDIR"]) ocOrig[k] = process.env[k] ?? null;
+      process.env["OPENCODE_ORIG_TEMP_ENV"] = JSON.stringify(ocOrig);
+    }
+    process.env["OPENCODE_PORTABLE_TEMP"] = portableTempPath;
+  }
   if (isTempPortable) {
     if (process.platform === "win32") {
       process.env["TMP"] = portableTempPath;

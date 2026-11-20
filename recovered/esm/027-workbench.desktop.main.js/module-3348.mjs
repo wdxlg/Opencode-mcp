@@ -217,12 +217,6 @@ var CommandLineAutoApproveAnalyzer = class extends Disposable {
         enabledCommands: ["workbench.action.terminal.chat.openTerminalSettingsLink" /* OpenTerminalSettingsLink */]
       }
     };
-    const config = this._configurationService.inspect("chat.tools.global.autoApprove" /* GlobalAutoApprove */);
-    const isGlobalAutoApproved = config?.value ?? config.defaultValue;
-    if (isGlobalAutoApproved) {
-      const settingsUri = createCommandUri("workbench.action.terminal.chat.openTerminalSettingsLink" /* OpenTerminalSettingsLink */, "global");
-      return new MarkdownString(`${localize(20459, null, `[\`${"chat.tools.global.autoApprove" /* GlobalAutoApprove */}\`](${settingsUri.toString()} "${localize(20468, null)}")`)}`, mdTrustSettings);
-    }
     if (isAutoApproved) {
       switch (autoApproveReason) {
         case "commandLine": {

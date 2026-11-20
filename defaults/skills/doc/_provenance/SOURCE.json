@@ -1,0 +1,46 @@
+{
+  "id": "doc",
+  "sourceName": "doc",
+  "title": "Word文档",
+  "category": "文档办公",
+  "repo": "openai/skills",
+  "commit": "45d05d75363abf13f99d09e899d61e07b8010685",
+  "sourcePath": "skills/.curated/doc/",
+  "sourceUrl": "https://github.com/openai/skills/tree/45d05d75363abf13f99d09e899d61e07b8010685/skills/.curated/doc",
+  "license": "Apache-2.0",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": true,
+  "dependencyAndSafetyNotes": "Apache许可历史快照，已从上游主分支移除。编辑需python-docx；渲染可选LibreOffice、Poppler、pdf2image；Windows需另行适配路径。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "LICENSE.txt",
+      "upstreamSha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"
+    },
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "0a635585817d1ac96e8e512114d08258b70f9e54ce0052078a258291ac13a8ed"
+    },
+    {
+      "path": "agents/openai.yaml",
+      "upstreamSha256": "b77d452b23dfa0bef7788728317254f07bddcd5f2be1d6678d5c3cf754b833ae"
+    },
+    {
+      "path": "assets/doc-small.svg",
+      "upstreamSha256": "bd5415fbbfe72c66c1527411d61625731fdd2f75b25d1542510b6ddef699ebe0"
+    },
+    {
+      "path": "assets/doc.png",
+      "upstreamSha256": "7eadf1088e5062f681dba6596173a1df13bbfbcddd8a8a9bb78fd2071947dcf8"
+    },
+    {
+      "path": "scripts/render_docx.py",
+      "upstreamSha256": "52b3c3158913ebcad2ada7b8193970b70453239e255054aa2d60c1683af08751"
+    }
+  ]
+}

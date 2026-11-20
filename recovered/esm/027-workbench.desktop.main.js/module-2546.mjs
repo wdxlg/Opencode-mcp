@@ -15,7 +15,8 @@ import { Codicon } from "./module-0085.mjs";
 // src/vs/workbench/contrib/chat/browser/promptSyntax/chatModeActions.ts
 var ConfigAgentActionImpl = class extends Action2 {
   async run(accessor) {
-    await accessor.get(ICommandService).executeCommand(AICustomizationManagementCommands2.OpenEditor, AICustomizationManagementSection.Agents);
+    // OpenCode: 「配置自定义智能体」改为打开模型提供商管理
+    await accessor.get(ICommandService).executeCommand("opencode.manageProviders");
   }
 };
 

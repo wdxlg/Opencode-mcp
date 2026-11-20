@@ -1,0 +1,30 @@
+{
+  "taskId": "0a0f5ddc-ee70-4714-b8a0-dad2f2ee1335",
+  "scopeAcknowledged": true,
+  "rulesAcknowledged": true,
+  "receivingCodeReviewSkillRead": true,
+  "preRecorded": true,
+  "sharedGitUntouched": true,
+  "productSourceChanged": true,
+  "postRecorded": true,
+  "buildCompleted": true,
+  "launched": false,
+  "functionalTestsRun": false,
+  "publicationVerified": true,
+  "remaining": [],
+  "astAuditRecorded": true,
+  "sourceHashesUnchanged": false,
+  "implementationCompleted": true,
+  "architectureReview": "architecture-review.md",
+  "updatedAt": "2026-11-09T18:43:42.610Z",
+  "hostRuntimeCompatibilityVerified": false,
+  "nativeBindingsValidated": false,
+  "unperformedRuntimeValidation": [
+    "host compatibility",
+    "external engines",
+    "native bindings",
+    "concurrency/cancellation",
+    "caller isolation",
+    "portable relocation"
+  ]
+}

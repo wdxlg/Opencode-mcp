@@ -83,7 +83,10 @@ MenuRegistry.appendMenuItem(MenuId.AuxiliaryBarTitle, {
   },
   group: "navigation",
   order: 2,
-  when: ContextKeyExpr.equals(`config.${"workbench.activityBar.location" /* ACTIVITY_BAR_LOCATION */}`, "default" /* DEFAULT */)
+  when: ContextKeyExpr.and(
+    ContextKeyExpr.false(), // OpenCode: 去掉右侧侧栏标题栏的关闭(X)按钮，仅保留标题栏布局控件中的切换按钮
+    ContextKeyExpr.equals(`config.${"workbench.activityBar.location" /* ACTIVITY_BAR_LOCATION */}`, "default" /* DEFAULT */)
+  )
 });
 
 registerAction2(class extends Action2 {
@@ -139,6 +142,7 @@ MenuRegistry.appendMenuItems([
         icon: auxiliaryBarLeftOffIcon
       },
       when: ContextKeyExpr.and(
+        ContextKeyExpr.false(), // OpenCode: 去掉标题栏上的辅助侧栏切换按钮（侧栏已隐藏，可直接拖出）
         IsAuxiliaryWindowContext.negate(),
         ContextKeyExpr.or(
           ContextKeyExpr.equals("config.workbench.layoutControl.type", "toggles"),
@@ -160,6 +164,7 @@ MenuRegistry.appendMenuItems([
         icon: auxiliaryBarRightOffIcon
       },
       when: ContextKeyExpr.and(
+        ContextKeyExpr.false(), // OpenCode: 去掉标题栏上的辅助侧栏切换按钮（侧栏已隐藏，可直接拖出）
         IsAuxiliaryWindowContext.negate(),
         ContextKeyExpr.or(
           ContextKeyExpr.equals("config.workbench.layoutControl.type", "toggles"),
@@ -271,11 +276,8 @@ var ToggleMaximizedAuxiliaryBar = class _ToggleMaximizedAuxiliaryBar extends Act
         condition: AuxiliaryBarMaximizedContext,
         tooltip: localize(6237, null)
       },
-      menu: {
-        id: MenuId.AuxiliaryBarTitle,
-        group: "navigation",
-        order: 1
-      }
+      // OpenCode ae-dock-step17: 去掉右侧栏标题上的最大化按钮，改为 AE 式按 ` 键切换最大化
+      menu: []
     });
   }
   run(accessor) {

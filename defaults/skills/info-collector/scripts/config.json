@@ -1,0 +1,27 @@
+{
+  "polo_project_dir": "E:/godot/polo-balls",
+  "polo_offline_engine": "E:/godot/polo-balls-tools/offline-engine/runtime/Godot.4.7.2.offline.exe",
+  "polo_release_engine": "E:/godot/polo-balls/.performance_tools/godot_release.exe",
+  "polo_user_recordings_dir": "C:/Users/q2283/AppData/Roaming/Godot/app_userdata/polo_balls/recordings",
+  "recordings_output_dir": "E:/video-publisher/recordings",
+  "edge_channel": "msedge",
+  "edge_executable": "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+  "ffmpeg_path": "C:/ffmpeg/bin/ffmpeg.exe",
+  "global_proxy": "http://127.0.0.1:7890",
+  "use_global_proxy": true,
+  "default_account": "default",
+  "default_mode": "auto",
+  "default_record_mode": "sim",
+  "default_bilibili_tid": 17,
+  "cn_platforms": [
+    "douyin",
+    "kuaishou",
+    "xiaohongshu",
+    "bilibili"
+  ],
+  "global_platforms": [
+    "youtube",
+    "tiktok",
+    "instagram"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "id": "content-strategy",
+  "sourceName": "content-strategy",
+  "title": "内容策略",
+  "category": "写作营销",
+  "repo": "coreyhaines31/marketingskills",
+  "commit": "1efedbc5148b54b2f0f6c6c9fe0be62e151c7fff",
+  "sourcePath": "skills/content-strategy/",
+  "sourceUrl": "https://github.com/coreyhaines31/marketingskills/tree/1efedbc5148b54b2f0f6c6c9fe0be62e151c7fff/skills/content-strategy",
+  "license": "MIT",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "社区技能；部分交叉引用Skill未安装，不假装可调用；检索、分析平台只在有访问权限时使用。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "dce9f4027ae129691e92623541a360bee9356137a7eecf68afa95674af118e68"
+    },
+    {
+      "path": "_provenance/REPOSITORY_LICENSE",
+      "upstreamSha256": "b70d71e24e40fce5da8f4b6f9cd862096a048e433db7f3c8cac5e348e6d34591"
+    },
+    {
+      "path": "evals/evals.json",
+      "upstreamSha256": "10167e7125ee77cbabe4f03953750dd99ea147f7461027fdbb0cf8e089e5506d"
+    },
+    {
+      "path": "references/content-distribution.md",
+      "upstreamSha256": "1861a1aab0627ab29c279000879a9889242da1ba85e677acdc759c66a6241778"
+    },
+    {
+      "path": "references/headless-cms.md",
+      "upstreamSha256": "efc796ae9596d1efcb876683db2d9b7c10c83e76e1cb69e527097907d5b4fc3f"
+    }
+  ]
+}

@@ -97,6 +97,23 @@ var TerminalProcess = class extends Disposable {
     this._properties["cwd" /* Cwd */] = this._initialCwd;
     const useConpty = process.platform === "win32" && getWindowsBuildNumberSync() >= 18309;
     const useConptyDll = useConpty && this._options.windowsUseConptyDll;
+    // OpenCode p35: 集成终端（含 tasks）不继承 OpenCode 自己的 data\tmp：TEMP/TMP/TMPDIR 等于 OpenCode 的便携临时目录时还原成用户原来的值（原来没有就删掉）；用户在 terminal.integrated.env 里显式设的其它值保留；内部标记变量不带进终端
+    try {
+      const ocRaw = env2["OPENCODE_ORIG_TEMP_ENV"] ?? process.env["OPENCODE_ORIG_TEMP_ENV"];
+      const ocPortable = env2["OPENCODE_PORTABLE_TEMP"] ?? process.env["OPENCODE_PORTABLE_TEMP"];
+      if (ocRaw && ocPortable) {
+        const ocOrig = JSON.parse(ocRaw) || {};
+        const ocNorm = (p) => { let v = String(p).trim().replace(/[\\/]+$/, ""); return isWindows ? v.replace(/\//g, "\\").toLowerCase() : v; };
+        const ocTarget = ocNorm(ocPortable);
+        for (const key of Object.keys(env2)) {
+          const up = isWindows ? key.toUpperCase() : key;
+          if (up !== "TEMP" && up !== "TMP" && up !== "TMPDIR") continue;
+          if (env2[key] === void 0 || env2[key] === null || ocNorm(env2[key]) !== ocTarget) continue;
+          if (ocOrig[up] === void 0 || ocOrig[up] === null) delete env2[key]; else env2[key] = ocOrig[up];
+        }
+      }
+      for (const key of Object.keys(env2)) if (/^OPENCODE_(ORIG_TEMP_ENV|PORTABLE_TEMP)$/i.test(key)) delete env2[key];
+    } catch {}
     this._ptyOptions = {
       name,
       cwd: cwd3,

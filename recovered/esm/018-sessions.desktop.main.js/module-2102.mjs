@@ -2,28 +2,20 @@
 // Artifact: resources/app/out/vs/sessions/sessions.desktop.main.js
 // Original module marker: src/vs/workbench/contrib/chat/browser/agentSessions/agentHost/agentHostChatInputPicker.ts
 import { Codicon } from "./module-0085.mjs";
-import { isAssistedPermissionsEnabled, isAutoApprovePolicyRestricted, isAutoApproveValuePolicyRestricted, isPermissionLevelVisible, normalizeSessionConfigValue } from "./module-2041.mjs";
-import { SessionType } from "./module-0961.mjs";
-import { IAgentHostService, getAgentHostCopilotSandboxSettingId } from "./module-1108.mjs";
+import { IAgentHostService } from "./module-1108.mjs";
 import { localize } from "./module-0001.mjs";
 import { getCodexApprovalsPickerListOptions } from "./module-2094.mjs";
 import { $, EventHelper, EventType, addDisposableListener, append, clearNode } from "./module-0075.mjs";
 import { EventType2, Gesture } from "./module-0251.mjs";
-import { KNOWN_AUTO_APPROVE_VALUES } from "./module-1740.mjs";
 import { Disposable, DisposableStore, MutableDisposable, toDisposable } from "./module-0012.mjs";
 import { Delayer } from "./module-0036.mjs";
-import { AgentHostCustomTerminalToolEnabledSettingId } from "./module-2096.mjs";
-import { autorun } from "./module-0052.mjs";
 import { toAgentHostBackendSessionUri } from "./module-2068.mjs";
-import { getChatSessionType, isUntitledChatSession } from "./module-0962.mjs";
+import { isUntitledChatSession } from "./module-0962.mjs";
 import { CancellationTokenSource } from "./module-0025.mjs";
 import { renderIcon } from "./module-0467.mjs";
 import { getCompactCodicon } from "./module-2035.mjs";
 import { URI } from "./module-0032.mjs";
 import { withChatInputPickerMotion } from "./module-2090.mjs";
-import { isAgentSandboxEnabledValue } from "./module-1106.mjs";
-import { isChatPermissionLevel } from "./module-0965.mjs";
-import { maybeConfirmElevatedPermissionLevel } from "./module-2100.mjs";
 import { __decorateClass, __decorateParam } from "./module-0000.mjs";
 import { IActionWidgetService } from "./module-0553.mjs";
 import { IHoverService } from "./module-0520.mjs";
@@ -33,9 +25,6 @@ import { IWorkspaceContextService } from "./module-0509.mjs";
 import { IAgentHostUntitledProvisionalSessionService } from "./module-1760.mjs";
 import { IConfigurationService } from "./module-0132.mjs";
 import { IAgentHostNewSessionFolderService } from "./module-1746.mjs";
-import { IDialogService } from "./module-0267.mjs";
-import { IStorageService } from "./module-0512.mjs";
-import { IAgentHostEnablementService } from "./module-0964.mjs";
 import { BaseActionViewItem } from "./module-0476.mjs";
 
 
@@ -53,23 +42,9 @@ function getConfigIcon(property, value2) {
     switch (value2) {
       case "plan":
         return Codicon.checklist;
-      case "autopilot":
-        return Codicon.rocket;
       case "interactive":
         return Codicon.comment;
     }
-  }
-  if (property === "autoApprove" /* AutoApprove */) {
-    if (value2 === "autopilot") {
-      return Codicon.rocket;
-    }
-    if (value2 === "autoApprove") {
-      return Codicon.warning;
-    }
-    if (value2 === "assisted") {
-      return Codicon.sparkle;
-    }
-    return Codicon.shield;
   }
   if (property === "permissionMode" /* PermissionMode */ && typeof value2 === "string") {
     switch (value2) {
@@ -98,44 +73,22 @@ function getConfigIcon(property, value2) {
   return void 0;
 }
 
-function toActionItems(property, items, currentValue, policyRestricted = false, sandboxToggle) {
-  const actionItems = items.map((item) => {
-    const disabled = property === "autoApprove" /* AutoApprove */ && isAutoApproveValuePolicyRestricted(item.value, policyRestricted);
-    const hover = getConfigPickerItemHover(property, item, disabled);
+function toActionItems(property, items, currentValue) {
+  return items.map((item) => {
+    const hover = getConfigPickerItemHover(property, item);
     return {
       kind: "action" /* Action */,
       label: item.label,
-      detail: disabled ? hover : item.description,
+      detail: item.description,
       group: { title: "", icon: getConfigIcon(property, item.value) },
-      disabled,
+      disabled: false,
       ...hover ? { hover: { content: hover } } : {},
       item: { ...item, checked: isSelectedValue(currentValue, item.value) }
     };
   });
-  if (property === "autoApprove" /* AutoApprove */ && sandboxToggle) {
-    actionItems.push({
-      kind: "separator" /* Separator */,
-      label: ""
-    });
-    actionItems.push({
-      kind: "action" /* Action */,
-      label: sandboxToggle.label,
-      group: { title: "", icon: Codicon.blank },
-      standaloneToggle: sandboxToggle,
-      item: { value: "__sandboxToggle", label: sandboxToggle.label, checked: false }
-    });
-  }
-  return actionItems;
 }
 
-function getAgentHostSandboxSettingId(sessionType, customTerminalToolEnabled, windows) {
-  if (sessionType !== SessionType.AgentHostCopilot) {
-    return void 0;
-  }
-  return getAgentHostCopilotSandboxSettingId(customTerminalToolEnabled, windows);
-}
-
-function getConfigPickerTriggerLabel(schema10, value2, sandboxed) {
+function getConfigPickerTriggerLabel(schema10, value2) {
   let label3;
   if (schema10.type === "boolean") {
     label3 = value2 === true ? localize(8941, null) : localize(8940, null);
@@ -145,7 +98,7 @@ function getConfigPickerTriggerLabel(schema10, value2, sandboxed) {
   } else {
     label3 = schema10.title;
   }
-  return sandboxed ? localize(8950, null, label3) : label3;
+  return label3;
 }
 
 function isSelectedValue(currentValue, itemValue) {
@@ -153,20 +106,6 @@ function isSelectedValue(currentValue, itemValue) {
     return currentValue === (itemValue === "true");
   }
   return itemValue === currentValue;
-}
-
-function getAutoApproveHover(value2, fallback2) {
-  switch (value2) {
-    case "default" /* Default */:
-      return localize(8943, null);
-    case "assisted" /* Assisted */:
-      return localize(8936, null);
-    case "autoApprove" /* AutoApprove */:
-      return localize(8937, null);
-    case "autopilot" /* Autopilot */:
-      return localize(8938, null);
-  }
-  return fallback2 ?? localize(8933, null);
 }
 
 function getEnumValueDescription(schema10, value2) {
@@ -181,23 +120,10 @@ function getConfigPickerTriggerHover(property, schema10, value2, isReadOnly2) {
   if (property === "codex.permissionsPreset" /* PermissionsPreset */) {
     return getEnumValueDescription(schema10, value2) ?? schema10.description ?? schema10.title;
   }
-  if (property !== "autoApprove" /* AutoApprove */) {
-    return schema10.description ?? schema10.title;
-  }
-  const hover = getAutoApproveHover(value2, getEnumValueDescription(schema10, value2));
-  if (isReadOnly2) {
-    return localize(8934, null, hover);
-  }
-  return hover;
+  return schema10.description ?? schema10.title;
 }
 
-function getConfigPickerItemHover(property, item, disabled) {
-  if (disabled) {
-    return localize(8949, null);
-  }
-  if (property === "autoApprove" /* AutoApprove */) {
-    return getAutoApproveHover(item.value, item.description);
-  }
+function getConfigPickerItemHover(property, item) {
   return void 0;
 }
 
@@ -205,7 +131,7 @@ function getPermissionsLearnMoreUrl(property) {
   if (property === "codex.permissionsPreset" /* PermissionsPreset */) {
     return CODEX_APPROVALS_LEARN_MORE_URL;
   }
-  if (property === "permissionMode" /* PermissionMode */ || property === "autoApprove" /* AutoApprove */) {
+  if (property === "permissionMode" /* PermissionMode */) {
     return PERMISSIONS_LEARN_MORE_URL;
   }
   return void 0;
@@ -215,8 +141,6 @@ function getConfigPickerListOptions(property) {
   switch (property) {
     case "mode" /* Mode */:
       return { minWidth: 260 };
-    case "autoApprove" /* AutoApprove */:
-      return { minWidth: 255 };
     case "codex.permissionsPreset" /* PermissionsPreset */:
       return getCodexApprovalsPickerListOptions();
     default:
@@ -250,16 +174,6 @@ function renderPickerTrigger(slot, disabled, disposables, onOpen) {
   return trigger;
 }
 
-function isWellKnownAutoApproveSchema(schema10) {
-  if (schema10.type !== "string" || !Array.isArray(schema10.enum) || schema10.enum.length === 0) {
-    return false;
-  }
-  if (!schema10.enum.includes("default")) {
-    return false;
-  }
-  return schema10.enum.every((value2) => typeof value2 === "string" && KNOWN_AUTO_APPROVE_VALUES.has(value2));
-}
-
 var WELL_KNOWN_PICKER_PROPERTIES = /* @__PURE__ */ new Set([
   "mode" /* Mode */,
   "autoApprove" /* AutoApprove */,
@@ -274,10 +188,9 @@ var WELL_KNOWN_PICKER_PROPERTIES = /* @__PURE__ */ new Set([
   "codex.permissionsPreset" /* PermissionsPreset */
 ]);
 
+// OpenCode: 旧「默认审批」体系已删除——agent-host 会话的 autoApprove（含 autopilot）属性不再有专用选择器，
+// 仍留在本集合中，使通用配置芯片也不把它显示出来（工作台不再切换 agent-host 的审批级别）。
 function isClaimedByDedicatedPicker(property, schema10) {
-  if (property === "autoApprove" /* AutoApprove */) {
-    return isWellKnownAutoApproveSchema(schema10);
-  }
   return WELL_KNOWN_PICKER_PROPERTIES.has(property);
 }
 
@@ -287,7 +200,7 @@ function resolveConfigChipValue(isUntitled, serverValue, overlayValue, schemaDef
 }
 
 var AgentHostChatInputPicker = class extends Disposable {
-  constructor(_widget, _property, _agentHostService, _actionWidgetService, _hoverService, _openerService, _workingDirectoryResolver, _workspaceContextService, _provisional, _configurationService, _newSessionFolderService, _dialogService, _storageService, _agentHostEnablementService) {
+  constructor(_widget, _property, _agentHostService, _actionWidgetService, _hoverService, _openerService, _workingDirectoryResolver, _workspaceContextService, _provisional, _configurationService, _newSessionFolderService) {
     super();
     this._widget = _widget;
     this._property = _property;
@@ -300,9 +213,6 @@ var AgentHostChatInputPicker = class extends Disposable {
     this._provisional = _provisional;
     this._configurationService = _configurationService;
     this._newSessionFolderService = _newSessionFolderService;
-    this._dialogService = _dialogService;
-    this._storageService = _storageService;
-    this._agentHostEnablementService = _agentHostEnablementService;
     this._initialResolveCts = this._registerInitialResolveCts();
     this._renderDisposables = this._register(new DisposableStore());
     this._filterDelayer = this._register(new Delayer(200));
@@ -316,17 +226,7 @@ var AgentHostChatInputPicker = class extends Disposable {
         this._reattach();
       }
     }));
-    this._register(this._configurationService.onDidChangeConfiguration((e4) => {
-      const sandboxSettingId = this._getSandboxSettingId();
-      if (e4.affectsConfiguration("chat.experimental.permissionsSandboxToggle.enabled" /* PermissionsSandboxToggleEnabled */) || e4.affectsConfiguration(AgentHostCustomTerminalToolEnabledSettingId) || sandboxSettingId && e4.affectsConfiguration(sandboxSettingId)) {
-        this._refreshTrigger();
-      }
-    }));
     this._reattach();
-    this._register(autorun((reader) => {
-      this._agentHostEnablementService.managedSandboxEnforced.read(reader);
-      this._refreshTrigger();
-    }));
   }
   _registerInitialResolveCts() {
     const cts = new MutableDisposable();
@@ -423,11 +323,6 @@ var AgentHostChatInputPicker = class extends Disposable {
       this._container.classList.add("agent-host-chat-input-picker-host-hidden");
       return;
     }
-    if (this._property === "autoApprove" /* AutoApprove */ && !isWellKnownAutoApproveSchema(ctx.schema)) {
-      this._container.style.display = "none";
-      this._container.classList.add("agent-host-chat-input-picker-host-hidden");
-      return;
-    }
     this._container.style.display = "";
     this._container.classList.remove("agent-host-chat-input-picker-host-hidden");
     const slot = append(this._container, $(".agent-host-chat-input-picker-slot"));
@@ -448,10 +343,6 @@ var AgentHostChatInputPicker = class extends Disposable {
     if (icon2) {
       append(trigger, renderIcon(getCompactCodicon(icon2)));
     }
-    if (this._property === "autoApprove" /* AutoApprove */) {
-      trigger.classList.toggle("warning", value2 === "autopilot" || value2 === "assisted");
-      trigger.classList.toggle("info", value2 === "autoApprove");
-    }
     const label3 = this._labelFor(schema10, value2);
     const labelSpan = append(trigger, $("span.agent-host-chat-input-picker-label"));
     labelSpan.textContent = label3;
@@ -469,8 +360,7 @@ var AgentHostChatInputPicker = class extends Disposable {
     this._renderTrigger(trigger, ctx.schema, ctx.value, isReadOnly2);
   }
   _labelFor(schema10, value2) {
-    const sandboxed = this._property === "autoApprove" /* AutoApprove */ && this._isSandboxToggleSettingEnabled() && this._isSandboxingEnabled();
-    return getConfigPickerTriggerLabel(schema10, value2, sandboxed);
+    return getConfigPickerTriggerLabel(schema10, value2);
   }
   _readContext() {
     const sessionResource = this._widget.viewModel?.sessionResource;
@@ -520,8 +410,7 @@ var AgentHostChatInputPicker = class extends Disposable {
       return;
     }
     const currentValue = ctx.value;
-    const policyRestricted = isAutoApprovePolicyRestricted(this._configurationService);
-    const actionItems = toActionItems(this._property, items, currentValue, policyRestricted, this._getSandboxStandaloneToggle());
+    const actionItems = toActionItems(this._property, items, currentValue);
     const permissionsLearnMoreUrl = getPermissionsLearnMoreUrl(this._property);
     if (permissionsLearnMoreUrl) {
       const learnMoreLabel = localize(8947, null);
@@ -545,14 +434,14 @@ var AgentHostChatInputPicker = class extends Disposable {
           }
           return;
         }
-        void this._confirmAndSetValue(ctx.backendSession, item);
+        void this._setValue(ctx.backendSession, item.value);
       },
       onFilter: ctx.schema.enumDynamic ? (query) => this._filterDelayer.trigger(async () => {
         const refreshed = this._readContext();
         if (!refreshed) {
           return [];
         }
-        return toActionItems(this._property, await this._getItems(refreshed.schema, query), refreshed.value, isAutoApprovePolicyRestricted(this._configurationService), this._getSandboxStandaloneToggle());
+        return toActionItems(this._property, await this._getItems(refreshed.schema, query), refreshed.value);
       }) : void 0,
       onHide: () => trigger.focus()
     };
@@ -574,43 +463,12 @@ var AgentHostChatInputPicker = class extends Disposable {
       })
     );
   }
-  _getSandboxSettingId() {
-    const sessionResource = this._widget.viewModel?.sessionResource;
-    const sessionType = sessionResource ? getChatSessionType(sessionResource) : void 0;
-    const customTerminalToolEnabled = this._configurationService.getValue(AgentHostCustomTerminalToolEnabledSettingId) === true;
-    return getAgentHostSandboxSettingId(sessionType, customTerminalToolEnabled);
-  }
-  _isSandboxToggleSettingEnabled() {
-    return this._configurationService.getValue("chat.experimental.permissionsSandboxToggle.enabled" /* PermissionsSandboxToggleEnabled */) === true;
-  }
-  _isSandboxingEnabled() {
-    if (this._agentHostEnablementService.managedSandboxEnforced.get()) {
-      return true;
-    }
-    const settingId = this._getSandboxSettingId();
-    return settingId !== void 0 && isAgentSandboxEnabledValue(this._configurationService.getValue(settingId));
-  }
-  _getSandboxStandaloneToggle() {
-    const settingId = this._getSandboxSettingId();
-    if (this._property !== "autoApprove" /* AutoApprove */ || !this._isSandboxToggleSettingEnabled() || !settingId) {
-      return void 0;
-    }
-    const managed = this._agentHostEnablementService.managedSandboxEnforced.get();
-    return {
-      label: localize(8944, null),
-      title: managed ? localize(8948, null) : localize(8945, null),
-      checked: this._isSandboxingEnabled(),
-      disabled: managed,
-      onChange: (checked) => {
-        if (this._agentHostEnablementService.managedSandboxEnforced.get()) {
-          return;
-        }
-        const target = checked ? "on" /* On */ : "off" /* Off */;
-        void this._configurationService.updateValue(settingId, target);
-      }
-    };
-  }
   async _getItems(schema10, query) {
+    // OpenCode: agent-host 的 Autopilot 模式属于已删除的旧审批体系，模式选择器不再提供
+    const items = await this._getItemsRaw(schema10, query);
+    return this._property === "mode" /* Mode */ ? items.filter((item) => item.value !== "autopilot") : items;
+  }
+  async _getItemsRaw(schema10, query) {
     if (schema10.type === "boolean") {
       return [
         { value: "true", label: localize(8942, null) },
@@ -628,22 +486,15 @@ var AgentHostChatInputPicker = class extends Disposable {
           workingDirectory: this._readWorkingDirectory(),
           config: this._readCurrentValues()
         });
-        return this._filterAutoApproveItems(result.items.map((item) => this._fromCompletion(item)));
+        return result.items.map((item) => this._fromCompletion(item));
       } catch {
       }
     }
-    return this._filterAutoApproveItems((schema10.enum ?? []).map((value2, index2) => ({
+    return (schema10.enum ?? []).map((value2, index2) => ({
       value: String(value2),
       label: schema10.enumLabels?.[index2] ?? String(value2),
       description: schema10.enumDescriptions?.[index2]
-    })));
-  }
-  _filterAutoApproveItems(items) {
-    if (this._property !== "autoApprove" /* AutoApprove */) {
-      return items;
-    }
-    const assistedPermissionsEnabled = isAssistedPermissionsEnabled(this._configurationService);
-    return items.filter((item) => isPermissionLevelVisible(item.value, assistedPermissionsEnabled));
+    }));
   }
   _fromCompletion(item) {
     return { value: item.value, label: item.label, description: item.description };
@@ -666,36 +517,13 @@ var AgentHostChatInputPicker = class extends Disposable {
     }
     return overlay?.values ?? this._initialResolved?.result.values;
   }
-  /**
-   * Surfaces the shared elevated-level warning before applying an approval
-   * pick. Unknown non-default values fall back to the Bypass warning.
-   */
-  async _confirmAndSetValue(backendSession, item) {
-    const value2 = item.value;
-    if (this._property === "autoApprove" /* AutoApprove */ && !isPermissionLevelVisible(value2, isAssistedPermissionsEnabled(this._configurationService))) {
-      return;
-    }
-    if (this._property === "autoApprove" /* AutoApprove */) {
-      const levelToConfirm = isChatPermissionLevel(value2) ? value2 : value2 !== "default" /* Default */ ? "autoApprove" /* AutoApprove */ : void 0;
-      if (levelToConfirm) {
-        const confirmed = await maybeConfirmElevatedPermissionLevel(levelToConfirm, this._dialogService, this._storageService, {
-          defaultSettingKey: "chat.defaultConfiguration" /* DefaultConfiguration */,
-          levelLabel: item.label
-        });
-        if (!confirmed) {
-          return;
-        }
-      }
-    }
-    await this._setValue(backendSession, value2);
-  }
   async _setValue(backendSession, value2) {
     const sessionResource = this._widget.viewModel?.sessionResource;
     if (!sessionResource) {
       return;
     }
     const ctx = this._readContext();
-    const normalizedValue = ctx?.schema.type === "boolean" ? value2 === "true" : normalizeSessionConfigValue(this._property, value2, isAutoApprovePolicyRestricted(this._configurationService));
+    const normalizedValue = ctx?.schema.type === "boolean" ? value2 === "true" : value2;
     const partial = { [this._property]: normalizedValue };
     const nextConfig = { ...this._readCurrentValues() ?? {}, ...partial };
     if (isUntitledChatSession(sessionResource)) {
@@ -736,10 +564,7 @@ AgentHostChatInputPicker = __decorateClass([
   __decorateParam(7, IWorkspaceContextService),
   __decorateParam(8, IAgentHostUntitledProvisionalSessionService),
   __decorateParam(9, IConfigurationService),
-  __decorateParam(10, IAgentHostNewSessionFolderService),
-  __decorateParam(11, IDialogService),
-  __decorateParam(12, IStorageService),
-  __decorateParam(13, IAgentHostEnablementService)
+  __decorateParam(10, IAgentHostNewSessionFolderService)
 ], AgentHostChatInputPicker);
 
 var AgentHostChatInputPickerActionViewItem = class extends BaseActionViewItem {
@@ -752,4 +577,4 @@ var AgentHostChatInputPickerActionViewItem = class extends BaseActionViewItem {
     this._picker.render(container2);
   }
 };
-export { getConfigIcon, toActionItems, getAgentHostSandboxSettingId, getConfigPickerTriggerLabel, isSelectedValue, getAutoApproveHover, getEnumValueDescription, getConfigPickerTriggerHover, getConfigPickerItemHover, getPermissionsLearnMoreUrl, getConfigPickerListOptions, renderPickerTrigger, isWellKnownAutoApproveSchema, isClaimedByDedicatedPicker, resolveConfigChipValue, FILTER_THRESHOLD, LEARN_MORE_VALUE, PERMISSIONS_LEARN_MORE_URL, CODEX_APPROVALS_LEARN_MORE_URL, WELL_KNOWN_PICKER_PROPERTIES, AgentHostChatInputPicker, AgentHostChatInputPickerActionViewItem };
+export { getConfigIcon, toActionItems, getConfigPickerTriggerLabel, isSelectedValue, getEnumValueDescription, getConfigPickerTriggerHover, getConfigPickerItemHover, getPermissionsLearnMoreUrl, getConfigPickerListOptions, renderPickerTrigger, isClaimedByDedicatedPicker, resolveConfigChipValue, FILTER_THRESHOLD, LEARN_MORE_VALUE, PERMISSIONS_LEARN_MORE_URL, CODEX_APPROVALS_LEARN_MORE_URL, WELL_KNOWN_PICKER_PROPERTIES, AgentHostChatInputPicker, AgentHostChatInputPickerActionViewItem };

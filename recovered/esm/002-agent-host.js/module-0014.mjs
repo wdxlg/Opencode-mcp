@@ -5,6 +5,7 @@ import { __toESM, init_define_OPENCODE_BUILD_INFO } from "./module-0000.mjs";
 import { FILE_TOOL_NAMES } from "./module-0015.mjs";
 import { IDE_TOOL_DEFINITIONS, IDE_TOOL_NAMES } from "./module-0027.mjs";
 import { runOpenAICompatibleAgent } from "./module-0029.mjs";
+import { startAcpServer } from "./acp-server.mjs";
 
 
 // src/agent-host.ts
@@ -25,6 +26,7 @@ var peerPending = /* @__PURE__ */ new Map();
 var peerFetchStreams = /* @__PURE__ */ new Map();
 
 var activeRuns = /* @__PURE__ */ new Map();
+var yieldRuns = /* @__PURE__ */ new Set(); // steer-step01
 
 var nextPeerRequestId = 1;
 
@@ -67,7 +69,15 @@ function parseHistory(value) {
     if (typeof row.content !== "string") {
       throw new Error(`history[${index}].content must be a string`);
     }
-    return { role: row.role, content: row.content, images: parseImages(row.images, `history[${index}].images`) };
+    // dsh-context-align item1: 以往轮次实际发出的消息（扩展从会话存储取回），用于原样重放
+    const replay = row.role === "assistant" && Array.isArray(row.replay) ? row.replay.filter((message) => message && typeof message === "object" && !Array.isArray(message) && (message.role === "assistant" || message.role === "tool" || message.role === "user")) : void 0;
+    return {
+      role: row.role,
+      content: row.content,
+      images: parseImages(row.images, `history[${index}].images`),
+      ...replay?.length ? { replay, replayModel: typeof row.replayModel === "string" ? row.replayModel : void 0 } : {},
+      ...row.role === "user" && typeof row.replayUser === "string" && row.replayUser ? { replayUser: row.replayUser } : {}
+    };
   });
 }
 
@@ -163,6 +173,9 @@ function parseAgentRunInput(params) {
   if (row.allowedTools !== void 0 && (!Array.isArray(row.allowedTools) || row.allowedTools.some((name) => typeof name !== "string"))) {
     throw new Error("allowedTools must be an array of strings when provided");
   }
+  if (row.approveTools !== void 0 && (!Array.isArray(row.approveTools) || row.approveTools.some((name) => typeof name !== "string"))) {
+    throw new Error("approveTools must be an array of strings when provided");
+  }
   if (row.modeInstructions !== void 0 && typeof row.modeInstructions !== "string") {
     throw new Error("modeInstructions must be a string when provided");
   }
@@ -225,12 +238,57 @@ function parseAgentRunInput(params) {
     maxOutputTokens: Number.isInteger(row.maxOutputTokens) ? Number(row.maxOutputTokens) : void 0,
     history: parseHistory(row.history),
     allowedTools: Array.isArray(row.allowedTools) ? row.allowedTools : void 0,
+    approveTools: Array.isArray(row.approveTools) && row.approveTools.length ? row.approveTools : void 0,
     externalTools: parseExternalTools(row.externalTools),
     modeInstructions: typeof row.modeInstructions === "string" ? row.modeInstructions : void 0,
+    // persona-fix-step01: 规则中心的人设（系统提示词）以前在这里被丢掉，agent-host 一直用自带契约
+    persona: typeof row.persona === "string" && row.persona.trim() ? row.persona.slice(0, 64e3) : void 0,
+    systemRules: typeof row.systemRules === "string" && row.systemRules.trim() ? row.systemRules.slice(0, 2e5) : void 0,
     checkpoint,
+    contextCompaction: parseContextCompaction(row.contextCompaction),
+    contextCheckpoint: parseContextCheckpoint(row.contextCheckpoint),
+    compactOnly: row.compactOnly === true,
+    // dsh-context-align item3: 工作区指令（全局 + 项目根到工作区的 AGENTS.md / CLAUDE.md 及 .local）
+    agentsInstructions: row.agentsInstructions && typeof row.agentsInstructions === "object" && typeof row.agentsInstructions.text === "string" ? {
+      text: row.agentsInstructions.text.slice(0, 3e5),
+      files: Array.isArray(row.agentsInstructions.files) ? row.agentsInstructions.files.filter((file) => typeof file === "string").slice(0, 200) : [],
+      projectRoot: typeof row.agentsInstructions.projectRoot === "string" ? row.agentsInstructions.projectRoot : void 0
+    } : void 0,
+    // tool-defer-step01
+    deferTools: typeof row.deferTools === "boolean" ? row.deferTools : void 0,
+    hookEvents: Array.isArray(row.hookEvents) ? row.hookEvents.filter((event) => typeof event === "string") : void 0,
     runId: typeof row.runId === "string" ? row.runId : void 0
   };
 }
+
+// OpenCode: 上下文压缩设置与上一次保存的压缩检查点
+function parseContextCompaction(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return void 0;
+  const row = value;
+  const finite = (item) => typeof item === "number" && Number.isFinite(item) ? item : void 0;
+  return {
+    auto: row.auto !== false,
+    threshold: finite(row.threshold),
+    clearToolResultsAt: finite(row.clearToolResultsAt),
+    keepRecentTokens: finite(row.keepRecentTokens),
+    // OpenCode context-compaction-dsh PART B: 扩展传来的压缩预留输出 O（此前在这里被丢掉）
+    outputReserve: Number.isInteger(row.outputReserve) && row.outputReserve >= 0 && row.outputReserve <= 1e7 ? Number(row.outputReserve) : void 0,
+    keepToolResults: finite(row.keepToolResults),
+    // OpenCode context-fixes: 扩展按 提供商+模型 学到的真实窗口与 token 估算校准系数
+    learnedWindow: Number.isInteger(row.learnedWindow) && row.learnedWindow >= 1024 && row.learnedWindow <= 1e7 ? Number(row.learnedWindow) : void 0,
+    tokenRatio: finite(row.tokenRatio) !== void 0 && row.tokenRatio >= 0.3 && row.tokenRatio <= 3 ? row.tokenRatio : void 0
+  };
+}
+
+function parseContextCheckpoint(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return void 0;
+  const row = value;
+  if (typeof row.summary !== "string" || !row.summary.trim() || !Number.isInteger(row.covered) || row.covered < 1 || typeof row.hash !== "string") return void 0;
+  return { summary: row.summary.slice(0, 2e5), covered: Number(row.covered), hash: row.hash, count: Number.isInteger(row.count) ? Number(row.count) : 1 };
+}
+
+// Tools whose host call is meant to stay open until the user acts (host-side guards own their deadlines).
+var PEER_UNBOUNDED_WAIT_TOOLS = /* @__PURE__ */ new Set(["bridge_ask_user", "bridge_batch", "bridge_wait_messages", "bridge_wait_team", "wait", "wait_for_event"]);
 
 function clearPeerRequest(id, pending) {
   clearTimeout(pending.timer);
@@ -247,7 +305,8 @@ function createPeerRequest(method, params, timeoutMs = 18e4, signal) {
       if (error2) reject(error2);
       else resolve(value);
     };
-    const timer = setTimeout(() => finish(new Error(`IDE tool broker timed out: ${method}`)), timeoutMs);
+    // timeoutMs <= 0: no broker deadline (tools that wait for the user on purpose); cancellation still applies.
+    const timer = timeoutMs > 0 ? setTimeout(() => finish(new Error(`IDE tool broker timed out: ${method}`)), timeoutMs) : void 0;
     const onAbort = signal ? () => finish(signal.reason instanceof Error ? signal.reason : new Error("Agent run canceled.")) : void 0;
     pending = {
       resolve: (value) => finish(void 0, value),
@@ -408,6 +467,7 @@ async function dispatch(method, params) {
         return await runOpenAICompatibleAgent({
           ...input2,
           signal: abortController.signal,
+          shouldYield: runId ? () => yieldRuns.has(runId) : void 0,
           externalTools: [
             ...IDE_TOOL_DEFINITIONS.map((tool) => ({
               name: tool.name,
@@ -416,10 +476,29 @@ async function dispatch(method, params) {
             })),
             ...dynamicExternalTools.filter((tool) => !reservedExternalToolNames.has(tool.name))
           ],
-          executeExternalTool: async (name, args) => {
+          // OpenCode: 「权限」为每次询问时，approveTools 中的工作区工具执行前向扩展请求用户确认（不设截止时间，取消仍生效）
+          approveTool: runId && input2.approveTools?.length ? async (name, args) => {
+            abortController.signal.throwIfAborted();
+            return asRecord(await requestPeer("ide/tool/approve", { runId, name, arguments: args }, 0, abortController.signal));
+          } : void 0,
+          // hooks-step01: 项目 hooks（beforeToolUse / afterToolUse）在扩展进程里运行
+          runHook: runId && input2.hookEvents?.length ? async (event, payload) => asRecord(await requestPeer("ide/hook", { runId, event, payload }, 66e4, abortController.signal)) : void 0,
+          // checkpoint-step01: apply_patch 前后通知扩展（externalEdit），失败不影响修改本身
+          beginEdit: runId ? async (paths) => {
+            if (!Array.isArray(paths) || paths.length === 0) return void 0;
+            const result = asRecord(await requestPeer("ide/edit/begin", { runId, paths }, 15e3, abortController.signal));
+            return typeof result.ticket === "string" ? result.ticket : void 0;
+          } : void 0,
+          endEdit: runId ? async (ticket) => {
+            await requestPeer("ide/edit/end", { runId, ticket }, 15e3, abortController.signal);
+          } : void 0,
+          executeExternalTool: async (name, args, meta) => {
             if (!runId) throw new Error(`IDE-native tool ${name} requires an agent runId.`);
             abortController.signal.throwIfAborted();
-            const result = asRecord(await requestPeer("ide/tool/invoke", { runId, name, arguments: args }, 18e4, abortController.signal));
+            // bridge_ask_user waits for the user's answer with no upper bound; a 180 s broker deadline
+            // made the model see a timeout while the question stayed pending ("unexpected peer response").
+            const brokerTimeoutMs = PEER_UNBOUNDED_WAIT_TOOLS.has(name) ? 0 : 18e4;
+            const result = asRecord(await requestPeer("ide/tool/invoke", { runId, name, arguments: args, ...(meta?.session && typeof meta.session.id === "string" && meta.session.id ? { session: { id: meta.session.id, parentID: typeof meta.session.parentID === "string" && meta.session.parentID ? meta.session.parentID : null, depth: Number(meta.session.depth) || 1 } } : {}) }, brokerTimeoutMs, abortController.signal));
             return {
               text: typeof result.text === "string" ? result.text : JSON.stringify(result),
               isError: result.isError === true
@@ -435,8 +514,19 @@ async function dispatch(method, params) {
           fetch: input2.protocol === "codex-responses" ? fetchThroughExtensionHost : void 0
         });
       } finally {
-        if (runId) activeRuns.delete(runId);
+        if (runId) {
+          activeRuns.delete(runId);
+          yieldRuns.delete(runId);
+        }
       }
+    }
+    case "agent/yield": {
+      // steer-step01: 软停止——当前这一步做完再返回，不中断进行中的模型输出或工具
+      const row = asRecord(params);
+      const runId = typeof row.runId === "string" ? row.runId : "";
+      if (!runId || !activeRuns.has(runId)) return { yielded: false, reason: "not_running" };
+      yieldRuns.add(runId);
+      return { yielded: true };
     }
     case "agent/cancel": {
       const row = asRecord(params);
@@ -506,11 +596,14 @@ function handleLine(line) {
   void handleIncomingRequest(message);
 }
 
-var input = import_node_readline.default.createInterface({ input: process.stdin, crlfDelay: Infinity });
+// acp-step01: `agent-host.js --acp` 改为 Agent Client Protocol 服务端（Zed 等客户端直接驱动），不走 IDE 对端协议
+var ACP_MODE = process.argv.includes("--acp");
+if (ACP_MODE) startAcpServer();
+var input = ACP_MODE ? void 0 : import_node_readline.default.createInterface({ input: process.stdin, crlfDelay: Infinity });
 
-input.on("line", handleLine);
+input?.on("line", handleLine);
 
-input.on("close", () => {
+input?.on("close", () => {
   for (const controller of activeRuns.values()) controller.abort(new Error("IDE peer disconnected."));
   activeRuns.clear();
   for (const pending of peerPending.values()) {
@@ -528,6 +621,6 @@ input.on("close", () => {
   process.exit(0);
 });
 
-process.stderr.write(`[agent-host] ready protocol=${PROTOCOL_VERSION} pid=${process.pid}
+if (!ACP_MODE) process.stderr.write(`[agent-host] ready protocol=${PROTOCOL_VERSION} pid=${process.pid}
 `);
 export { writeMessage, asRecord, parseImages, parseHistory, parseExternalTools, parseAgentCheckpoint, parseAgentRunInput, clearPeerRequest, createPeerRequest, requestPeer, cleanupPeerFetchStream, cancelPeerFetch, fetchThroughExtensionHost, handlePeerFetchNotification, dispatch, handlePeerResponse, handleIncomingRequest, handleLine, import_node_readline, import_node_path, PROTOCOL_VERSION, TOOL_NAMES, peerPending, peerFetchStreams, activeRuns, nextPeerRequestId, input };

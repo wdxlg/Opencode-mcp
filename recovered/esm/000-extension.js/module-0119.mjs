@@ -14,6 +14,9 @@ import { NodeStreamableHTTPServerTransport } from "./module-0127.mjs";
 import { OPENCODE_BEHAVIOR_VERSION } from "./module-0134.mjs";
 import { Server } from "./module-0121.mjs";
 import { CUSTOM_TOOL_OUTPUT_SCHEMA } from "./module-0029.mjs";
+// Multica-inspired ops layer (design borrowed from multica-ai/multica, code self-implemented): wraps every
+// tools/call (task-card sync, run records, steer, …) and adds the opencode_ops tool. See docs/multica-borrow.md.
+import { multicaRuntime } from "./multica/hooks.mjs";
 
 
 // extensions/opencode/src/bridge-mcp-transport.ts
@@ -236,6 +239,7 @@ var BridgeMcpTransport = class {
     };
     const server = this.deps.createHttpServer ? this.deps.createHttpServer(handler) : (0, import_node_http4.createServer)(handler);
     this.httpServer = server;
+    server.keepAliveTimeout = 75e3; server.headersTimeout = 76e3; // OpenCode: Tailscale Funnel/Cloudflare reuse idle upstream connections longer than Node default 5s; a socket closed mid-reuse shows as intermittent 502 Bad Gateway
     await new Promise((resolve, reject) => {
       const onError = (error2) => {
         server.off("listening", onListening);
@@ -260,7 +264,10 @@ var BridgeMcpTransport = class {
   }
   // ---- Request handlers ----------------------------------------------------
   commandOwner(scope, binding) {
-    return bridgeManagedCommandOwnerId(binding?.bindingId ? "assistant-source:" + binding.bindingId : scope);
+    // Each MCP dialogue keeps its own owner; one assistant source link may carry several parallel dialogues.
+    if (!binding?.bindingId) return bridgeManagedCommandOwnerId(scope);
+    const sourceTag = ":assistant-source:" + binding.bindingId;
+    return bridgeManagedCommandOwnerId(String(scope || "").includes(sourceTag) ? scope : scope + sourceTag);
   }
   hasOwnerPeer(owner) {
     if (this.sessions.values().some(session => session.owner === owner && session.confirmed && !session.superseded)) return true;
@@ -304,7 +311,8 @@ var BridgeMcpTransport = class {
     this.deps.beginRemoteConversation(session.owner);
     // Only an authenticated source binding can identify a real dialogue. Never use
     // a nickname, shared URL, IP, or client-supplied overview UUID to evict a peer.
-    if (session.assistantBindingId) for (const previous of this.sessions.values()) {
+    // Parallel dialogues may share one source link: never supersede a sibling session (each has its own owner).
+    if (false) for (const previous of this.sessions.values()) {
       if (previous === session || previous.assistantBindingId !== session.assistantBindingId || previous.superseded) continue;
       previous.superseded = true;
       this.retireSuperseded(previous.id);
@@ -448,10 +456,12 @@ var BridgeMcpTransport = class {
   }
   // ---- Session assembly (always performed here; never bypassed by tests) ----
   createSession(sourceBinding=null) {
-    const server = this.instantiateMcpServer();
+    const initialSessionId = (0, import_node_crypto19.randomUUID)();
+    const initialOwner = this.commandOwner(initialSessionId, sourceBinding);
+    const server = this.instantiateMcpServer(initialOwner);
     let transport;
     const options = {
-      sessionIdGenerator: () => (0, import_node_crypto19.randomUUID)(),
+      sessionIdGenerator: () => initialSessionId,
       enableJsonResponse: this.startOptions?.provider === "cloudflare",
       eventStore: new BoundedInMemoryEventStore(SESSION_EVENT_STORE_LIMIT),
       keepAliveMs: SESSION_KEEPALIVE_INTERVAL_MS,
@@ -490,10 +500,10 @@ var BridgeMcpTransport = class {
    * Build a bare MCP server carrying the Bridge identity, capabilities and instructions.
    * Shared by both protocol eras so the two paths can never drift apart.
    */
-  instantiateMcpServer() {
+  instantiateMcpServer(ownerId) {
     const serverInfo = { name: "opencode-bridge", version: OPENCODE_BEHAVIOR_VERSION };
     const serverOptions = {
-      capabilities: { tools: { listChanged: true }, logging: {} },
+      capabilities: { tools: { listChanged: true }, logging: {}, prompts: {}, resources: {} },
       // Upstream tools can disappear immediately after stop/trust revocation;
       // the old public/60s tool cache must not continue exposing stale names.
       cacheHints: {
@@ -502,7 +512,7 @@ var BridgeMcpTransport = class {
       },
       // Keep this connection-specific rule beside the MCP metadata it must reach;
       // BRIDGE_SERVER_INSTRUCTIONS remains the shared base prompt.
-      instructions: this.deps.serverInstructions?.() ?? BRIDGE_SERVER_INSTRUCTIONS
+      instructions: this.deps.serverInstructions?.(ownerId) ?? BRIDGE_SERVER_INSTRUCTIONS
     };
     return this.deps.createMcpServer ? this.deps.createMcpServer(serverInfo, serverOptions) : new Server(serverInfo, serverOptions);
   }
@@ -514,9 +524,9 @@ var BridgeMcpTransport = class {
   modernDeps(sourceBinding=null) {
     return {
       createServer: (scopeId, taskOwnerId) => {
-        const server = this.instantiateMcpServer();
         const sourceScope=sourceBinding?scopeId+":assistant-source:"+sourceBinding.bindingId:scopeId;
         const sourceOwner=sourceBinding&&taskOwnerId?taskOwnerId+":assistant-source:"+sourceBinding.bindingId:taskOwnerId;
+        const server = this.instantiateMcpServer(this.commandOwner(sourceScope, sourceBinding));
         this.registerToolHandlers(server, () => sourceScope, sourceOwner, sourceBinding, true);
         return server;
       },
@@ -583,26 +593,89 @@ var BridgeMcpTransport = class {
             openWorldHint: false
           }
         })),
-        ...external.map(({ serverId: _source, upstreamName: _upstream, ...tool }) => tool)
+        ...external.map(({ serverId: _source, upstreamName: _upstream, ...tool }) => tool),
+        ...(multicaRuntime().opsToolVisible() && !reserved.has("opencode_ops") ? [multicaRuntime().opsTool()] : [])
       ] };
+    }));
+    // Clients that ignore initialize instructions can still discover onboarding through prompts/resources.
+    server.setRequestHandler("prompts/list", async () => ({ prompts: [{ name: "opencode-start", title: "开始使用 OpenCode", description: "接入说明：先调用 start，再按返回的 next_steps 建立任务卡、读取 Skills。" }] }));
+    server.setRequestHandler("prompts/get", async (request) => observe(async (commandOwnerId) => {
+      if (request.params?.name !== "opencode-start") throw new Error(`Unknown prompt: ${request.params?.name}`);
+      const text = `${this.deps.serverInstructions?.(commandOwnerId) ?? BRIDGE_SERVER_INSTRUCTIONS}\n\n现在先调用 start，再按其返回的 next_steps 继续。`;
+      return { description: "OpenCode 接入说明", messages: [{ role: "user", content: { type: "text", text } }] };
+    }));
+    server.setRequestHandler("resources/list", async () => ({ resources: [{ uri: "opencode://rules/effective", name: "effective-rules", title: "当前有效规则", description: "当前工作区的完整有效规则（JSON）。读取不等于确认；确认请调用 start。", mimeType: "application/json" }] }));
+    server.setRequestHandler("resources/read", async (request, extra) => observe(async (commandOwnerId, resolvedTaskOwner) => {
+      const uri = request.params?.uri;
+      if (uri !== "opencode://rules/effective") throw new Error(`Unknown resource: ${uri}`);
+      const result = await this.deps.dispatchToolCall("bridge_get_effective_rules", {}, { signal: extra?.signal, commandOwnerId, taskOwnerId: resolvedTaskOwner });
+      const text = (result?.content || []).filter((item) => item?.type === "text").map((item) => item.text).join("\n");
+      return { contents: [{ uri, mimeType: "application/json", text }] };
     }));
     server.setRequestHandler("tools/call", async (request, extra) => observe(async (commandOwnerId,resolvedTaskOwner) => {
       const toolName = request.params.name;
       const args = request.params.arguments ?? {};
-      const result = await this.deps.dispatchToolCall(toolName, args, {
+      const dispatch = () => this.deps.dispatchToolCall(toolName, args, {
         signal: extra.signal,
         commandOwnerId,
-        taskOwnerId: resolvedTaskOwner
+        taskOwnerId: resolvedTaskOwner,
+        clientName: (() => { try { return (server.getClientVersion?.() ?? server.server?.getClientVersion?.())?.name; } catch { return void 0; } })(),
+        // 建议11：只有 legacy 有状态会话能把 elicitation/create 推给客户端；modern 路径与未开启时为 undefined。
+        elicit: modern ? void 0 : this.elicitorFor(server, extra)
       });
+      // The ops layer never blocks or alters the call unless a feature that defaults to off is enabled.
+      const result = await multicaRuntime().runToolCall({ toolName, args, ownerId: commandOwnerId, taskOwnerId: resolvedTaskOwner, signal: extra.signal }, dispatch);
+      let outContent = result.content;
+      if (result._stepBudgetWarning && Array.isArray(outContent) && outContent.length > 0 && outContent[0]?.type === "text") {
+        outContent = [{ ...outContent[0], text: `${outContent[0].text}\n\n${result._stepBudgetWarning}` }, ...outContent.slice(1)];
+      }
       return {
-        content: result.content,
+        content: outContent,
         isError: result.isError,
         structuredContent: result.structuredContent,
         ...(result._meta ? { _meta: result._meta } : {})
       };
     }));
   }
+  /**
+   * 建议11：bridge_ask_user 的 MCP elicitation 通道。默认关闭，设置 opencode.bridge.elicitation=true 才启用。
+   * 仅当客户端在 initialize 声明了 elicitation（form，或旧版空对象）时返回发问函数，否则 undefined，
+   * 调用方照常只走任务板提问。表单回答来自远端客户端界面，不等同于本地任务板，故默认关闭。
+   */
+  elicitorFor(server, extra) {
+    if (this.deps.elicitationEnabled?.() !== true) return void 0;
+    let caps;
+    try { caps = server.getClientCapabilities?.(); } catch { return void 0; }
+    const el = caps?.elicitation;
+    if (!el || typeof el !== "object") return void 0;
+    const formDeclared = Boolean(el.form);
+    if (!formDeclared && Object.keys(el).length !== 0) return void 0;
+    const relatedRequestId = extra?.requestId ?? extra?.mcpReq?.id;
+    return (params, signal) => {
+      const options = { signal, timeout: 6 * 60 * 60 * 1e3, ...relatedRequestId !== void 0 ? { relatedRequestId } : {} };
+      const formParams = { ...params, mode: "form" };
+      return formDeclared ? server.elicitInput(formParams, options) : server._sendElicitationLeg(formParams, options);
+    };
+  }
   /** Notify all legacy sessions; modern per-request sessions rely on private, zero-TTL list hints. */
+  /**
+   * recovered.33 push delivery: stateful (legacy Streamable HTTP) sessions whose owner is the message
+   * recipient get an MCP `notifications/message` (logger opencode.bridge.inbox). The modern per-request
+   * path has no server→client channel, so those clients use bridge_wait_messages long-polling instead.
+   * Metadata only; the text is read through bridge_list_messages / bridge_wait_messages. Never throws.
+   */
+  notifyInbox(message, agentIdFor) {
+    if (!message?.recipient || typeof agentIdFor !== "function") return 0;
+    let sent = 0;
+    for (const session of this.sessions.values()) {
+      let id;
+      try { id = agentIdFor(session.owner); } catch { continue; }
+      if (!session.owner || id !== message.recipient || session.superseded) continue;
+      sent++;
+      void session.server.notification?.({ method: "notifications/message", params: { level: "info", logger: "opencode.bridge.inbox", data: { type: "bridge_inbox_message", message_id: message.id, sequence: message.sequence, task_id: message.taskId, workspace_id: message.workspaceId, kind: message.kind, sender: message.sender, hint: "新协作消息：调用 bridge_wait_messages 或 bridge_list_messages(after_sequence) 读取；通知不等于已读或已处理。" } } })?.catch?.(() => void 0);
+    }
+    return sent;
+  }
   notifyToolsChanged() {
     this.revision_++;
     for (const session of this.sessions.values()) {

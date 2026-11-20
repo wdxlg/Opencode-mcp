@@ -81,6 +81,8 @@ var StdioClientTransport = class {
         windowsHide: import_node_process.default.platform === "win32",
         cwd: this._serverParams.cwd
       });
+      const __ocPid = this._process.pid;
+      __ocChildTree.add(__ocPid);
       this._process.on("error", (error2) => {
         reject(error2);
         this.onerror?.(error2);
@@ -89,6 +91,7 @@ var StdioClientTransport = class {
         resolve();
       });
       this._process.on("close", (_code) => {
+        __ocChildTree.delete(__ocPid);
         this._process = void 0;
         this.onclose?.();
       });
@@ -156,7 +159,7 @@ var StdioClientTransport = class {
         proc.stdin?.end();
       } catch {
       }
-      try {
+      if (!(process.platform === "win32" && __ocChildTree.killTree(proc.pid))) try {
         proc.kill("SIGTERM");
       } catch {
       }
@@ -196,7 +199,7 @@ var StdioClientTransport = class {
       }
       await Promise.race([closePromise, new Promise((resolve) => setTimeout(resolve, 2e3).unref())]);
       if (processToClose.exitCode === null) {
-        try {
+        if (!(process.platform === "win32" && __ocChildTree.killTree(processToClose.pid))) try {
           processToClose.kill("SIGTERM");
         } catch {
         }
@@ -218,4 +221,7 @@ var StdioClientTransport = class {
     });
   }
 };
+// Windows does not end child processes with their parent: track spawned helper trees and end them when the extension host exits,
+// so nothing keeps files under the portable install (e.g. data\tmp) open after OpenCode closes.
+var __ocChildTree = globalThis.__opencodeChildTree ??= (() => { const pids = new Set(); const killTree = (pid) => { if (!pid) return false; try { if (process.platform === "win32") { const r = require("node:child_process").spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { windowsHide: true, timeout: 5e3, stdio: "ignore" }); return r.status === 0; } process.kill(pid, "SIGKILL"); return true; } catch { return false; } }; process.once("exit", () => { for (const pid of pids) killTree(pid); pids.clear(); }); return { add: (pid) => { if (pid) pids.add(pid); }, delete: (pid) => { pids.delete(pid); }, killTree }; })();
 export { getDefaultEnvironment, import_node_process, import_node_stream2, import_cross_spawn, DEFAULT_INHERITED_ENV_VARS, StdioClientTransport };

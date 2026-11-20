@@ -1,0 +1,62 @@
+[
+ {
+  "file": "recovered/esm/002-agent-host.js/agent-context.mjs",
+  "old": "function estimatedTokens(value) {\n  const text = typeof value === \"string\" ? value : JSON.stringify(value ?? \"\");\n  let estimate = 0;\n  for (const character of text) {\n    estimate += ocCharTokenWeight(character.codePointAt(0) ?? 0);\n  }\n  return Math.max(1, Math.ceil(estimate));\n}",
+  "new": "// dsh-metrics-20261119 (AH): dsh-token-meter estimator: CHARS_PER_TOKEN=4 over UTF-16 .length, BLOCK_OVERHEAD=4, empty = 0 (ocCharTokenWeight kept exported, unused).\nvar OC_CHARS_PER_TOKEN = 4, OC_BLOCK_OVERHEAD = 4;\nfunction estimatedTokens(value) {\n  const text = typeof value === \"string\" ? value : JSON.stringify(value ?? \"\");\n  return Math.ceil(text.length / OC_CHARS_PER_TOKEN);\n}"
+ },
+ {
+  "file": "recovered/esm/002-agent-host.js/agent-context.mjs",
+  "old": "var CONTEXT_IMAGE_TOKENS = 1600;",
+  "new": "var CONTEXT_IMAGE_TOKENS = 1024;"
+ },
+ {
+  "file": "recovered/esm/002-agent-host.js/agent-context.mjs",
+  "old": "function contextContentTokens(content) {\n  if (typeof content === \"string\") return estimatedTokens(content);\n  if (!Array.isArray(content)) return content == null ? 0 : estimatedTokens(content);\n  let total = 0;\n  for (const part of content) {\n    if (part?.type === \"image_url\" || part?.type === \"image\" || part?.type === \"input_image\") total += CONTEXT_IMAGE_TOKENS;\n    else total += estimatedTokens(part?.text ?? part ?? \"\");\n  }\n  return total;\n}\nfunction contextMessageTokens(message) {\n  let total = 4 + contextContentTokens(message?.content);\n  if (Array.isArray(message?.tool_calls)) total += estimatedTokens(message.tool_calls);\n  if (typeof message?.reasoning_content === \"string\") total += estimatedTokens(message.reasoning_content);\n  if (Array.isArray(message?.anthropic_thinking)) total += estimatedTokens(message.anthropic_thinking);\n  return total;\n}",
+  "new": "function contextContentTokens(content) {\n  if (typeof content === \"string\") return content.length ? estimatedTokens(content) + OC_BLOCK_OVERHEAD : 0;\n  if (!Array.isArray(content)) return content == null ? 0 : estimatedTokens(content) + OC_BLOCK_OVERHEAD;\n  let total = 0;\n  for (const part of content) {\n    if (part?.type === \"image_url\" || part?.type === \"image\" || part?.type === \"input_image\") total += CONTEXT_IMAGE_TOKENS + OC_BLOCK_OVERHEAD;\n    else total += (typeof part?.text === \"string\" ? estimatedTokens(part.text) : estimatedTokens(part ?? \"\")) + OC_BLOCK_OVERHEAD;\n  }\n  return total;\n}\nfunction contextMessageTokens(message) {\n  if (message?.role === \"system\") {\n    const text = contextTextOf(message.content);\n    return text.length ? estimatedTokens(text) + OC_BLOCK_OVERHEAD : 0;\n  }\n  let total = 4 + contextContentTokens(message?.content);\n  if (Array.isArray(message?.tool_calls)) for (const call of message.tool_calls) total += estimatedTokens(String(call?.function?.name ?? call?.name ?? \"\")) + estimatedTokens(String(call?.function?.arguments ?? call?.arguments ?? \"\")) + OC_BLOCK_OVERHEAD;\n  if (typeof message?.reasoning_content === \"string\" && message.reasoning_content) total += estimatedTokens(message.reasoning_content) + OC_BLOCK_OVERHEAD;\n  if (Array.isArray(message?.anthropic_thinking)) total += estimatedTokens(message.anthropic_thinking) + OC_BLOCK_OVERHEAD;\n  return total;\n}"
+ },
+ {
+  "file": "recovered/esm/002-agent-host.js/agent-context.mjs",
+  "old": "  return 4 + estimatedTokens(item?.content ?? \"\") + (Array.isArray(item?.images) ? item.images.length : 0) * CONTEXT_IMAGE_TOKENS;",
+  "new": "  const text = typeof item?.content === \"string\" ? item.content : item?.content == null ? \"\" : JSON.stringify(item.content);\n  return 4 + (text.length ? estimatedTokens(text) + OC_BLOCK_OVERHEAD : 0) + (Array.isArray(item?.images) ? item.images.length : 0) * (CONTEXT_IMAGE_TOKENS + OC_BLOCK_OVERHEAD);"
+ },
+ {
+  "file": "recovered/esm/002-agent-host.js/module-0029.mjs",
+  "old": "  let tokenRatio = Number.isFinite(contextSettings.tokenRatio) && contextSettings.tokenRatio >= 0.3 && contextSettings.tokenRatio <= 3 ? contextSettings.tokenRatio : 1;",
+  "new": "  // dsh-metrics-20261119 (AH): dsh has no learned calibration; ratio fixed at 1 (calibrated() = identity).\n  let tokenRatio = 1;"
+ },
+ {
+  "file": "recovered/esm/002-agent-host.js/module-0029.mjs",
+  "old": "    const toolDefinitionTokens = estimatedTokens(advertisedTools.map((tool) => [tool.name, tool.description ?? \"\", tool.inputSchema ?? {}]));",
+  "new": "    const toolDefinitionTokens = advertisedTools.length ? estimatedTokens(advertisedTools.map((tool) => [tool.name, tool.description ?? \"\", tool.inputSchema ?? {}])) + 4 : 0;"
+ },
+ {
+  "file": "recovered/esm/002-agent-host.js/module-0029.mjs",
+  "old": "      const onReasoningDelta = (reasoning) => {\n        streamedOutput = true;\n        firstDeltaAt ??= Date.now();\n        emitTrace({ type: \"model_thinking_delta\", step, data: { content: reasoning } });\n      };",
+  "new": "      const onReasoningDelta = (reasoning) => {\n        streamedOutput = true;\n        firstDeltaAt ??= Date.now();\n        emitTrace({ type: \"model_thinking_delta\", step, data: { content: reasoning } });\n      };\n      // dsh-metrics-20261119 (AH): dsh counts a tool-call delta (non-empty name/arguments) as the first token too.\n      onContentDelta.onToolCallDelta = () => {\n        firstDeltaAt ??= Date.now();\n      };"
+ },
+ {
+  "file": "recovered/esm/002-agent-host.js/module-0029.mjs",
+  "old": "        cs.measuredContext = { tokens: completion.usage.total, length: messages.length };\n        // OpenCode context-fixes step05: 用提供商实测的输入 token 校准本地估算（平滑，忽略过小样本与 prompt-tools 模式）。\n        try {\n          const actualInput = completion.usage.input + completion.usage.cacheRead + completion.usage.cacheWrite;\n          const rawEstimate = contextMessagesTokens(messages) + toolDefinitionTokens;\n          if (!promptToolMode && rawEstimate >= 2e3 && actualInput > 0) {\n            const observed = Math.min(3, Math.max(0.3, actualInput / rawEstimate));\n            const previousRatio = tokenRatio;\n            tokenRatio = Number((tokenRatio * 0.7 + observed * 0.3).toFixed(4));\n            tokenRatioSamples += 1;\n            if (Math.abs(tokenRatio - previousRatio) >= 0.01 || tokenRatioSamples === 1) emitTrace({ type: \"context_learned\", step, data: { model: input2.model, tokenRatio, observedRatio: Number(observed.toFixed(4)), samples: tokenRatioSamples, source: \"usage\" } });\n          }\n        } catch {\n        }",
+  "new": "        // dsh-metrics-20261119 (AH): dsh measure(): provider usage is the baseline only if it is >= the local estimate of tools + surface + reply; otherwise the estimate. No ratio learning.\n        {\n          const localEstimate = contextMessagesTokens(messages) + toolDefinitionTokens + contextMessageTokens(completion.message);\n          cs.measuredContext = { tokens: completion.usage.total >= localEstimate ? completion.usage.total : localEstimate, length: messages.length };\n        }"
+ },
+ {
+  "file": "recovered/esm/002-agent-host.js/agent-stream-parsers.mjs",
+  "old": "        const current = toolCalls.get(index) ?? { name: \"\", arguments: \"\" };\n        if (typeof call?.id === \"string\" && call.id) current.id = call.id;",
+  "new": "        const current = toolCalls.get(index) ?? { name: \"\", arguments: \"\" };\n        // dsh-metrics-20261119 (AH): tool-call delta counts toward TTFT (hook set by module-0029 on onContentDelta).\n        if (typeof call?.function?.name === \"string\" && call.function.name || typeof call?.function?.arguments === \"string\" && call.function.arguments) onContentDelta?.onToolCallDelta?.();\n        if (typeof call?.id === \"string\" && call.id) current.id = call.id;"
+ },
+ {
+  "file": "recovered/esm/002-agent-host.js/agent-stream-parsers.mjs",
+  "old": "      const current = toolCalls.get(key) ?? { arguments: \"\" };\n      if (typeof payload.delta === \"string\") current.arguments += payload.delta;",
+  "new": "      const current = toolCalls.get(key) ?? { arguments: \"\" };\n      // dsh-metrics-20261119 (AH): tool-call delta counts toward TTFT (hook set by module-0029 on onContentDelta).\n      if (typeof payload.delta === \"string\" && payload.delta) onContentDelta?.onToolCallDelta?.();\n      if (typeof payload.delta === \"string\") current.arguments += payload.delta;"
+ },
+ {
+  "file": "recovered/esm/002-agent-host.js/agent-stream-parsers.mjs",
+  "old": "      if (block?.type === \"tool_use\") {\n        toolCalls.set(payload.index, {",
+  "new": "      if (block?.type === \"tool_use\") {\n        // dsh-metrics-20261119 (AH): tool-call delta counts toward TTFT (hook set by module-0029 on onContentDelta).\n        if (typeof block.name === \"string\" && block.name) onContentDelta?.onToolCallDelta?.();\n        toolCalls.set(payload.index, {"
+ },
+ {
+  "file": "recovered/esm/002-agent-host.js/agent-stream-parsers.mjs",
+  "old": "      if (delta?.type === \"input_json_delta\" && typeof delta.partial_json === \"string\" && delta.partial_json) {\n        const current = toolCalls.get(payload.index) ?? { arguments: \"\" };",
+  "new": "      if (delta?.type === \"input_json_delta\" && typeof delta.partial_json === \"string\" && delta.partial_json) {\n        onContentDelta?.onToolCallDelta?.();\n        const current = toolCalls.get(payload.index) ?? { arguments: \"\" };"
+ }
+]

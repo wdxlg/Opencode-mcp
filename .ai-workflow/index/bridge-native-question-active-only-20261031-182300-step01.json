@@ -1,0 +1,29 @@
+{
+  "task": "bridge-native-question-active-only-20261031-182300-step01",
+  "records": "E:\\OpenCode-Source-Recovery-20261013\\tasks\\bridge-native-question-active-only-20261031-182300-step01",
+  "entry": {
+    "choice": "one_entry",
+    "file": "打包.cmd",
+    "removed_entries": {
+      "scripts/package.py": "acda9f918971eab91e83b201db994fa03707738ee9f8c7bf1e3ae844198b1077",
+      "scripts/package-windows-mcp.py": "9d8d8964c5330b3ea3bd7e52d614ba51870f9ff34928c64bc6dfd12307cf8052",
+      "scripts/package-workspace-mcp.py": "9d8d8964c5330b3ea3bd7e52d614ba51870f9ff34928c64bc6dfd12307cf8052",
+      "scripts/export-bridge-distribution.py": "82018ac715bc7e8a44507e8fe2a8401cf2080337fe597cce0028715f6e45b774"
+    },
+    "backup": "E:\\OpenCode-Source-Recovery-20261013\\backup\\bridge-native-question-active-only-20261031-182300-step01\\pack-entry",
+    "pre_commit": "27fc58653b9360912227442be0ba68e89e3c3220",
+    "status": "delivered",
+    "user_authorized_removal": true,
+    "internal_build_scripts": "retained",
+    "runtime_restart": false,
+    "manual_entry_executed": false,
+    "time": "2026-10-31T18:46:57.951785+08:00",
+    "sha256": "a31135c92d47a11d5f4718179550df25f42a213061415531eee1ae1ef7a6b429",
+    "source_commit": "c5554b864736c855463986a16dbd666a87188c5e",
+    "encoding": "UTF-8 without BOM, CRLF",
+    "static_review": "labels, call chain, encoding, dependencies and backup hashes inspected; not a runtime test",
+    "finalized": "2026-10-31T18:48:18.338840+08:00"
+  },
+  "prior_build_source_commit": "4d18925a1a65a6dd98bbafd57ad5f430f7b7ad43",
+  "runtime": "unchanged"
+}

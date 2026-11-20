@@ -84,7 +84,8 @@ var NewChatAction = class extends Action2 {
 };
 
 function registerNewChatActions() {
-  MenuRegistry.appendMenuItem(MenuId.ViewTitle, {
+  // OpenCode p19: 对话视图标题栏不再显示「新建聊天」按钮（Ctrl+N 仍可用）
+  if (false) MenuRegistry.appendMenuItem(MenuId.ViewTitle, {
     submenu: MenuId.ChatNewMenu,
     title: localize2(8712, "New Chat"),
     icon: Codicon.plus,

@@ -18,10 +18,39 @@ import { __decorateClass, __decorateParam } from "./module-0000.mjs";
 import { ITelemetryService } from "./module-0093.mjs";
 import { ILogService } from "./module-0095.mjs";
 import { IConfigurationService } from "./module-0132.mjs";
+import { isOpenCodeFullAutoMode } from "./module-0964.mjs";
 
 
 // src/vs/workbench/contrib/chat/common/tools/builtinTools/askQuestionsTool.ts
-var AUTOPILOT_ASK_USER_RESPONSE = "The user is not available to respond and will review your work later. Work autonomously and make good decisions.";
+// OpenCode: 全自动模式（opencode.chat.permissionMode = fullAuto）或 chat.autoReply 下，提问不等待用户，直接采用推荐项。
+// 选项题：模型标了 recommended 的选项（单选取第一个、多选取全部）；没标时回退为第一个选项。
+// 自由回答题：recommendedAnswer；没有时回答 AUTO_ANSWER_FREE_TEXT。
+var AUTO_ANSWER_FREE_TEXT = "\u8bf7\u6309\u4f60\u63a8\u8350\u7684\u65b9\u6848\u7ee7\u7eed";
+
+var RECOMMENDED_TAG = "\uff08\u63a8\u8350\uff09";
+
+/** 有效推荐项：模型标注的 recommended 选项（单选只取第一个）；一个都没标时回退为第一个选项。 */
+function getEffectiveRecommendedOptions(question) {
+  const options = Array.isArray(question?.options) ? question.options.filter((opt) => opt && typeof opt.label === "string") : [];
+  if (options.length === 0) {
+    return [];
+  }
+  const marked = options.filter((opt) => opt.recommended === true);
+  if (marked.length === 0) {
+    return [options[0]];
+  }
+  return question.multiSelect ? marked : [marked[0]];
+}
+
+/** 全自动作答：返回与用户作答相同结构的答案 { selected, freeText, skipped }。 */
+function buildRecommendedAnswer(question) {
+  const recommended = getEffectiveRecommendedOptions(question);
+  if (recommended.length > 0) {
+    return { selected: recommended.map((opt) => opt.label), freeText: null, skipped: false };
+  }
+  const freeText = typeof question?.recommendedAnswer === "string" && question.recommendedAnswer.trim() ? question.recommendedAnswer.trim() : AUTO_ANSWER_FREE_TEXT;
+  return { selected: [], freeText, skipped: false };
+}
 
 var AskQuestionsToolId = "vscode_askQuestions";
 
@@ -70,6 +99,10 @@ function createAskQuestionsToolData() {
         type: "string",
         description: "Optional markdown message to display below the question text, providing additional context or details."
       },
+      recommendedAnswer: {
+        type: "string",
+        description: "For free-text questions (no options): the answer you recommend. Pre-filled for the user and used automatically in full-auto mode."
+      },
       options: {
         type: "array",
         description: "Optional list of selectable answers. If omitted, the question is free text.",
@@ -86,7 +119,7 @@ function createAskQuestionsToolData() {
             },
             recommended: {
               type: "boolean",
-              description: "Mark this option as the recommended default."
+              description: "Mark the option you recommend. Every question with options MUST have exactly one option with recommended: true (for multiSelect, mark each recommended option). It is shown to the user as the highlighted default and is chosen automatically when the user enabled full-auto mode."
             }
           },
           required: ["label"]
@@ -115,7 +148,7 @@ function createAskQuestionsToolData() {
     icon: ThemeIcon.fromId(Codicon.question.id),
     displayName: localize(13398, null),
     userDescription: localize(13399, null),
-    modelDescription: "Use this tool to ask the user a small number of clarifying questions before proceeding. Provide the questions array with concise headers and prompts. Use options for fixed choices, set multiSelect when multiple selections are allowed. Users can always provide a freeform text answer alongside options unless you set allowFreeformInput to false.",
+    modelDescription: "Use this tool to ask the user a small number of clarifying questions before proceeding. Provide the questions array with concise headers and prompts. Use options for fixed choices, set multiSelect when multiple selections are allowed. Users can always provide a freeform text answer alongside options unless you set allowFreeformInput to false. Always mark exactly one recommended option per question (recommended: true) and give recommendedAnswer for free-text questions; when the user has enabled full-auto mode the questions are not shown for input and your recommended answers are used directly.",
     source: ToolDataSource.Internal,
     inputSchema: inputSchema3
   };
@@ -147,15 +180,22 @@ var AskQuestionsTool = class extends Disposable {
       return this.createSkippedResult(questions);
     }
     const resolveId = invocation.chatStreamToolCallId ?? invocation.callId;
-    if (request2.modeInfo?.permissionLevel === "autopilot" /* Autopilot */ || this.configService.getValue("chat.autoReply" /* AutoReply */)) {
-      const reason = request2.modeInfo?.permissionLevel === "autopilot" /* Autopilot */ ? "Autopilot mode" : "Auto-reply enabled";
-      this.logService.info(`[AskQuestionsTool] ${reason}: auto-responding to questions`);
+    const fullAuto = isOpenCodeFullAutoMode(this.configService);
+    if (fullAuto || this.configService.getValue("chat.autoReply" /* AutoReply */)) {
+      this.logService.info(`[AskQuestionsTool] ${fullAuto ? "Full-auto mode" : "Auto-reply enabled"}: answering with recommended options`);
       const { carousel: carousel2, idToHeaderMap: idToHeaderMap2 } = this.toQuestionCarousel(questions, resolveId);
       carousel2.terminalId = this.extractTerminalId(request2);
-      carousel2.data = this.buildAutopilotCarouselAnswers(questions, carousel2, idToHeaderMap2);
+      const autoAnswers = this.createRecommendedAnswers(questions);
+      carousel2.data = this.buildRecommendedCarouselAnswers(questions, carousel2, idToHeaderMap2, autoAnswers);
       carousel2.isUsed = true;
       this.chatService.appendProgress(request2, carousel2);
-      return this.createAutopilotResult(questions);
+      this.chatService.appendProgress(request2, {
+        kind: "markdownContent",
+        content: new MarkdownString(this.describeRecommendedAnswers(questions, autoAnswers, fullAuto))
+      });
+      return {
+        content: [{ kind: "text", value: JSON.stringify({ answers: autoAnswers, autoAnswered: fullAuto ? "full-auto mode: the user is not waiting; recommended options were chosen automatically" : "auto-reply: recommended options were chosen automatically" }) }]
+      };
     }
     const { carousel, idToHeaderMap } = this.toQuestionCarousel(questions, resolveId);
     carousel.terminalId = this.extractTerminalId(request2);
@@ -302,11 +342,11 @@ var AskQuestionsTool = class extends Disposable {
       type = "singleSelect";
     }
     let defaultValue;
-    if (question.options) {
-      const recommendedOptions = question.options.filter((opt) => opt.recommended);
-      if (recommendedOptions.length > 0) {
-        defaultValue = question.multiSelect ? recommendedOptions.map((opt) => opt.label) : recommendedOptions[0].label;
-      }
+    const recommendedOptions = getEffectiveRecommendedOptions(question);
+    if (recommendedOptions.length > 0) {
+      defaultValue = question.multiSelect ? recommendedOptions.map((opt) => opt.label) : recommendedOptions[0].label;
+    } else if (typeof question.recommendedAnswer === "string" && question.recommendedAnswer.trim()) {
+      defaultValue = question.recommendedAnswer.trim();
     }
     const internalId = `${resolveId}:${index2}`;
     idToHeaderMap.set(internalId, question.header);
@@ -319,7 +359,7 @@ var AskQuestionsTool = class extends Disposable {
       detailedMessage: question.message,
       options: question.options?.map((opt) => ({
         id: opt.label,
-        label: opt.description ? `${opt.label} - ${opt.description}` : opt.label,
+        label: (opt.description ? `${opt.label} - ${opt.description}` : opt.label) + (recommendedOptions.includes(opt) ? RECOMMENDED_TAG : ""),
         value: opt.label
       })),
       defaultValue,
@@ -426,10 +466,10 @@ var AskQuestionsTool = class extends Disposable {
     const answeredCount = answers.filter((a) => !a.skipped).length;
     const skippedCount = answers.filter((a) => a.skipped).length;
     const freeTextCount = answers.filter((a) => a.freeText !== null).length;
-    const recommendedAvailableCount = questions.filter((q) => q.options?.some((opt) => opt.recommended)).length;
+    const recommendedAvailableCount = questions.filter((q) => getEffectiveRecommendedOptions(q).length > 0).length;
     const recommendedSelectedCount = questions.filter((q) => {
       const answer = result.answers[q.header];
-      const recommendedOption = q.options?.find((opt) => opt.recommended);
+      const recommendedOption = getEffectiveRecommendedOptions(q)[0];
       return answer && !answer.skipped && recommendedOption && answer.selected.includes(recommendedOption.label);
     }).length;
     return { answeredCount, skippedCount, freeTextCount, recommendedAvailableCount, recommendedSelectedCount };
@@ -443,24 +483,29 @@ var AskQuestionsTool = class extends Disposable {
       content: [{ kind: "text", value: JSON.stringify({ answers: skippedAnswers }) }]
     };
   }
-  createAutopilotResult(questions) {
+  createRecommendedAnswers(questions) {
     const answers = {};
     for (const question of questions) {
-      answers[question.header] = {
-        selected: [],
-        freeText: AUTOPILOT_ASK_USER_RESPONSE,
-        skipped: false
-      };
+      answers[question.header] = buildRecommendedAnswer(question);
     }
-    return {
-      content: [{ kind: "text", value: JSON.stringify({ answers }) }]
-    };
+    return answers;
+  }
+  /** 对话里的可见记录，例如「全自动：已选择推荐项 X」。 */
+  describeRecommendedAnswers(questions, answers, fullAuto) {
+    const prefix = fullAuto ? "\u5168\u81ea\u52a8" : "\u81ea\u52a8\u56de\u590d";
+    const escape = (value2) => String(value2).replace(/[\\`*_{}\[\]<>()#+!|~-]/g, "\\$&");
+    const lines = questions.map((question) => {
+      const answer = answers[question.header];
+      const what = answer.selected.length ? `\u5df2\u9009\u62e9\u63a8\u8350\u9879 ${answer.selected.map((label3) => `\u300c${escape(label3)}\u300d`).join("\u3001")}` : `\u5df2\u56de\u7b54 \u300c${escape(answer.freeText)}\u300d`;
+      return questions.length > 1 ? `- ${prefix}\uff1a${escape(question.header)} \u2192 ${what}` : `${prefix}\uff1a${what}`;
+    });
+    return `\n\n${lines.join("\n")}\n\n`;
   }
   /**
-   * Build carousel answer data keyed by carousel question IDs for rendering
-   * the completed summary in the UI during autopilot mode.
+   * Build carousel answer data keyed by carousel question IDs so the completed summary in the UI
+   * shows the automatically chosen recommended answers.
    */
-  buildAutopilotCarouselAnswers(questions, carousel, idToHeaderMap) {
+  buildRecommendedCarouselAnswers(questions, carousel, idToHeaderMap, answers) {
     const data = {};
     const headerToIdMap = /* @__PURE__ */ new Map();
     for (const [internalId, originalHeader] of idToHeaderMap) {
@@ -468,7 +513,8 @@ var AskQuestionsTool = class extends Disposable {
     }
     for (const question of questions) {
       const internalId = headerToIdMap.get(question.header);
-      if (!internalId) {
+      const answer = answers[question.header];
+      if (!internalId || !answer) {
         continue;
       }
       const chatQuestion = carousel.questions.find((q) => q.id === internalId);
@@ -476,11 +522,11 @@ var AskQuestionsTool = class extends Disposable {
         continue;
       }
       if (chatQuestion.type === "multiSelect") {
-        data[internalId] = { selectedValues: [], freeformValue: AUTOPILOT_ASK_USER_RESPONSE };
+        data[internalId] = { selectedValues: answer.selected, freeformValue: answer.freeText ?? void 0 };
       } else if (chatQuestion.type === "singleSelect") {
-        data[internalId] = { freeformValue: AUTOPILOT_ASK_USER_RESPONSE };
+        data[internalId] = answer.selected.length ? { selectedValue: answer.selected[0] } : { freeformValue: answer.freeText ?? "" };
       } else {
-        data[internalId] = AUTOPILOT_ASK_USER_RESPONSE;
+        data[internalId] = answer.freeText ?? "";
       }
     }
     return data;
@@ -505,4 +551,4 @@ AskQuestionsTool = __decorateClass([
   __decorateParam(2, ILogService),
   __decorateParam(3, IConfigurationService)
 ], AskQuestionsTool);
-export { truncateToLimit, createAskQuestionsToolData, AUTOPILOT_ASK_USER_RESPONSE, AskQuestionsToolId, SoftLimits, HardLimits, AskQuestionsToolData, AskQuestionsTool };
+export { truncateToLimit, createAskQuestionsToolData, getEffectiveRecommendedOptions, buildRecommendedAnswer, AUTO_ANSWER_FREE_TEXT, AskQuestionsToolId, SoftLimits, HardLimits, AskQuestionsToolData, AskQuestionsTool };

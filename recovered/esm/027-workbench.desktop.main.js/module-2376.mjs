@@ -596,6 +596,8 @@ var ChatListWidget = class extends Disposable {
         responseId: response.id,
         kind: group2.kind === "merge" ? "merge" : "branch",
         modelId: typeof branchModel?.modelId === "string" ? branchModel.modelId : void 0,
+        modelIdentifier: typeof branchModel?.vendor === "string" && typeof branchModel?.catalogModelId === "string" && branchModel.catalogModelId ? `${branchModel.vendor}/${branchModel.catalogModelId}` : void 0,
+        role: typeof metadata?.["opencodeBranchRole"] === "string" ? metadata["opencodeBranchRole"] : void 0,
         canceled: metadata?.["canceled"] === true
       });
     }

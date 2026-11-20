@@ -29,7 +29,8 @@ async function fixture(run) {
     service?.dispose();
     if (previousHome === undefined) delete process.env.OPENCODE_AUTOMATION_HOME;
     else process.env.OPENCODE_AUTOMATION_HOME = previousHome;
-    await fs.rm(temp, { recursive: true, force: true });
+    // dispose 后服务可能还有一次异步落盘，Windows 上 rmdir 会报 ENOTEMPTY；重试清理，不影响断言。
+    await fs.rm(temp, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
   }
 }
 function acknowledge(service, who, id) {

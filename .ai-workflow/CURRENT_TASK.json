@@ -1,0 +1,8 @@
+{
+  "task_id": "step-reset-90-99-guard-fix-20261102-005000-step01",
+  "status": "completed",
+  "updated_at": "2026-11-01T19:50:19.295697+00:00",
+  "pre_tag": "refs/tags/pre/step-reset-90-99-guard-fix-20261102-005000-step01",
+  "post_tag": "refs/tags/post/step-reset-90-99-guard-fix-20261102-005000-step01",
+  "post_commit": "af2445229a93d3ecc5e16401952ac5d234370b8a"
+}

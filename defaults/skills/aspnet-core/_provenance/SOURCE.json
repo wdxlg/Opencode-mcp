@@ -1,0 +1,90 @@
+{
+  "id": "aspnet-core",
+  "sourceName": "aspnet-core",
+  "title": "ASP.NET Core开发",
+  "category": "后端开发",
+  "repo": "openai/skills",
+  "commit": "49f948faa9258a0c61caceaf225e179651397431",
+  "sourcePath": "skills/.curated/aspnet-core/",
+  "sourceUrl": "https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/aspnet-core",
+  "license": "Apache-2.0",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "构建需要对应.NET SDK；框架版本以项目为准，不自动安装或升级SDK。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "LICENSE.txt",
+      "upstreamSha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "1f487ef3565e5ac1ee6c93cbeb9ac666292b30285877c82ddb0a77c9777fe92f"
+    },
+    {
+      "path": "agents/openai.yaml",
+      "upstreamSha256": "06a421ca2f92fc86d83dc7c02e31ad5c85da8193eebbe17aa883ef274e26011a"
+    },
+    {
+      "path": "assets/dotnet-logo.png",
+      "upstreamSha256": "7f561a8f84ca88130803ecc8664914a4c619530836c705a4b9169704b4195d7c"
+    },
+    {
+      "path": "references/_sections.md",
+      "upstreamSha256": "eefa51074986d078dd108857ff1e376bf6b75935ee125ebdafef47ba53a57f19"
+    },
+    {
+      "path": "references/apis-minimal-and-controllers.md",
+      "upstreamSha256": "156283486289a1765d0cad6f7c296bad2f8aa45ad24d730c8ed0b845713cfee1"
+    },
+    {
+      "path": "references/data-state-and-services.md",
+      "upstreamSha256": "9b0f2253c77a9ade7ebd39103de8fdfe1ae0cd73f71a86936bb1f5ccde064ef4"
+    },
+    {
+      "path": "references/program-and-pipeline.md",
+      "upstreamSha256": "375d4e4580ce43f72f5d3d01e7c26a292eec2f43dc63c03f0200a4e24dbcd543"
+    },
+    {
+      "path": "references/realtime-grpc-and-background-work.md",
+      "upstreamSha256": "ba6cfd463620b608c33ed65bcc4d6b25c4ec921cc77bd2fb9379cb486a11a824"
+    },
+    {
+      "path": "references/security-and-identity.md",
+      "upstreamSha256": "a661dc33dc64e44f9a389d08c20f4e89f1ed62970197a3d2df35036b07884f35"
+    },
+    {
+      "path": "references/source-map.md",
+      "upstreamSha256": "21e11fee79253f9c0050a3fb207b91e0c44360572662b2c900a855d0a332fa93"
+    },
+    {
+      "path": "references/stack-selection.md",
+      "upstreamSha256": "9de61ba6c4c1fbb9b4b68d2fb6a9f3ed475feb87d912999c8a1c81911f38c8a3"
+    },
+    {
+      "path": "references/testing-performance-and-operations.md",
+      "upstreamSha256": "14fecd1e3f5c7a54de2e7ffdd51a91a52101da5765f1ccdfd1f6c6437dd6c8ec"
+    },
+    {
+      "path": "references/ui-blazor.md",
+      "upstreamSha256": "37267429839b21d084b35749550e85fa96077e06e96fef4917d558b8602afdcc"
+    },
+    {
+      "path": "references/ui-mvc.md",
+      "upstreamSha256": "25657bf06f9f485967cc07d9cd93b5631d4a49871cd63bd7b2ae982fb776e659"
+    },
+    {
+      "path": "references/ui-razor-pages.md",
+      "upstreamSha256": "3f3e2dc6e47ce6202649f28fd3143087c067048e60cb997030f8f0bc17a09f1a"
+    },
+    {
+      "path": "references/versioning-and-upgrades.md",
+      "upstreamSha256": "3a51900fb9046ea9c0aec738410389854ab2474950253ab0719909aaf709a840"
+    }
+  ]
+}

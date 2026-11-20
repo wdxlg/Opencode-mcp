@@ -1,0 +1,18 @@
+const fs=require("fs"),assert=require("assert");
+const s=fs.readFileSync(process.argv[2],"utf8");
+const i=s.indexOf("  isIsolatedFileCall(name, extra) {"); const j=s.indexOf("  /** Refuse a patch built on a stale read",i);
+const cls=new Function("return class D {\n"+s.slice(i,j)+"\n}")();
+const main=["E:\\Proj"];
+const mk=(collab)=>Object.assign(new cls(),{deps:{workspaceRoots:()=>main,fileToolRoots:()=>[...main,"C:\\Users\\u\\skills"]}});
+const d=mk();
+const collab=(map)=>({automationContext:{collaboration:{fileToolRoots:(owner,roots)=>map[owner]?[...roots,map[owner]]:roots}}});
+const ex=collab({"w1":"E:\\Proj\\.oc-worktrees\\t1","w2":"D:\\wt\\t2"});
+assert.equal(d.isIsolatedFileCall("apply_patch",{commandOwnerId:"bridge",...ex}),false,"plain bridge owner shared");
+assert.equal(d.isIsolatedFileCall("apply_patch",{commandOwnerId:"w1",...ex}),true,"collab worktree owner 1 isolated");
+assert.equal(d.isIsolatedFileCall("apply_patch",{commandOwnerId:"w2",...ex}),true,"collab worktree owner 2 isolated concurrently");
+assert.equal(d.isIsolatedFileCall("apply_patch",{commandOwnerId:"bridge"}),false,"no automation context");
+const mm=Object.assign(new cls(),{deps:{workspaceRoots:()=>main,fileToolRoots:()=>["C:\\x\\multimodel-worktrees\\a\\b"]}});
+assert.equal(mm.isIsolatedFileCall("read_files",{}),true,"multimodel worktree root");
+const slash=Object.assign(new cls(),{deps:{workspaceRoots:()=>["E:\\Proj\\"],fileToolRoots:()=>["E:\\Proj"]}});
+assert.equal(slash.isIsolatedFileCall("apply_patch",{}),false,"trailing slash not mistaken for isolation");
+console.log("ISOLATION TESTS PASSED");

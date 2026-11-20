@@ -585,12 +585,6 @@ var ChatPlanReviewPart = class extends Disposable {
     }
     this._isSubmitting = true;
     try {
-      if (action.permissionLevel === "autopilot") {
-        const confirmed = await this.confirmAutopilot();
-        if (!confirmed) {
-          return;
-        }
-      }
       if (this.review.planUri && !await this.savePlanFile()) {
         return;
       }
@@ -767,29 +761,6 @@ var ChatPlanReviewPart = class extends Disposable {
         this._isSubmitting = false;
       }
     }
-  }
-  async confirmAutopilot() {
-    const result = await this._dialogService.prompt({
-      type: severity_default.Warning,
-      message: localize(11961, null),
-      buttons: [
-        {
-          label: localize(11959, null),
-          run: () => true
-        },
-        {
-          label: localize(11958, null),
-          run: () => false
-        }
-      ],
-      custom: {
-        icon: Codicon.rocket,
-        markdownDetails: [{
-          markdown: new MarkdownString(localize(11960, null))
-        }]
-      }
-    });
-    return result.result === true;
   }
   async markUsed() {
     this.domNode.classList.add("chat-plan-review-used");

@@ -5,7 +5,7 @@ import { buildCommandDisplayText, extractCdPrefix, isFish, isPowerShell, isWindo
 import { IInstantiationService } from "./module-0077.mjs";
 import { ITerminalSandboxService } from "./module-3125.mjs";
 import { IConfigurationService } from "./module-0132.mjs";
-import { isAutoApproveLevel } from "./module-0965.mjs";
+import { isOpenCodeAutoApproveMode } from "./module-0965.mjs";
 import { localize } from "./module-0001.mjs";
 import { ILanguageModelToolsService, ToolDataSource } from "./module-0991.mjs";
 import { Codicon } from "./module-0085.mjs";
@@ -37,7 +37,6 @@ import { getRecommendedToolsOverRunInTerminal } from "./module-3105.mjs";
 import { isSessionAutoApproveLevel, isTerminalAutoApproveAllowed, isToolEligibleForTerminalAutoApproval } from "./module-3150.mjs";
 import { basename, posix, win32 } from "./module-0026.mjs";
 import { URI } from "./module-0032.mjs";
-import { getSandboxPrecheckInputsForToolInvocation } from "./module-2609.mjs";
 import { ChatModel } from "./module-1193.mjs";
 import { ChatElicitationRequestPart } from "./module-2874.mjs";
 import { CancellationError } from "./module-0004.mjs";
@@ -330,8 +329,7 @@ async function createRunInTerminalToolData(accessor) {
   const configurationService = accessor.get(IConfigurationService);
   const allowToRunUnsandboxedCommands = configurationService.getValue("chat.agent.sandbox.allowUnsandboxedCommands" /* AgentSandboxAllowUnsandboxedCommands */) === true;
   const retryWithAllowNetworkRequestsSetting = configurationService.getValue("chat.agent.sandbox.retryWithAllowNetworkRequests" /* AgentSandboxRetryWithAllowNetworkRequests */) === true;
-  const defaultPermissionLevel = configurationService.getValue("chat.permissions.default" /* DefaultPermissionLevel */);
-  const includeElevationGuidance = configurationService.getValue("chat.tools.terminal.enableAutoApprove" /* EnableAutoApprove */) === true || configurationService.getValue("chat.tools.global.autoApprove" /* GlobalAutoApprove */) === true || isAutoApproveLevel(defaultPermissionLevel);
+  const includeElevationGuidance = configurationService.getValue("chat.tools.terminal.enableAutoApprove" /* EnableAutoApprove */) === true || isOpenCodeAutoApproveMode(configurationService);
   const profileFetcher = instantiationService.createInstance(TerminalProfileFetcher);
   const [shell, os, isSandboxEnabled, isSandboxAllowNetworkEnabled] = await Promise.all([
     profileFetcher.getCopilotShell(),
@@ -677,11 +675,11 @@ var RunInTerminalTool = class extends Disposable {
       null
     );
   }
-  async _getDeniedSandboxFileAccess(paths, sandboxPrecheckInputs) {
+  async _getDeniedSandboxFileAccess(paths) {
     if (!paths?.length) {
       return [];
     }
-    const result = await this._terminalSandboxService.checkFileAccess("write", paths, sandboxPrecheckInputs);
+    const result = await this._terminalSandboxService.checkFileAccess("write", paths);
     return result.denied;
   }
   _buildSandboxFileAccessDeniedMessage(deniedPaths) {
@@ -715,7 +713,6 @@ var RunInTerminalTool = class extends Disposable {
     const args2 = context2.parameters;
     const executionOptions = this._resolveExecutionOptions(args2);
     const chatSessionResource = context2.chatSessionResource;
-    const sandboxPrecheckInputs = this._getSandboxPrecheckInputs(chatSessionResource, context2.chatRequestId);
     let instance2;
     if (chatSessionResource) {
       const toolTerminal = this._sessionTerminalAssociations.get(chatSessionResource);
@@ -740,7 +737,7 @@ var RunInTerminalTool = class extends Disposable {
         }
         return cwd3;
       })(),
-      this._terminalSandboxService.checkForSandboxingPrereqs(false, sandboxPrecheckInputs)
+      this._terminalSandboxService.checkForSandboxingPrereqs(false)
     ]);
     const language2 = os === 1 /* Windows */ ? "pwsh" : "sh";
     const isSandboxEnabled = sandboxPrereqs.enabled;
@@ -810,8 +807,7 @@ var RunInTerminalTool = class extends Disposable {
       requestUnsandboxedExecution: allowUnsandboxedCommands ? requiresUnsandboxConfirmation : false,
       requestUnsandboxedExecutionReason,
       requestAllowNetwork: explicitAllowNetworkRequest,
-      requestAllowNetworkReason,
-      sandboxPrecheckInputs
+      requestAllowNetworkReason
     });
     const rewrittenCommand = rewriteResult.rewrittenCommand;
     const forDisplayCommand = rewriteResult.forDisplayCommand;
@@ -883,8 +879,8 @@ var RunInTerminalTool = class extends Disposable {
       requiresAllowNetworkConfirmation,
       hasSessionAutoApproval: !!chatSessionResource && this._terminalChatService.hasChatSessionAutoApproval(chatSessionResource)
     };
-    const isSessionAutoApproved = chatSessionResource && isSessionAutoApproveLevel(chatSessionResource, this._configurationService, this._chatWidgetService, this._chatService);
-    const commandLineAnalyzers = isSessionAutoApproved ? this._commandLineAnalyzers.filter((e4) => !(e4 instanceof CommandLineAutoApproveAnalyzer)) : this._commandLineAnalyzers;
+    const isSessionAutoApproved = chatSessionResource && isSessionAutoApproveLevel(chatSessionResource, this._configurationService);
+    const commandLineAnalyzers = isSessionAutoApproved ? this._commandLineAnalyzers.filter((e4) => !(e instanceof CommandLineAutoApproveAnalyzer)) : this._commandLineAnalyzers;
     const commandLineAnalyzerResults = await Promise.all(commandLineAnalyzers.map((e4) => e4.analyze(commandLineAnalyzerOptions)));
     const disclaimersRaw = commandLineAnalyzerResults.map((e4) => e4.disclaimers).filter((e4) => !!e4).flatMap((e4) => e4);
     let disclaimer;
@@ -1043,8 +1039,7 @@ var RunInTerminalTool = class extends Disposable {
         os: options3.os,
         isBackground: options3.isBackground,
         requestUnsandboxedExecution: requiresUnsandboxConfirmation,
-        requestAllowNetwork: options3.requestAllowNetwork,
-        sandboxPrecheckInputs: options3.sandboxPrecheckInputs
+        requestAllowNetwork: options3.requestAllowNetwork
       });
       if (rewriteResult) {
         rewrittenCommand = rewriteResult.rewritten;
@@ -1083,15 +1078,12 @@ var RunInTerminalTool = class extends Disposable {
       blockedDomains
     };
   }
-  _getSandboxPrecheckInputs(chatSessionResource, chatRequestId) {
-    return getSandboxPrecheckInputsForToolInvocation(chatSessionResource, chatRequestId, this._chatWidgetService, this._chatService);
-  }
   async _confirmAutomaticSandboxRetry(retryKind, sessionResource, command4, shell, blockedDomains, riskAssessment, token) {
     const chatModel = sessionResource && this._chatService.getSession(sessionResource);
     if (!(chatModel instanceof ChatModel)) {
       return false;
     }
-    if (sessionResource && isSessionAutoApproveLevel(sessionResource, this._configurationService, this._chatWidgetService, this._chatService)) {
+    if (sessionResource && isSessionAutoApproveLevel(sessionResource, this._configurationService)) {
       return true;
     }
     const request2 = chatModel.getRequests().at(-1);
@@ -1173,7 +1165,7 @@ var RunInTerminalTool = class extends Disposable {
       if (pending || autoCancelled) {
         return;
       }
-      const isAutoApproved = chatSessionResource && isSessionAutoApproveLevel(chatSessionResource, this._configurationService, this._chatWidgetService, this._chatService);
+      const isAutoApproved = chatSessionResource && isSessionAutoApproveLevel(chatSessionResource, this._configurationService);
       const chatModel = chatSessionResource && this._chatService.getSession(chatSessionResource);
       if (isAutoApproved) {
         autoCancelled = true;
@@ -1359,8 +1351,8 @@ var RunInTerminalTool = class extends Disposable {
     }
     const args2 = invocation.parameters;
     const allowUnsandboxedCommands = this._getAllowToRunUnsandboxedCommands(args2);
-    const sandboxPrecheckInputs = this._getSandboxPrecheckInputs(invocation.context.sessionResource, invocation.chatRequestId);
-    const isSandboxEnabled = await this._terminalSandboxService.isEnabled(sandboxPrecheckInputs);
+    // OpenCode: 沙盒是否生效只看「隔离沙箱」开关，不再因自动允许 / 全自动而关闭
+    const isSandboxEnabled = await this._terminalSandboxService.isEnabled();
     if (this._shouldRejectUnsandboxedExecutionRequest(isSandboxEnabled, allowUnsandboxedCommands, args2)) {
       const message = this._getUnsandboxedExecutionDisabledMessage();
       return {
@@ -1432,7 +1424,7 @@ var RunInTerminalTool = class extends Disposable {
             }]
           };
         }
-        const refreshedPrereqs = await this._terminalSandboxService.checkForSandboxingPrereqs(true, sandboxPrecheckInputs);
+        const refreshedPrereqs = await this._terminalSandboxService.checkForSandboxingPrereqs(true);
         if (refreshedPrereqs.failedCheck !== void 0) {
           return {
             content: [{
@@ -1470,7 +1462,7 @@ var RunInTerminalTool = class extends Disposable {
       if (exitCode2 !== 0) {
         return this._getBubblewrapUnsupportedResult();
       }
-      const refreshedPrereqs = await this._terminalSandboxService.checkForSandboxingPrereqs(true, sandboxPrecheckInputs);
+      const refreshedPrereqs = await this._terminalSandboxService.checkForSandboxingPrereqs(true);
       if (refreshedPrereqs.failedCheck !== void 0) {
         return this._getBubblewrapUnsupportedResult();
       }
@@ -1504,7 +1496,7 @@ var RunInTerminalTool = class extends Disposable {
       throw new CancellationError();
     }
     if (didSandboxWrapCommand) {
-      const deniedAccess = await this._getDeniedSandboxFileAccess(args2.requestFileValidationCheck, sandboxPrecheckInputs);
+      const deniedAccess = await this._getDeniedSandboxFileAccess(args2.requestFileValidationCheck);
       if (deniedAccess.length > 0) {
         const message = this._buildSandboxFileAccessDeniedMessage(deniedAccess);
         return {
@@ -1973,7 +1965,7 @@ ${this._buildInputNeededSteeringText(chatSessionResource, termId, "none")}`;
       }
     }
     if (didSensitiveAutoCancelled) {
-      resultText.push(`Note: The command in terminal ID ${termId} was prompting for a password, passphrase, or other secret. The user is unavailable (auto-approve / autopilot mode is on, so no human can focus the terminal to type a secret) and the command has been cancelled. Stop, do NOT retry the command, do NOT call ${"send_to_terminal" /* SendToTerminal */}, and do NOT call vscode_askQuestions for the secret. Tell the user to run the command interactively when they are available.
+      resultText.push(`Note: The command in terminal ID ${termId} was prompting for a password, passphrase, or other secret. The user is unavailable (the chat permission mode auto-allows tool calls, so no human can focus the terminal to type a secret) and the command has been cancelled. Stop, do NOT retry the command, do NOT call ${"send_to_terminal" /* SendToTerminal */}, and do NOT call vscode_askQuestions for the secret. Tell the user to run the command interactively when they are available.
 
 `);
     } else if (didInputNeeded) {
@@ -2094,7 +2086,7 @@ ${this._buildInputNeededSteeringText(chatSessionResource, termId, "idleSilence")
    * `npm init`) instead of driving them.
    */
   _buildInputNeededSteeringText(chatSessionResource, termId, hungHint) {
-    const isAutoApproved = isSessionAutoApproveLevel(chatSessionResource, this._configurationService, this._chatWidgetService, this._chatService);
+    const isAutoApproved = isSessionAutoApproveLevel(chatSessionResource, this._configurationService);
     const lines = [];
     lines.push(`This note is not a signal to end the turn \u2014 pick one of the actions below and continue.`);
     if (isAutoApproved) {

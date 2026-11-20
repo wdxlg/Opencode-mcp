@@ -1,0 +1,11 @@
+PASS W=128000 O=0 -> threshold=62464 retain=20480 (expected 62464/20480)
+PASS W=262144 O=0 -> threshold=196608 retain=41943 (expected 196608/41943)
+PASS W=262144 O=32768 -> threshold=163840 retain=36700 (expected 163840/36700)
+PASS W=1048576 O=256000 -> threshold=727040 retain=126812 (expected 727040/126812)
+PASS W=1048576 O=0 -> threshold=838860 retain=167772 (expected 838860/167772)
+PASS guard W=65536 O=0 -> no pressure budget (auto compaction skipped, warned once)
+PASS guard W=131072 O=65536 -> no pressure budget (auto compaction skipped, warned once)
+PASS guard W=100000 O=200000 -> no message budget (auto compaction skipped, warned once)
+PASS guard W=128000 O=0 keep=70000 -> retain 70000 >= threshold 62464 (auto compaction skipped, warned once)
+PASS guard W=32768 O=0 -> no pressure budget (auto compaction skipped, warned once)
+SELF-CHECK OK

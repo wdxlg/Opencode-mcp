@@ -4,12 +4,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const source = fs.readFileSync(new URL('../recovered/esm/000-extension.js/module-0143.mjs', import.meta.url), 'utf8');
-const start = source.indexOf('  async handleToolCall(');
-const end = source.indexOf('  /** list_skills:', start);
+const start = source.indexOf('  async handleToolCallTracked(');
+const end = source.indexOf('  async handleBatchToolCall(', start);
 assert(start >= 0 && end > start);
 const method = source.slice(start, end);
 function fixture({ external = true, guardError, upstreamError } = {}) {
-  const fake = vm.runInNewContext(`({${method}})`, {
+  const fake = vm.runInNewContext(`new (class {${method}})()`, {
+    // 分发方法里新增的工具常量：未单独给出的一律占位成 { name }，不影响被测的规则分支。
+    ...Object.fromEntries([...new Set(method.match(/\b[A-Z][A-Z0-9_]{3,}_TOOL\b/g) || [])].map(k => [k, { name: k.toLowerCase() }])),
+    SHADOW_CHECKPOINT_TOOL: { name: 'bridge_checkpoints' }, SPEC_MODE_TOOL: { name: 'bridge_spec' },
     Error, Date, String, BRIDGE_TOOL_DEFINITIONS: [],
     SET_TODOS_TOOL: { name: 'set_todos' }, UPDATE_PLAN_TOOL: { name: 'update_plan' }, REPORT_PROGRESS_TOOL: { name: 'report_progress' },
     CONFIGURE_MCP_TOOL: { name: 'configure_mcp' }, LIST_SKILLS_TOOL: { name: 'list_skills' }, BRIDGE_EXCLUDED_TOOL_NAMES: new Set(),
@@ -24,6 +27,11 @@ function fixture({ external = true, guardError, upstreamError } = {}) {
     externalMcp: { hasBinding: () => external, call: async () => { calls.upstream++; if (upstreamError) throw upstreamError; return { content: [] }; } },
     invokeIdeTool: async () => { calls.command++; return { text: 'not executed by fixture' }; }
   };
+  // handleToolCall 现在是外层包装（审查基线/检查点/多对话标注），分发逻辑在 handleToolCallTracked。
+  fake.handleToolCall = fake.handleToolCallTracked;
+  fake.guardWithPolicyAsk = (automation, toolName, args, extra) => automation?.guard?.(toolName, args, extra);
+  for (const [, k] of method.matchAll(/this\.(\w+)\(/g)) if (typeof fake[k] !== 'function') fake[k] = () => undefined;
+  fake.taskStore = new Proxy({}, { get: () => () => undefined });
   fake.findCustomToolSafe = () => undefined;
   fake.pushActivity = () => 'fixture'; fake.finishActivity = () => {};
   return { fake, calls };

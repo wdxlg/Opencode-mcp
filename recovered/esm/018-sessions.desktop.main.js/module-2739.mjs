@@ -6,7 +6,9 @@ import { ThemeIcon } from "./module-0086.mjs";
 import { Disposable, toDisposable } from "./module-0012.mjs";
 import { BridgeTaskViewState, isBridgeTaskDisplayExpired, isBridgeTaskDisplayInactive, partitionBridgeTaskDisplay } from "./module-2738.mjs";
 import { BridgeStatusRefresher } from "./module-2737.mjs";
-import { $, addDisposableListener, append, clearNode, setVisibility } from "./module-0075.mjs";
+import { $, EventHelper, EventType, addDisposableListener, append, clearNode, getWindow, setVisibility } from "./module-0075.mjs";
+import { StandardMouseEvent } from "./module-0024.mjs";
+import { Action, Separator } from "./module-0082.mjs";
 import { localizeBridge } from "./module-2621.mjs";
 import { BRIDGE_STARTUP_FAILURE_CHROME, bridgeStartupFailureCopy } from "./module-2662.mjs";
 import { openBridgePage } from "./module-2736.mjs";
@@ -15,6 +17,7 @@ import { defaultButtonStyles } from "./module-0513.mjs";
 import { describeBridgeStartupFailure } from "./module-2665.mjs";
 import { __decorateClass, __decorateParam } from "./module-0000.mjs";
 import { ICommandService } from "./module-0087.mjs";
+import { IContextMenuService } from "./module-0488.mjs";
 
 
 // src/vs/workbench/contrib/chat/browser/widgetHosts/viewPane/openCodeBridgeSessionView.ts
@@ -24,6 +27,8 @@ var BRIDGE_STOP2 = "opencode.bridge.stop";
 var BRIDGE_CHECK_HEALTH = "opencode.bridge.checkHealth";
 var BRIDGE_CLEAR_ACTIVITY_LOG = "opencode.bridge.clearActivityLog";
 var BRIDGE_CLEAR_TASKS_CONFIRMED = "opencode.bridge.clearTasksConfirmed";
+var BRIDGE_COPY_TASK_PROMPT = "opencode.bridge.copyTaskPrompt";
+var BRIDGE_DELETE_TASK_DISPLAY = "opencode.bridge.deleteTaskDisplay";
 var BRIDGE_INTERRUPT_STALE_TASKS_CONFIRMED = "opencode.bridge.interruptStaleTasksConfirmed";
 var BRIDGE_OPEN_RESOURCE = "opencode.bridge.openResource";
 var BRIDGE_OPEN_DIFF = "opencode.bridge.openDiff";
@@ -72,14 +77,18 @@ function activityIcon(activity) {
   }
 }
 var OpenCodeBridgeSessionView = class extends Disposable {
-  constructor(parent, taskShelfParent, onShelfLayout, commandService) {
+  constructor(parent, taskShelfParent, onShelfLayout, commandService, contextMenuService) {
     super();
     this.onShelfLayout = onShelfLayout;
     this.commandService = commandService;
+    this.contextMenuService = contextMenuService;
     this.taskShelfBridgeMode = true;
     this.taskShelfCollapsed = false;
     this.cardStates = /* @__PURE__ */ new Map();
     this.taskDisplayInfo = /* @__PURE__ */ new Map();
+    this.questionDrafts = /* @__PURE__ */ new Map();
+    this.questionView = /* @__PURE__ */ new Map();
+    this.currentChatRequestIds = void 0;
     this.pinnedTaskIds = /* @__PURE__ */ new Set();
     this.hiddenTaskIds = /* @__PURE__ */ new Set();
     this.taskCleanupBusy = false;
@@ -91,7 +100,7 @@ var OpenCodeBridgeSessionView = class extends Disposable {
     this.multiTaskTab = "tasks";
     this.tabScrollTop = { tasks: 0, activities: 0 };
     this.taskHistoryExpanded = false;
-    this.lastArchivedTaskIds = /* @__PURE__ */ new Set();
+    this.taskGroupExpanded = { running: true, unfinished: true, completed: false };
     this.activityTabVisited = false;
     // One in-flight status read at a time, with a deadline, backoff and disposal: a stuck
     // request can no longer freeze every later refresh.
@@ -469,8 +478,8 @@ var OpenCodeBridgeSessionView = class extends Disposable {
     this.taskShelf.hidden = !this.visible || tasks2.length === 0;
     this.taskShelfTitle.textContent = localizeBridge("opencodeBridgeSession.unifiedTasks", "\u4EFB\u52A1");
     const selected = visibleTasks.find((task) => task.id === status2.taskId);
-    const active = [...visibleTasks].filter((task) => task.state === "running" || task.state === "waiting_plan").sort((a, b) => b.updatedAt - a.updatedAt)[0];
-    this.taskSnapshot = selected && (selected.state === "running" || selected.state === "waiting_plan" || !active || selected.updatedAt >= active.updatedAt) ? selected : active ?? selected ?? visibleTasks[0];
+    const active = [...visibleTasks].filter((task) => !isBridgeTaskDisplayInactive(task.state)).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    this.taskSnapshot = selected && (!isBridgeTaskDisplayInactive(selected.state) || !active || selected.updatedAt >= active.updatedAt) ? selected : active ?? selected ?? visibleTasks[0];
     if (this.editingTaskId && !visibleTasks.some((task) => task.id === this.editingTaskId)) {
       this.closeLocalTaskEditor(false);
     }
@@ -621,7 +630,7 @@ var OpenCodeBridgeSessionView = class extends Disposable {
     }
   }
   renderTaskManagementControls(tasks2) {
-    const finished = tasks2.filter((task) => ["completed", "cancelled", "cleared"].includes(task.state));
+    const finished = tasks2.filter((task) => task.state === "completed");
     if (!finished.length && !this.taskCleanupError) {
       return;
     }
@@ -630,12 +639,12 @@ var OpenCodeBridgeSessionView = class extends Disposable {
       const clear = append(control, $("button.opencode-bridge-task-clear-finished"));
       clear.type = "button";
       clear.disabled = this.taskCleanupBusy;
-      clear.textContent = localizeBridge("opencodeBridgeSession.clearFinishedTasks", "Permanently clear finished tasks ({0})", finished.length);
+      clear.textContent = localizeBridge("opencodeBridgeSession.clearFinishedTasks", "Clear completed tasks ({0})", finished.length);
       clear.addEventListener("click", () => void this.clearTaskRecords(finished.map((task) => ({ id: task.id, revision: task.revision }))));
       append(control, $(
         "span.opencode-bridge-task-retention-note",
         void 0,
-        localizeBridge("opencodeBridgeSession.terminalRetention", "Task displays move to history after 20 minutes without updates and disappear after one hour. New updates restore them; background execution is unaffected.")
+        "任务与记忆持久保存，不按时间清除；删除仅移除任务显示。自己的下一个任务只移除同一记忆中自己的前一个已完成任务显示。"
       ));
     }
     if (this.taskCleanupError) {
@@ -652,7 +661,7 @@ var OpenCodeBridgeSessionView = class extends Disposable {
     button.type = "button";
     button.disabled = this.taskCleanupBusy;
     button.dataset.taskId = task.id;
-    const hint = localizeBridge("opencodeBridgeSession.interruptStaleLocallyHint", "Only changes OpenCode local tracking and preserves history. It does not stop, cancel, or control external AI/MCP execution.");
+    const hint = localizeBridge("opencodeBridgeSession.interruptStaleLocallyHint", "Only changes OpenCode local tracking; the local record remains available until explicitly hidden or removed. It does not stop, cancel, or control external AI/MCP execution.");
     button.title = hint;
     button.setAttribute("aria-label", hint);
     const icon2 = append(button, $("span.opencode-bridge-task-interrupt-icon.codicon.codicon-warning"));
@@ -815,43 +824,33 @@ var OpenCodeBridgeSessionView = class extends Disposable {
       ".opencode-bridge-task-clear-finished",
       ".opencode-bridge-task-interrupt-action"
     ].find((selector) => focused?.matches(selector));
+    this.closeTaskContextMenu?.();
     clearNode(this.todosRegion);
     clearNode(this.timeline);
     clearNode(this.taskMenuBody);
     const originalTask = this.taskSnapshot;
-    const { slots, history } = partitionBridgeTaskDisplay(tasks2);
-    for (const task of history) {
-      this.cardStates?.get(task.id)?.update(task.id, task.todos.length > 0 && task.todos.every((todo) => todo.status === "completed"), true);
-    }
-    if (history.some((task) => !this.lastArchivedTaskIds.has(task.id))) {
-      this.taskHistoryExpanded = false;
-    }
-    this.lastArchivedTaskIds = new Set(history.map((task) => task.id));
-    for (const task of slots) {
-      this.taskSnapshot = task;
-      this.renderTodos(task.todos, activities);
-    }
-    if (history.length) {
-      const archive = append(this.todosRegion, $("details.opencode-bridge-task-finished"));
-      archive.open = this.taskHistoryExpanded;
-      append(archive, $("summary", void 0, localizeBridge("opencodeBridgeSession.taskHistoryCount", "\u5386\u53F2\u4EFB\u52A1 ({0})", history.length)));
-      archive.addEventListener("toggle", () => {
-        if (!archive.isConnected || this.taskHistoryExpanded === archive.open) {
-          return;
-        }
-        this.taskHistoryExpanded = archive.open;
-        const restoreFocus = archive.contains(archive.ownerDocument.activeElement);
-        this.renderTimeline(activities, todos, tasks2);
-        if (restoreFocus) {
-          this.todosRegion.querySelector(".opencode-bridge-task-finished > summary")?.focus({ preventScroll: true });
-        }
-      });
-      for (const task of this.taskHistoryExpanded ? history : []) {
+    const { slots, unfinished, history } = partitionBridgeTaskDisplay(tasks2);
+    for (const [key, label, color, tasks] of [
+      ["running", "进行中", "var(--vscode-charts-yellow,#d7ba7d)", slots],
+      ["unfinished", "未完成", "var(--vscode-errorForeground,#f48771)", unfinished],
+      ["completed", "已完成", "var(--vscode-charts-green,#89d185)", history]
+    ]) {
+      const group = append(this.todosRegion, $("details.opencode-bridge-task-group"));
+      group.dataset.taskGroup = key;
+      group.open = this.taskGroupExpanded[key];
+      const heading = append(group, $("summary.opencode-task-group-heading"));
+      heading.style.setProperty("--opencode-task-group-color", color);
+      append(heading, $("span.opencode-task-group-dot", { "aria-hidden": "true" }));
+      append(heading, $("span.opencode-task-group-label", void 0, label));
+      append(heading, $("span.opencode-task-group-count", void 0, String(tasks.length)));
+      group.addEventListener("toggle", () => { if (group.isConnected) this.taskGroupExpanded[key] = group.open; });
+      for (const task of [...tasks].sort((a,b) => Number(this.pinnedTaskIds.has(b.id))-Number(this.pinnedTaskIds.has(a.id)))) {
         this.taskSnapshot = task;
         this.renderTodos(task.todos, activities);
         const card = this.todosRegion.lastElementChild;
-        if (card && card !== archive) {
-          archive.appendChild(card);
+        if (card && card !== group) {
+          group.appendChild(card);
+          this.installTaskContextMenu(card, task);
         }
       }
     }
@@ -975,22 +974,239 @@ var OpenCodeBridgeSessionView = class extends Disposable {
     return state;
   }
   taskDisplayTitle(task) {
-    const name = this.taskDisplayInfo.get(task.id)?.name ?? (task.overview ? `${task.overview.label}${task.overviewSessionTag ? ` \xB7 \u5BF9\u8BDD ${task.overviewSessionTag}` : ""}` : void 0);
-    if (name) {
-      return name;
+    const customName = this.taskDisplayInfo.get(task.id)?.name?.trim();
+    if (customName) return customName.slice(0, 80);
+    const explicitTitle = task.title?.trim();
+    if (explicitTitle && explicitTitle !== "当前任务" && explicitTitle !== "任务进度") return explicitTitle.slice(0, 80);
+    const stepTitle = (task.todos?.find((todo) => todo.status === "in_progress")?.title ?? task.todos?.[0]?.title)?.trim();
+    if (stepTitle) return stepTitle.slice(0, 80);
+    return explicitTitle || "当前任务";
+  }
+  installTaskContextMenu(card, task) {
+    this._register(addDisposableListener(card, EventType.CONTEXT_MENU, (event) => {
+      EventHelper.stop(event, true);
+      this.closeTaskContextMenu?.();
+      const runTaskMenuCommand = async (command, args) => {
+        this.taskCleanupError = void 0;
+        try {
+          const status2 = await this.commandService.executeCommand(command, args);
+          if (status2 && Array.isArray(status2.tasks)) {
+            this.lastStatus = status2;
+            this.render(status2, true);
+          }
+        } catch (error) {
+          this.taskCleanupError = error instanceof Error ? error.message : String(error);
+          if (this.lastStatus) {
+            this.render(this.lastStatus, true);
+          }
+        }
+      };
+      const actions = [
+        new Action("opencode.bridge.copyTaskMcpPrompt", "复制mcp提示词", void 0, true, () => runTaskMenuCommand(BRIDGE_COPY_TASK_PROMPT, { taskId: task.id, includeMcp: true })),
+        new Action("opencode.bridge.copyTaskHandoffPrompt", "复制接班提示词", void 0, true, () => runTaskMenuCommand(BRIDGE_COPY_TASK_PROMPT, { taskId: task.id, includeMcp: false })),
+        new Action("opencode.bridge.copyTaskForkMcpPrompt", "复制记忆后接班（含mcp）", void 0, true, () => runTaskMenuCommand(BRIDGE_COPY_TASK_PROMPT, { taskId: task.id, includeMcp: true, copyMemory: true })),
+        new Action("opencode.bridge.copyTaskForkPrompt", "复制记忆后接班", void 0, true, () => runTaskMenuCommand(BRIDGE_COPY_TASK_PROMPT, { taskId: task.id, includeMcp: false, copyMemory: true })),
+        new Separator(),
+        new Action("opencode.bridge.deleteTaskDisplay", "删除任务显示（保留记忆）", void 0, true, () => runTaskMenuCommand(BRIDGE_DELETE_TASK_DISPLAY, { taskId: task.id, revision: task.revision }))
+      ];
+      if (this.contextMenuService?.showContextMenu) {
+        this.contextMenuService.showContextMenu({
+          getAnchor: () => new StandardMouseEvent(getWindow(card), event),
+          getActions: () => actions,
+          onHide: (wasCancelled) => {
+            if (wasCancelled) {
+              card.querySelector("summary")?.focus({ preventScroll: true });
+            }
+          }
+        });
+        return;
+      }
+      const host = card.closest(".monaco-workbench") ?? this.taskShelf ?? card.ownerDocument.body;
+      const menu = append(host, $("div.opencode-task-context-menu.monaco-menu-container"));
+      this.taskContextMenu = menu;
+      menu.setAttribute("role", "menu");
+      menu.style.cssText = `position:fixed;z-index:10000;left:${Math.max(0,Math.min(event.clientX,innerWidth-220))}px;top:${Math.max(0,Math.min(event.clientY,innerHeight-160))}px;min-width:196px;padding:4px;background:var(--vscode-menu-background,#252526);color:var(--vscode-menu-foreground,#cccccc);border:1px solid var(--vscode-menu-border,var(--vscode-contrastBorder,#454545));box-shadow:0 2px 8px var(--vscode-widget-shadow,rgba(0,0,0,0.45));border-radius:5px;font-size:13px;line-height:1.4`;
+      let outside;
+      const close = () => { menu.remove(); if (outside) card.ownerDocument.removeEventListener("pointerdown", outside, true); if (this.taskContextMenu === menu) { this.taskContextMenu = void 0; this.closeTaskContextMenu = void 0; } };
+      this.closeTaskContextMenu = close;
+      for (const item of actions) {
+        if (item instanceof Separator) {
+          const sep = append(menu, $("div"));
+          sep.setAttribute("role", "separator");
+          sep.style.cssText = "height:1px;margin:4px 0;background:var(--vscode-menu-separatorBackground,#454545)";
+          continue;
+        }
+        const button = append(menu, $("button", void 0, item.label));
+        button.type = "button";
+        button.setAttribute("role", "menuitem");
+        button.style.cssText = "display:block;width:100%;padding:5px 12px;border:0;border-radius:4px;background:transparent;color:var(--vscode-menu-foreground,#cccccc);text-align:left;cursor:pointer;font:inherit";
+        button.addEventListener("mouseenter", () => {
+          button.style.background = "var(--vscode-menu-selectionBackground,#04395e)";
+          button.style.color = "var(--vscode-menu-selectionForeground,#ffffff)";
+        });
+        button.addEventListener("mouseleave", () => {
+          button.style.background = "transparent";
+          button.style.color = "var(--vscode-menu-foreground,#cccccc)";
+        });
+        button.addEventListener("click", () => {
+          close();
+          void item.run();
+        });
+      }
+      outside = e => { if (!menu.contains(e.target)) close(); };
+      const key = e => { if (e.key === "Escape") { close(); card.querySelector("summary")?.focus(); } };
+      card.ownerDocument.addEventListener("pointerdown", outside, true);
+      menu.addEventListener("keydown", key);
+      menu.addEventListener("keydown", e => {
+        if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+        e.preventDefault();
+        const buttons = [...menu.querySelectorAll("button")];
+        const current = buttons.indexOf(card.ownerDocument.activeElement);
+        buttons[e.key === "Home" ? 0 : e.key === "End" ? buttons.length-1 : (current + (e.key === "ArrowDown" ? 1 : buttons.length-1)) % buttons.length]?.focus();
+      });
+      this._register(toDisposable(close));
+      menu.querySelector("button")?.focus();
+    }));
+  }
+  /** Compact accordion: one visible decision at a time, even for a preplanned batch. */
+  /**
+   * A native Chat task's questions belong to the conversation that raised them: they are answered only
+   * there. Bridge (external MCP) tasks and older/automation tasks without request ids keep showing here.
+   */
+  isTaskQuestionHere(task) {
+    if (task?.originKind !== "chat" || !Array.isArray(task.chatRequestIds) || !task.chatRequestIds.length) return true;
+    if (this.taskShelfBridgeMode) return false;
+    let current;
+    try { current = this.currentChatRequestIds?.(); } catch { current = void 0; }
+    return !!current && task.chatRequestIds.some((id) => current.has(id));
+  }
+  /** dsh-style question card: one question at a time, numbered options, custom answer, pager. */
+  renderTaskQuestions(card, task) {
+    if (!task?.questions?.length) return;
+    const questions = task.questions;
+    const pending = questions.filter((q) => q.status === "pending");
+    const active = pending[0];
+    const current = active?.batchId ? questions.filter((q) => q.batchId === active.batchId) : active ? [active] : [];
+    const historical = questions.filter((q) => !current.includes(q) && q.status === "answered");
+    const here = this.isTaskQuestionHere(task);
+    const wrapper = append(card, $("section.opencode-bridge-task-questions.opencode-question"));
+    if (pending.length && !here) {
+      const away = append(wrapper, $("div.opencode-question-away"));
+      append(away, $("span.codicon.codicon-comment-discussion", { "aria-hidden": "true" }));
+      append(away, $("span", void 0, `\u6709 ${pending.length} \u4E2A\u95EE\u9898\u7B49\u4F60\u56DE\u7B54\uFF0C\u5728\u53D1\u8D77\u5B83\u7684\u5BF9\u8BDD\u91CC\u56DE\u7B54`));
+      return;
     }
-    const tasks2 = this.lastStatus?.tasks ?? [];
-    const kind = task.originKind === "chat" ? "chat" : "bridge";
-    const related = tasks2.filter((entry) => (entry.originKind ?? "bridge") === kind).reverse();
-    const number = Math.max(1, related.findIndex((entry) => entry.id === task.id) + 1);
-    return kind === "chat" ? `\u5BF9\u8BDD ${number}` : related.length > 1 ? `\u4EFB\u52A1 ${number}` : "\u4EFB\u52A1\u8FDB\u5EA6";
+    if (!pending.length && questions.some((q) => q.requiresMcpAck === true && !q.deliveredAt)) {
+      append(wrapper, $("div.opencode-question-note", void 0, "\u56DE\u7B54\u5DF2\u63D0\u4EA4\uFF0C\u7B49\u5F85\u9001\u56DE AI\uFF1B\u9001\u8FBE\u524D\u4EFB\u52A1\u6682\u505C\u3002"));
+    }
+    if (current.length) {
+      const viewKey = task.id + ":" + (active?.batchId ?? active?.id ?? "");
+      const firstPending = Math.max(0, current.findIndex((q) => q.status === "pending"));
+      let index = this.questionView.get(viewKey);
+      if (typeof index !== "number" || index < 0 || index >= current.length) index = firstPending;
+      const q = current[index];
+      const answeredCount = current.filter((item) => item.status === "answered").length;
+      const box = append(wrapper, $("div.opencode-question-card"));
+      const header = append(box, $("div.opencode-question-header"));
+      const heading = append(header, $("div.opencode-question-heading"));
+      append(heading, $("div.opencode-question-eyebrow", void 0, current.length > 1 ? `\u9700\u8981\u4F60\u786E\u8BA4 \xB7 \u5DF2\u56DE\u7B54 ${answeredCount}/${current.length}` : "\u9700\u8981\u4F60\u786E\u8BA4"));
+      const title = append(heading, $("div.opencode-question-title", void 0, q.text));
+      title.title = q.text;
+      if (current.length > 1) {
+        const pager = append(header, $("div.opencode-question-pager"));
+        const go = (next) => { this.questionView.set(viewKey, next); if (this.lastStatus) this.render(this.lastStatus, true); };
+        const prev = append(pager, $("button.opencode-question-icon", { type: "button", "aria-label": "\u4E0A\u4E00\u9898", title: "\u4E0A\u4E00\u9898" }));
+        prev.classList.add(...ThemeIcon.asClassNameArray(Codicon.chevronLeft));
+        prev.disabled = index === 0;
+        prev.addEventListener("click", () => go(index - 1));
+        append(pager, $("span.opencode-question-progress", void 0, `${index + 1} / ${current.length}`));
+        const next = append(pager, $("button.opencode-question-icon", { type: "button", "aria-label": "\u4E0B\u4E00\u9898", title: "\u4E0B\u4E00\u9898" }));
+        next.classList.add(...ThemeIcon.asClassNameArray(Codicon.chevronRight));
+        next.disabled = index >= current.length - 1;
+        next.addEventListener("click", () => go(index + 1));
+      }
+      if (q.recommendation) {
+        append(box, $("div.opencode-question-detail", void 0, `\u5EFA\u8BAE\uFF1A${q.recommendation}`));
+      }
+      if (q.status === "answered") {
+        append(box, $("div.opencode-question-answered", void 0, `\u5DF2\u56DE\u7B54\uFF1A${q.answer?.text ?? "\u5DF2\u56DE\u7B54"}`));
+      } else {
+        const draft = this.questionDrafts.get(q.id) ?? { selected: "", text: "" };
+        const options = append(box, $("div.opencode-question-options", { role: "radiogroup", "aria-label": q.text }));
+        const footer = $("div.opencode-question-footer");
+        const feedback = append(footer, $("div.opencode-question-feedback", { role: "status" }));
+        const submit = append(footer, $("button.opencode-question-submit", { type: "button" }, pending.length > 1 ? "\u63D0\u4EA4\uFF0C\u4E0B\u4E00\u9898" : "\u63D0\u4EA4"));
+        let custom;
+        const refreshState = () => {
+          for (const element of options.querySelectorAll(".opencode-question-option")) {
+            const on = element.dataset.optionId === draft.selected;
+            element.classList.toggle("selected", on);
+            element.setAttribute("aria-checked", String(on));
+          }
+          submit.disabled = !draft.selected && !draft.text.trim();
+        };
+        for (const [optionIndex, option] of q.options.entries()) {
+          const row = append(options, $("button.opencode-question-option", { type: "button", role: "radio" }));
+          row.dataset.optionId = option.id;
+          append(row, $("span.opencode-question-number", void 0, String(optionIndex + 1)));
+          const copy = append(row, $("span.opencode-question-copy"));
+          const line = append(copy, $("span.opencode-question-line"));
+          append(line, $("span.opencode-question-label", void 0, option.label));
+          if (q.recommendedOptionId === option.id) append(line, $("span.opencode-question-badge", void 0, "\u63A8\u8350"));
+          if (option.description) append(copy, $("span.opencode-question-description", void 0, option.description));
+          row.addEventListener("click", () => {
+            draft.selected = draft.selected === option.id ? "" : option.id;
+            this.questionDrafts.set(q.id, draft);
+            refreshState();
+          });
+        }
+        if (q.allowCustom) {
+          const customRow = append(options, $("label.opencode-question-custom"));
+          append(customRow, $("span.opencode-question-number", void 0, String(q.options.length + 1)));
+          custom = append(customRow, $("textarea.opencode-question-input"));
+          custom.placeholder = "\u8F93\u5165\u4F60\u7684\u7B54\u6848\uFF08\u53EF\u9009\uFF0C\u53EF\u4E0E\u9009\u9879\u4E00\u8D77\u63D0\u4EA4\uFF09";
+          custom.setAttribute("aria-label", "\u81EA\u5B9A\u4E49\u56DE\u7B54");
+          custom.rows = 1;
+          custom.maxLength = 2000;
+          custom.value = draft.text;
+          const fit = () => { custom.style.height = "auto"; custom.style.height = Math.min(custom.scrollHeight, 144) + "px"; };
+          custom.addEventListener("input", () => { draft.text = custom.value; this.questionDrafts.set(q.id, draft); fit(); refreshState(); });
+          setTimeout(fit, 0);
+        }
+        box.appendChild(footer);
+        refreshState();
+        submit.addEventListener("click", async () => {
+          submit.disabled = true;
+          feedback.classList.remove("error");
+          feedback.textContent = "\u6B63\u5728\u63D0\u4EA4\u2026";
+          try {
+            const status = await this.commandService.executeCommand("opencode.bridge.answerTaskQuestion", {
+              taskId: task.id, questionId: q.id, optionId: draft.selected || void 0, customText: custom?.value || ""
+            });
+            this.questionDrafts.delete(q.id);
+            this.questionView.delete(viewKey);
+            this.lastStatus = status;
+            this.render(status, true);
+          } catch (error) {
+            feedback.classList.add("error");
+            feedback.textContent = `\u63D0\u4EA4\u5931\u8D25\uFF1A${error.message ?? String(error)}`;
+            refreshState();
+          }
+        });
+      }
+      append(box, $("div.opencode-question-hint", void 0, "\u53EA\u6709\u4F60\u7684\u9009\u62E9\u4F1A\u4EA4\u7ED9 AI\uFF0C\u63A8\u8350\u9879\u4E0D\u4F1A\u81EA\u52A8\u9009\u4E2D\u3002"));
+    }
+    if (historical.length && here) {
+      const archive = append(wrapper, $("details.opencode-question-history"));
+      append(archive, $("summary", void 0, `\u5386\u53F2\u95EE\u7B54 (${historical.length})`));
+      for (const q of historical) {
+        const row = append(archive, $("div.opencode-question-history-row"));
+        append(row, $("div.opencode-question-history-q", void 0, q.text));
+        append(row, $("div.opencode-question-history-a", void 0, q.answer?.text ?? "\u5DF2\u56DE\u7B54"));
+      }
+    }
   }
-  renderOrigin(summary, task) {
-    const kind = task.originKind === "chat" ? "chat" : "bridge";
-    const label3 = append(summary, $("span.opencode-bridge-task-origin", void 0, kind === "chat" ? "Chat" : "Bridge"));
-    label3.classList.add(kind);
-    label3.title = kind === "chat" ? "\u672C\u673A\u539F\u751F Chat\uFF08\u4E0D\u662F\u6A21\u578B\u54C1\u724C\uFF09" : "MCP \u63A5\u5165\uFF08\u5BA2\u6237\u7AEF\u8EAB\u4EFD\u672A\u7ECF\u9A8C\u8BC1\uFF09";
-  }
+  renderOrigin(_summary, _task) { /* Source information remains in diagnostics, not a blue Bridge badge. */ }
   /** Task-level states render even before a plan exists, so an empty card never looks like "nothing happened". */
   renderTaskPlaceholder(task) {
     const card = append(this.todosRegion, $("details.opencode-bridge-todos.opencode-bridge-task-card.opencode-bridge-task-placeholder"));
@@ -1005,7 +1221,8 @@ var OpenCodeBridgeSessionView = class extends Disposable {
     const labels2 = append(summary, $(".opencode-bridge-task-summary-labels"));
     this.renderOrigin(labels2, task);
     const taskTitle = append(labels2, $("strong.opencode-bridge-task-title", void 0, this.taskDisplayTitle(task)));
-    append(labels2, $("span.opencode-bridge-task-summary-detail", void 0, localizeBridge("opencodeBridgeSession.noPlanYet", "\u5C1A\u672A\u4E0A\u62A5\u4EFB\u52A1\u8BA1\u5212")));
+    const detail = append(summary, $("span.opencode-bridge-task-summary-detail", void 0, localizeBridge("opencodeBridgeSession.noPlanYet", "\u5C1A\u672A\u4E0A\u62A5\u4EFB\u52A1\u8BA1\u5212")));
+    detail.title = detail.textContent ?? "";
     append(summary, $("span.opencode-bridge-task-pill", void 0, localizeBridge("opencodeBridgeSession.noPlanBadge", "\u65E0\u8BA1\u5212")));
     append(taskTitle, $("span.opencode-bridge-task-state-pill", void 0, this.taskStateLabel(task.state)));
     this.renderTaskLocalControls(this.taskMenuBody, task);
@@ -1014,6 +1231,7 @@ var OpenCodeBridgeSessionView = class extends Disposable {
       const detail2 = card.querySelector(".opencode-bridge-task-summary-detail");
       if (detail2) {
         detail2.textContent = localizeBridge("opencodeBridgeSession.clearedTaskDetail", "Task plan was cleared");
+        detail2.title = detail2.textContent ?? "";
       }
       const pill = card.querySelector(".opencode-bridge-task-pill");
       if (pill) {
@@ -1021,6 +1239,7 @@ var OpenCodeBridgeSessionView = class extends Disposable {
       }
     }
     this.todosRegion.classList.toggle("opencode-bridge-task-pending", task.state === "awaiting_sync" || task.state === "waiting_plan");
+    this.renderTaskQuestions(card, task);
   }
   /** Lifecycle wording is deliberately explicit: interrupted or stale is never shown as complete. */
   taskStateLabel(state) {
@@ -1039,6 +1258,8 @@ var OpenCodeBridgeSessionView = class extends Disposable {
         return localizeBridge("opencodeBridgeSession.stateInterrupted", "\u5DF2\u4E2D\u65AD");
       case "waiting_plan":
         return localizeBridge("opencodeBridgeSession.stateWaitingPlan", "\u89C4\u5212\u4E2D");
+      case "awaiting_user":
+        return "等待用户确认";
       default:
         return localizeBridge("opencodeBridgeSession.stateCleared", "\u5DF2\u6E05\u9664");
     }
@@ -1131,8 +1352,9 @@ var OpenCodeBridgeSessionView = class extends Disposable {
       void 0,
       task ? this.taskDisplayTitle(task) : localizeBridge("opencodeBridgeSession.taskProgress", "\u4EFB\u52A1\u8FDB\u5EA6")
     ));
-    const summaryDetail = taskSummary.currentTodo ? localizeBridge("opencodeBridgeSession.currentTaskSummary", "\u7B2C {0} / {1} \u6B65 \xB7 {2}", taskSummary.currentIndex + 1, taskSummary.totalCount, taskSummary.currentTodo.title) : presentation2.remaining ? localizeBridge("opencodeBridgeSession.pendingTaskSummary", "\u5DF2\u5B8C\u6210 {0} / {1} \u6B65 \xB7 \u5F85\u5904\u7406 {2} \u6B65", taskSummary.completedCount, taskSummary.totalCount, presentation2.remaining) : localizeBridge("opencodeBridgeSession.completedTaskSummary", "\u5DF2\u5B8C\u6210 {0} / {1} \u6B65", taskSummary.completedCount, taskSummary.totalCount);
-    append(summaryLabels, $("span.opencode-bridge-task-summary-detail", void 0, summaryDetail));
+    const summaryDetail = taskSummary.currentTodo ? localizeBridge("opencodeBridgeSession.currentTaskSummary", "\u7B2C {0} / {1} \u6B65 \xB7 {2}", taskSummary.currentIndex + 1, taskSummary.totalCount, taskSummary.currentTodo.title) : presentation2.remaining ? localizeBridge("opencodeBridgeSession.pendingTaskSummary", "\u5DF2\u5B8C\u6210 {0} / {1} \u6B65 \xB7 \u5F85\u5904\u7406 {2} \u6B65", taskSummary.completedCount, taskSummary.totalCount, presentation2.remaining) : localizeBridge("opencodeBridgeSession.completedTaskSummary", "\u5DF2\u5B8C\u6210 {0} / {1} \u6B65", taskSummary.completedCount, taskSummary.totalCount) + (task?.title ? ` · ${task.title}` : "");
+    const detail = append(summary, $("span.opencode-bridge-task-summary-detail", void 0, summaryDetail));
+    detail.title = summaryDetail;
     append(summary, $("span.opencode-bridge-task-pill", void 0, taskSummary.currentTodo ? localizeBridge("opencodeBridgeSession.stepBadge", "\u7B2C {0}/{1} \u6B65", taskSummary.currentIndex + 1, taskSummary.totalCount) : presentation2.remaining ? localizeBridge("opencodeBridgeSession.remainingStepsBadge", "\u5F85\u5904\u7406 {0} \u6B65", presentation2.remaining) : localizeBridge("opencodeBridgeSession.doneBadge", "\u5DF2\u5B8C\u6210 {0}/{1}", taskSummary.completedCount, taskSummary.totalCount)));
     if (task) {
       append(taskTitle, $("span.opencode-bridge-task-state-pill", void 0, this.taskStateLabel(task.state)));
@@ -1165,6 +1387,7 @@ var OpenCodeBridgeSessionView = class extends Disposable {
       const labels2 = append(row, $(".opencode-bridge-todo-labels"));
       append(labels2, $("span.opencode-bridge-todo-title", void 0, todo.title));
     }
+    this.renderTaskQuestions(card, task);
   }
   summarizeTaskProgress(todos, latestProgressByTodo) {
     const completedCount = todos.filter((todo) => todo.status === "completed").length;
@@ -1498,6 +1721,7 @@ var OpenCodeBridgeSessionView = class extends Disposable {
   }
 };
 OpenCodeBridgeSessionView = __decorateClass([
-  __decorateParam(3, ICommandService)
+  __decorateParam(3, ICommandService),
+  __decorateParam(4, IContextMenuService)
 ], OpenCodeBridgeSessionView);
 export { formatDuration4, formatTime, activityIcon, BRIDGE_GET_STATUS3, BRIDGE_START2, BRIDGE_STOP2, BRIDGE_CHECK_HEALTH, BRIDGE_CLEAR_ACTIVITY_LOG, BRIDGE_CLEAR_TASKS_CONFIRMED, BRIDGE_OPEN_RESOURCE, BRIDGE_OPEN_DIFF, BRIDGE_OPEN_TERMINAL, OpenCodeBridgeSessionView };

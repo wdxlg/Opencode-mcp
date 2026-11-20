@@ -15,9 +15,7 @@ import { isEqual2 } from "./module-0034.mjs";
 import { areSessionWorkingDirectoriesEqual } from "./module-2109.mjs";
 import { generateUuid } from "./module-0190.mjs";
 import { equals4 } from "./module-0098.mjs";
-import { getChatPermissionLevelFromDefaultConfiguration } from "./module-0964.mjs";
 import { KNOWN_MODE_VALUES } from "./module-2046.mjs";
-import { migrateLegacyAutopilotConfig } from "./module-2102.mjs";
 import { __decorateClass, __decorateParam } from "./module-0000.mjs";
 import { IAgentHostService } from "./module-1107.mjs";
 import { ILogService } from "./module-0095.mjs";
@@ -685,11 +683,9 @@ var AgentHostUntitledProvisionalSessionService = class extends Disposable {
    * drops the workbench defaults.
    *
    * - `isolation`: workbench has no isolation picker, so always `'folder'`.
-   * - `mode` / `autoApprove`: seeded from the single
-   *   `chat.defaultConfiguration` object setting (`mode` and
-   *   `approvals` properties). The approval seed is clamped to `'default'`
-   *   when the `chat.tools.global.autoApprove` policy is off. The local-only
-   *   `chat.permissions.default` setting is NOT used.
+   * - `mode`: seeded from the `chat.defaultConfiguration` object setting.
+   *   OpenCode: the old approval levels (autoApprove / autopilot) were removed,
+   *   so no approval seed is sent and an `autopilot` mode is ignored.
    *
    * Skipped entirely in the Agents window, where the sessions provider
    * supplies config via `request.agentHostSessionConfig` instead.
@@ -700,17 +696,11 @@ var AgentHostUntitledProvisionalSessionService = class extends Disposable {
     }
     const config = { ["isolation" /* Isolation */]: "folder" };
     const configuredDefaults = this._configurationService.getValue("chat.defaultConfiguration" /* DefaultConfiguration */);
-    const policyValue = this._configurationService.inspect("chat.tools.global.autoApprove" /* GlobalAutoApprove */).policyValue;
-    const configuredApprovals = getChatPermissionLevelFromDefaultConfiguration(configuredDefaults?.approvals);
-    if (configuredApprovals) {
-      const policyRestricted = policyValue === false;
-      config["autoApprove" /* AutoApprove */] = policyRestricted && configuredApprovals !== "default" ? "default" : configuredApprovals;
-    }
     const configuredMode = configuredDefaults?.mode;
     if (typeof configuredMode === "string" && KNOWN_MODE_VALUES.has(configuredMode)) {
       config["mode" /* Mode */] = configuredMode;
     }
-    return migrateLegacyAutopilotConfig(config);
+    return config;
   }
 };
 

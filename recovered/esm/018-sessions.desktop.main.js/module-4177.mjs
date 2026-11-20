@@ -21,6 +21,7 @@ import { IRemoteExplorerService } from "./module-1413.mjs";
 import { IAgentNetworkFilterService } from "./module-1241.mjs";
 import { IChatService } from "./module-0973.mjs";
 import { IConfigurationService } from "./module-0132.mjs";
+import { isOpenCodeFullAutoMode } from "./module-0965.mjs";
 import { ILogService } from "./module-0095.mjs";
 
 
@@ -145,7 +146,8 @@ var OpenBrowserTool = class {
     if (!request2) {
       return void 0;
     }
-    if (request2.modeInfo?.permissionLevel === "autopilot" /* Autopilot */ || this.configService.getValue("chat.autoReply" /* AutoReply */)) {
+    // OpenCode: 全自动模式（或 chat.autoReply）不弹出共享页面的提问，直接按默认（打开新页面）继续
+    if (isOpenCodeFullAutoMode(this.configService) || this.configService.getValue("chat.autoReply" /* AutoReply */)) {
       return void 0;
     }
     const carousel = this._buildShareCarousel(candidateEditors, params.url, invocation.chatStreamToolCallId ?? invocation.callId);

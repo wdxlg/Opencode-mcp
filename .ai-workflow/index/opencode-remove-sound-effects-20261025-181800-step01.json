@@ -1,0 +1,35 @@
+{
+  "taskId": "opencode-remove-sound-effects-20261025-181800-step01",
+  "sourceCommit": "cb01ecba20b85d760b9ce2b1f7c3e38490a9d715",
+  "snapshotTag": "pre/opencode-remove-sound-effects-20261025-181800-step01",
+  "files": [
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/module-0445.mjs",
+      "sha256": "053578d413e6afd394cdd3b7b9e7568c1bc154fe656d9dfa83b6faa981bff7ae"
+    },
+    {
+      "path": "recovered/esm/018-sessions.desktop.main.js/module-0445.mjs",
+      "sha256": "abb70cd9c29521baad8a7fbabda4ddae22faa7471ed8beb323534c13cd49efb0"
+    },
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/module-1370.mjs",
+      "sha256": "fa489b99df1afe86c379f740e409d2e3641b278ce61a93ba47eb9672d5c04b41"
+    },
+    {
+      "path": "recovered/esm/018-sessions.desktop.main.js/module-1369.mjs",
+      "sha256": "4074909390d364d6e295ca192d31482e01262e3abe559ea91e326040e553081d"
+    },
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/module-3657.mjs",
+      "sha256": "929b3fae9e6aae4bd9eefda45270f72ed0e01fa184b33240ce3a32958e62627f"
+    },
+    {
+      "path": "recovered/esm/018-sessions.desktop.main.js/module-3387.mjs",
+      "sha256": "0dde94d0efea74d7284e0c87ccbedef3df182b9b67e0adb43e28fb7bb03ed1b2"
+    },
+    {
+      "path": "reports/static-assets.json",
+      "sha256": "f70eeba7203afb8166327a032494d95c8ccbeb71aad6bfe7d1fbc0d49f0aed9c"
+    }
+  ]
+}

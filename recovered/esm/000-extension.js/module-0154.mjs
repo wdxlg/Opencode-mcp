@@ -262,7 +262,9 @@ var ExternalMcpRegistry = class {
     state.active++;
     try {
       const callMs = externalMcpTimeoutMs(state.config, "call");
-      if(binding.tool.inputSchema?.properties?._bridge_owner)args={...args,_bridge_owner:(0,import_node_crypto21.createHash)('sha256').update(String(ownerId||'native-default')).digest('hex')};
+      if(binding.tool.inputSchema?.properties?._bridge_owner){
+        args={...args,_bridge_owner:(0,import_node_crypto21.createHash)('sha256').update(String(ownerId||'native-default')).digest('hex')};
+      }
       const result = await deadline(state.connection.call(binding.upstreamName, args, timeoutSignal(signal ? AbortSignal.any([signal, state.controller.signal]) : state.controller.signal, callMs)), callMs + 200);
       let revisionUnchanged = false;
       try {

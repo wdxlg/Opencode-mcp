@@ -6,13 +6,21 @@ import crypto from 'node:crypto';
 import { acquireResources } from './concurrency-runtime.mjs';
 import { now, digest, fail, publicAgentId } from './collaboration-contracts.mjs';
 import { git, withinRoot } from './collaboration-workspaces.mjs';
+import { collaborationLimits } from './collaboration-policy.mjs';
 
-const MAX_FILE = 256 * 1024, MAX_TOTAL = 512 * 1024, MAX_FILES = 30;
+// Defaults 30 files / 256 KiB per file / 512 KiB total; configurable (settings/env/limits file) and
+// extendable per team by the local user. Applied at each integration entry point.
+let MAX_FILE = 256 * 1024, MAX_TOTAL = 512 * 1024, MAX_FILES = 30, LIMIT_RUN = null, LIMIT_POLICY = null;
+function applyIntegrationLimits(staff, runId) {
+  const base = collaborationLimits(), policy = staff?.parent?.policy, extra = runId && policy ? policy.integrationExtra(runId) : { files: 0, fileKiB: 0, totalKiB: 0 };
+  MAX_FILES = base.integrationMaxFiles + extra.files; MAX_FILE = (base.integrationMaxFileKiB + extra.fileKiB) * 1024; MAX_TOTAL = (base.integrationMaxTotalKiB + extra.totalKiB) * 1024; LIMIT_RUN = runId || null; LIMIT_POLICY = policy || null;
+}
+function limitFail(message, limit, used, cap) { fail('STAFF_INTEGRATION_LIMIT', message + ' 本地用户可在团队页面直接扩展整合限额后重试，无需重新授权。', LIMIT_RUN && LIMIT_POLICY ? { block_reason: LIMIT_POLICY.blockReason('integration', { run_id: LIMIT_RUN, limit_hit: limit, used, cap }) } : { limit_hit: limit, used, cap }); }
 const attemptOf = task => task.attempts.find(item => item.id === task.activeAttemptId);
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const canonicalText = text => text.replace(/\r\n/g, '\n');
 function textFile(bytes, label) {
-  if (bytes.length > MAX_FILE) fail('STAFF_INTEGRATION_LIMIT', '自动整合单文件最多 256 KiB：' + label);
+  if (bytes.length > MAX_FILE) limitFail('自动整合单文件最多 ' + (MAX_FILE / 1024) + ' KiB：' + label + '。', 'file_kib', Math.ceil(bytes.length / 1024), MAX_FILE / 1024);
   const text = bytes.toString('utf8');
   if (text.includes('\0') || text.startsWith('\uFEFF') || !Buffer.from(text, 'utf8').equals(bytes) || /\r(?!\n)/.test(text) || text && !text.endsWith('\n')) fail('STAFF_INTEGRATION_TEXT_ONLY', '自动整合只处理非BOM、有末尾换行的UTF-8文本；其他文件保留产物并阻塞，不转换或丢弃：' + label);
   return { text: canonicalText(text), sha256: hash(bytes), canonicalHash: hash(Buffer.from(canonicalText(text))), bytes: bytes.length };
@@ -29,20 +37,21 @@ async function baseFile(staff, attempt, relative) {
 }
 function permitted(employee, relative) { const key = process.platform === 'win32' ? relative.toLowerCase() : relative; return employee.allowedPaths.some(prefix => prefix === '.' || key === (process.platform === 'win32' ? prefix.toLowerCase() : prefix) || key.startsWith((process.platform === 'win32' ? prefix.toLowerCase() : prefix) + '/')); }
 async function changes(staff, task, additional = []) {
+  applyIntegrationLimits(staff, task.staff?.runId);
   const attempt = attemptOf(task); if (!attempt?.workspace.baseRef || attempt.workspace.mode !== 'worktree') return [];
   const options = { executable: staff.parent.options.gitExecutable, hooksPath: attempt.workspace.hooksPath };
   const modified = (await git(attempt.workspace.root, ['diff', '--name-only', '--no-renames', '-z', attempt.workspace.baseRef, '--', '.'], options)).split('\0').filter(Boolean);
   const untracked = (await git(attempt.workspace.root, ['ls-files', '--others', '--exclude-standard', '-z', '--', '.'], options)).split('\0').filter(Boolean);
   const recorded = attempt.operations.filter(op=>op.name==='apply_patch'&&op.state==='completed'&&!op.toolError).flatMap(op=>(op.changes||[]).flatMap(file=>[file.path,file.destinationPath].filter(Boolean))).map(file=>path.relative(attempt.workspace.root,file).replaceAll('\\','/'));
   const reported = (task.artifacts || []).map(item => path.relative(attempt.workspace.root, item.path).replaceAll('\\', '/'));
-  const paths = [...new Set([...modified, ...untracked, ...reported, ...recorded, ...additional])]; if (paths.length > MAX_FILES) fail('STAFF_INTEGRATION_LIMIT', '一次整合最多 30 个文本文件，超出保留差异并阻塞。');
+  const paths = [...new Set([...modified, ...untracked, ...reported, ...recorded, ...additional])]; if (paths.length > MAX_FILES) limitFail('一次整合最多 ' + MAX_FILES + ' 个文本文件，超出保留差异并阻塞。', 'files', paths.length, MAX_FILES);
   const employee = staff.employee(staff.store.read(), task.staff.employeeId), output = []; let total = 0;
   for (const relative of paths) {
     if (!permitted(employee, relative)) fail('STAFF_WRITE_SCOPE', '交付含员工责任范围之外的变化：' + relative);
     const before = await baseFile(staff, attempt, relative), after = workingFile(attempt.workspace.root, relative);
     if (before.canonicalHash === after.canonicalHash) continue;
     if (after.exists && !after.text) fail('STAFF_INTEGRATION_TEXT_ONLY', '空文件不通过文本补丁自动重建：' + relative);
-    total += before.bytes + after.bytes; if (total > MAX_TOTAL) fail('STAFF_INTEGRATION_LIMIT', '一次整合文本总量最多 512 KiB，未写入后续文件。');
+    total += before.bytes + after.bytes; if (total > MAX_TOTAL) limitFail('一次整合文本总量最多 ' + (MAX_TOTAL / 1024) + ' KiB，未写入后续文件。', 'total_kib', Math.ceil(total / 1024), MAX_TOTAL / 1024);
     output.push({ relative, before, after });
   }
   return output;
@@ -82,6 +91,7 @@ async function applyIntent(staff, actor, input, targetTask, files, publication =
   } catch (error) { await markUnknown(staff, actor.run.id, intentId, actor.task.id, error); throw error; }
 }
 export async function captureDelivery(staff, task, artifacts) {
+  applyIntegrationLimits(staff, task.staff?.runId);
   const attempt=attemptOf(task);
   if(attempt.workspace.mode!=='worktree'){
     const paths=[...new Set([...artifacts.map(file=>file.path),...attempt.operations.filter(op=>op.name==='apply_patch'&&op.state==='completed'&&!op.toolError).flatMap(op=>(op.changes||[]).flatMap(file=>[file.path,file.destinationPath].filter(Boolean)))])];
@@ -105,6 +115,7 @@ export function finalizeDelivery(task, delivery) {
 }
 export async function integrateTask(staff, owner, input) {
   const actor = { ...staff.manager(owner, input.manager_task_id, input.lease), owner, lease: input.lease }, data = staff.store.read(), child = staff.task(data, input.task_id), target = actor.task;
+  applyIntegrationLimits(staff, actor.run.id);
   if (child.staff.runId !== actor.run.id || child.staff.manager || child.staff.publication || child.status !== 'completed' || child.staff.review?.decision !== 'accept') fail('STAFF_INTEGRATION_REVIEW', '只整合本团队已经接受的已完成员工交付。');
   const key = digest(owner + '\0' + input.client_request_id), old = actor.run.integrations.find(item => item.key === key);
   if (old) { if (old.bodyHash !== digest({ targetTask: target.id, sourceTask: input.task_id || null, revision: input.expected_revision || null, publication: false })) fail('STAFF_IDEMPOTENCY_CONFLICT', '整合键与内容不一致。'); if (old.state === 'completed') return old.result; fail('STAFF_INTEGRATION_UNKNOWN', '原整合结果不确定，请本地核对，不能重发。'); }
@@ -130,6 +141,7 @@ export async function integrateTask(staff, owner, input) {
 }
 export async function publishTeam(staff, owner, input) {
   const actor = { ...staff.manager(owner, input.manager_task_id, input.lease), owner, lease: input.lease };
+  applyIntegrationLimits(staff, actor.run.id);
   if (!actor.run.publishToSource) fail('STAFF_PUBLICATION_NOT_AUTHORIZED', '本地授权没有勾选应用回原项目；经理不能自行扩大写入目标。');
   const data=staff.store.read(),delivery=staff.deliveryState(data,actor.run.id),accepted=delivery.accepted;
   if(!delivery.settled||accepted.some(task=>!task.staff.integrated||task.staff.integrationAttemptId!==attemptOf(actor.task).id))fail('STAFF_PUBLICATION_PENDING','需先完成当前经理执行中的全部结果审查、返工与整合。');

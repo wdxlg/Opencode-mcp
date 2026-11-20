@@ -357,6 +357,173 @@ function renderChatResponseDetails(container3, details, completedAt, elapsedMs, 
   return completedAtElement;
 }
 
+// OpenCode turn usage (dsh TurnUsagePanel / RunningStatus style): compact pill in the footer details,
+// full breakdown in a hover panel; values come from result.metadata.opencodeTurnUsage written by the extension.
+function openCodeUsageNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+}
+// OpenCode dsh-metrics: dsh formatTokens (517 / 12.2K / 517K / 1.2M)
+function formatOpenCodeCompactTokens(value) {
+  const n = Math.round(openCodeUsageNumber(value));
+  const scaled = (c) => c >= 100 ? String(Math.round(c)) : String(Math.round(c * 10) / 10);
+  if (n < 1e3) return String(n);
+  if (n < 1e6) return `${scaled(n / 1e3)}K`;
+  return `${scaled(n / 1e6)}M`;
+}
+// OpenCode dsh-metrics: dsh formatTokensPerSecond (>=10 whole, else one decimal)
+function formatOpenCodeTps(value) {
+  const c = Math.max(0, typeof value === "number" && Number.isFinite(value) ? value : 0);
+  return c >= 10 ? String(Math.round(c)) : String(Math.round(c * 10) / 10);
+}
+function formatOpenCodeExactTokens(value) {
+  return `${Math.round(openCodeUsageNumber(value)).toLocaleString("en-US")} tok`;
+}
+function formatOpenCodeDuration(ms) {
+  const total = Math.max(0, Math.floor(openCodeUsageNumber(ms) / 1e3));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor(total / 60) % 60;
+  const seconds = total % 60;
+  return `${hours > 0 ? `${hours}\u5C0F\u65F6` : ""}${total >= 60 ? `${minutes}\u5206` : ""}${seconds}\u79D2`;
+}
+// OpenCode dsh-metrics: dsh formatDuration (<60s -> one decimal seconds, else rounded m/s)
+function formatOpenCodeShortDuration(ms) {
+  const s = openCodeUsageNumber(ms) / 1e3;
+  if (s < 60) return `${Math.round(s * 10) / 10}\u79D2`;
+  const whole = Math.round(s);
+  return `${Math.floor(whole / 60)}\u5206${whole % 60}\u79D2`;
+}
+// OpenCode dsh-metrics: verbatim port of dsh-client-ui-chat formatCacheHitPercent (CHAT:6719-6773)
+function ocRoundedPercentUnits(cacheReadTokens, denominator, decimalPlaces) {
+  const scale = (decimalPlaces === 0 ? 1 : 10) * 100;
+  const doubledScale = scale * 2;
+  const denominatorQuotient = Math.floor(denominator / doubledScale);
+  const denominatorRemainder = denominator % doubledScale;
+  let lower = 0;
+  let upper = scale;
+  while (lower < upper) {
+    const candidate = Math.floor((lower + upper + 1) / 2);
+    const factor = candidate * 2 - 1;
+    if (cacheReadTokens >= factor * denominatorQuotient + Math.ceil(factor * denominatorRemainder / doubledScale)) lower = candidate;
+    else upper = candidate - 1;
+  }
+  return lower;
+}
+function ocDisplayPercentUnits(units, decimalPlaces) {
+  if (decimalPlaces === 0) return String(units);
+  const whole = Math.floor(units / 10);
+  const tenths = units % 10;
+  return tenths === 0 ? String(whole) : `${whole}.${tenths}`;
+}
+function ocFormatCacheHitPercent(cacheReadTokens, promptTokens, decimalPlaces = 0) {
+  if (promptTokens === 0) return null;
+  const missedInputTokens = promptTokens - cacheReadTokens;
+  if (missedInputTokens === 0) return "100";
+  const roundedUnits = ocRoundedPercentUnits(cacheReadTokens, promptTokens, decimalPlaces);
+  if (roundedUnits < (decimalPlaces === 0 ? 100 : 1e3)) return ocDisplayPercentUnits(roundedUnits, decimalPlaces);
+  let distinguishingPlaces = 1;
+  let scaledDoubleGap = missedInputTokens * 200;
+  const denominatorTens = Math.floor(promptTokens / 10);
+  while (scaledDoubleGap <= denominatorTens) {
+    scaledDoubleGap *= 10;
+    distinguishingPlaces += 1;
+  }
+  const denominatorOnes = promptTokens % 10;
+  let roundedLoss = 5;
+  for (let loss = 1; loss < 5; loss += 1) {
+    const factor = loss * 2 + 1;
+    const threshold = factor * denominatorTens + Math.floor(factor * denominatorOnes / 10);
+    if (scaledDoubleGap <= threshold) {
+      roundedLoss = loss;
+      break;
+    }
+  }
+  return `99.${"9".repeat(distinguishingPlaces - 1)}${10 - roundedLoss}`;
+}
+function openCodeCacheHit(usage, places = 1) {
+  const prompt = openCodeUsageNumber(usage?.input) + openCodeUsageNumber(usage?.cacheRead) + openCodeUsageNumber(usage?.cacheWrite);
+  const p = ocFormatCacheHitPercent(Math.round(openCodeUsageNumber(usage?.cacheRead)), Math.round(prompt), places);
+  return p === null ? void 0 : `${p}%`;
+}
+function openCodeUsageRows(dl, rows) {
+  for (const [label, value, extra] of rows) {
+    if (value === void 0 || value === "") continue;
+    append(dl, $55("dt", void 0, label));
+    const dd = append(dl, $55("dd", void 0, value));
+    if (extra) append(dd, $55("span.opencode-usage-panel-sub", void 0, extra));
+  }
+}
+function buildOpenCodeUsagePanel(usage) {
+  const panel = $55(".opencode-usage-panel");
+  const reported = openCodeUsageNumber(usage.reportedSteps) > 0;
+  const title = append(panel, $55(".opencode-usage-panel-title"));
+  const titleLabel = append(title, $55("span.opencode-usage-panel-title-label"));
+  append(titleLabel, $55("span.codicon.codicon-database"));
+  append(titleLabel, $55("span", void 0, "\u672C\u8F6E\u7528\u91CF"));
+  append(title, $55("span.opencode-usage-panel-title-value", void 0, reported ? formatOpenCodeExactTokens(usage.total) : "\u672A\u8FD4\u56DE"));
+  append(panel, $55(".opencode-usage-panel-rule"));
+  const details = append(panel, $55("dl.opencode-usage-panel-details"));
+  const models = Array.isArray(usage.models) ? usage.models.filter((model) => typeof model === "string" && model).join(", ") : "";
+  const route = models ? usage.provider ? `${usage.provider} / ${models}` : models : usage.provider;
+  const missing = openCodeUsageNumber(usage.steps) - openCodeUsageNumber(usage.reportedSteps);
+  openCodeUsageRows(details, reported ? [
+    ["\u63D0\u4F9B\u65B9 / \u6A21\u578B", route],
+    ["\u7F13\u5B58\u547D\u4E2D", openCodeCacheHit(usage)],
+    ["\u672A\u7F13\u5B58\u8F93\u5165", formatOpenCodeExactTokens(usage.input)],
+    ["\u7F13\u5B58\u8BFB\u53D6", openCodeUsageNumber(usage.cacheRead) > 0 ? formatOpenCodeExactTokens(usage.cacheRead) : void 0],
+    ["\u7F13\u5B58\u5199\u5165", openCodeUsageNumber(usage.cacheWrite) > 0 ? formatOpenCodeExactTokens(usage.cacheWrite) : void 0],
+    ["\u8F93\u51FA", formatOpenCodeExactTokens(usage.output), openCodeUsageNumber(usage.reasoning) > 0 ? `\uFF08\u5176\u4E2D\u63A8\u7406 ${formatOpenCodeExactTokens(usage.reasoning)}\uFF09` : void 0],
+    ["\u672A\u8FD4\u56DE\u7528\u91CF", missing > 0 ? `${missing} \u6B65` : void 0]
+  ] : [
+    ["\u63D0\u4F9B\u65B9 / \u6A21\u578B", route],
+    ["\u8BF4\u660E", "\u63D0\u4F9B\u65B9\u672A\u8FD4\u56DE token \u7528\u91CF"]
+  ]);
+  append(panel, $55(".opencode-usage-panel-section", void 0, "\u6027\u80FD"));
+  openCodeUsageRows(append(panel, $55("dl.opencode-usage-panel-details")), [
+    ["\u8F93\u51FA\u901F\u5EA6", typeof usage.tps === "number" ? `${formatOpenCodeTps(usage.tps)} tok/s` : void 0],
+    ["\u9996 token", usage.ttftMs !== void 0 && usage.ttftMs !== null ? `${formatOpenCodeShortDuration(usage.ttftMs)}${openCodeUsageNumber(usage.ttftCount) > 1 ? "\uFF08\u5E73\u5747\uFF09" : ""}` : void 0],
+    ["\u6A21\u578B\u7528\u65F6", openCodeUsageNumber(usage.llmMs) > 0 ? formatOpenCodeShortDuration(usage.llmMs) : void 0],
+    ["\u5DE5\u5177\u8C03\u7528\u7528\u65F6", openCodeUsageNumber(usage.toolMs) > 0 ? formatOpenCodeShortDuration(usage.toolMs) : void 0],
+    ["\u672C\u8F6E\u7528\u65F6", openCodeUsageNumber(usage.durationMs) > 0 ? formatOpenCodeDuration(Math.max(1e3, usage.durationMs)) : void 0],
+    ["\u6B65\u6570", openCodeUsageNumber(usage.steps) > 0 ? String(usage.steps) : void 0]
+  ]);
+  const session = usage.session && typeof usage.session === "object" ? usage.session : void 0;
+  if (session && openCodeUsageNumber(session.turns) > 0) {
+    append(panel, $55(".opencode-usage-panel-section", void 0, "\u4F1A\u8BDD\u7EDF\u8BA1"));
+    openCodeUsageRows(append(panel, $55("dl.opencode-usage-panel-details")), [
+      ["\u8F6E\u6B21", `${session.turns} \u8F6E \xB7 ${openCodeUsageNumber(session.steps)} \u6B65`],
+      ["Token \u7528\u91CF", openCodeUsageNumber(session.reportedSteps) > 0 ? formatOpenCodeExactTokens(session.total) : void 0],
+      ["\u7F13\u5B58\u547D\u4E2D", openCodeUsageNumber(session.reportedSteps) > 0 ? openCodeCacheHit(session, 0) : void 0],
+      ["\u8F93\u51FA", openCodeUsageNumber(session.reportedSteps) > 0 ? formatOpenCodeExactTokens(session.output) : void 0],
+      // OpenCode dsh-metrics: session-wide speed / average TTFT / LLM time / tool time (dsh ActivityPill)
+      ["\u8F93\u51FA\u901F\u5EA6", openCodeUsageNumber(session.speedMs) > 0 ? `${formatOpenCodeTps(openCodeUsageNumber(session.speedTokens) / (session.speedMs / 1e3))} tok/s` : void 0],
+      ["\u9996 token", openCodeUsageNumber(session.ttftCount) > 0 ? `${formatOpenCodeShortDuration(openCodeUsageNumber(session.ttftMsTotal) / session.ttftCount)}\uFF08\u5E73\u5747\uFF09` : void 0],
+      ["\u6A21\u578B\u7528\u65F6", openCodeUsageNumber(session.llmMs) > 0 ? formatOpenCodeShortDuration(session.llmMs) : void 0],
+      ["\u5DE5\u5177\u8C03\u7528\u7528\u65F6", openCodeUsageNumber(session.toolMs) > 0 ? formatOpenCodeShortDuration(session.toolMs) : void 0]
+    ]);
+  }
+  return panel;
+}
+function renderOpenCodeTurnUsage(container3, usage, hoverRef, hoverService) {
+  if (!usage || typeof usage !== "object") {
+    hoverRef.clear();
+    return;
+  }
+  const reported = openCodeUsageNumber(usage.reportedSteps) > 0;
+  if (container3.childElementCount > 0) {
+    append(container3, $55("span.chat-response-details-separator", { "aria-hidden": "true" }, "\u2022"));
+  }
+  const pill = append(container3, $55("span.opencode-usage-pill", { tabindex: "0", role: "button" }));
+  append(pill, $55("span.codicon.codicon-database"));
+  append(pill, $55("span.opencode-usage-pill-label", void 0, reported ? `\u7528\u91CF ${formatOpenCodeCompactTokens(usage.total)} tok` : "\u7528\u91CF\u672A\u8FD4\u56DE"));
+  const meta = [];
+  if (typeof usage.tps === "number") meta.push(`${formatOpenCodeTps(usage.tps)} tok/s`);
+  if (openCodeUsageNumber(usage.durationMs) > 0) meta.push(formatOpenCodeDuration(Math.max(1e3, usage.durationMs)));
+  if (meta.length) append(container3, $55("span.opencode-usage-meta", void 0, meta.join(" \xB7 ")));
+  pill.ariaLabel = `\u672C\u8F6E\u7528\u91CF ${reported ? formatOpenCodeExactTokens(usage.total) : "\u672A\u8FD4\u56DE"}`;
+  hoverRef.value = hoverService.setupManagedHover(getDefaultHoverDelegate("element"), pill, { element: () => buildOpenCodeUsagePanel(usage) });
+  container3.classList.remove("hidden");
+}
+
 function renderChatRequestTimestamp(container3, timestamp) {
   const formatted = formatChatRequestTimestamp(timestamp);
   if (!formatted) {
@@ -826,6 +993,9 @@ var ChatListItemRenderer = class extends Disposable {
     const elementDisposables = templateDisposables.add(new DisposableStore());
     const completedResponseDisclosureDisposables = templateDisposables.add(new DisposableStore());
     const responseTokenStatsHover = templateDisposables.add(new MutableDisposable());
+    const openCodeUsageHover = templateDisposables.add(new MutableDisposable());
+    const openCodeRunClockTimer = templateDisposables.add(new MutableDisposable());
+    const openCodeRunClock = append(rowContainer, $55(".opencode-run-clock"));
     const footerToolbarContainer = append(rowContainer, $55(".chat-footer-toolbar"));
     if (this.rendererOptions.noFooter) {
       footerToolbarContainer.classList.add("hidden");
@@ -891,7 +1061,7 @@ var ChatListItemRenderer = class extends Disposable {
     }));
     const connectionObserver = document.createElement("connection-observer");
     append(container3, connectionObserver);
-    const template2 = { header: header2, avatarContainer, requestHover, username, detail: detail2, value: value2, requestTimestampContainer, rowContainer, elementDisposables, templateDisposables, contextKeyService, instantiationService: scopedInstantiationService, agentHover, titleToolbar, footerToolbar, footerToolbarContainer, footerDetailsContainer, disabledOverlay, checkpointToolbar, checkpointRestoreToolbar, checkpointContainer, checkpointRestoreContainer, completedResponseDisclosureDisposables, responseTokenStatsHover, feedbackSurveyWidget };
+    const template2 = { header: header2, avatarContainer, requestHover, username, detail: detail2, value: value2, requestTimestampContainer, rowContainer, elementDisposables, templateDisposables, contextKeyService, instantiationService: scopedInstantiationService, agentHover, titleToolbar, footerToolbar, footerToolbarContainer, footerDetailsContainer, disabledOverlay, checkpointToolbar, checkpointRestoreToolbar, checkpointContainer, checkpointRestoreContainer, completedResponseDisclosureDisposables, responseTokenStatsHover, feedbackSurveyWidget, openCodeUsageHover, openCodeRunClockTimer, openCodeRunClock };
     this.templateDataByRow.set(rowContainer, template2);
     templateDisposables.add(this._onDidUpdateViewModel.event(() => {
       if (!template2.currentElement || !this.viewModel?.sessionResource || !isEqual2(template2.currentElement.sessionResource, this.viewModel.sessionResource)) {
@@ -962,6 +1132,77 @@ var ChatListItemRenderer = class extends Disposable {
     }
   }
   /**
+   * Live elapsed clock under a response that is still running (dsh RunningStatus):
+   * ticks once a second from the response start and hides itself on completion.
+   */
+  updateOpenCodeRunClock(element, templateData, onComplete) {
+    const clock = templateData.openCodeRunClock;
+    if (!clock) {
+      return;
+    }
+    templateData.openCodeRunClockTimer.clear();
+    clearNode(clock);
+    clock.classList.remove("active");
+    if (!isResponseVM(element) || element.isComplete) {
+      return;
+    }
+    const startedAt = typeof element.model.timestamp === "number" ? element.model.timestamp : Date.now();
+    append(clock, $55("span.opencode-run-clock-dot", { "aria-hidden": "true" }));
+    const label3 = append(clock, $55("span.opencode-run-clock-label"));
+    // OpenCode: 「运行中，用时」后面跟实时 token，悬停看与回复结束相同的用量清单
+    const ocTok = append(clock, $55("span.opencode-usage-pill.opencode-run-clock-tokens", { tabindex: "0", role: "button" }));
+    // live-usage-flicker-step01: 流式输出时这一行会随重绘反复重建；先用上次取到的用量填上，不再闪回「0 tok」
+    const ocLiveCache = globalThis.__openCodeLiveUsageCache ??= /* @__PURE__ */ new Map();
+    let ocLiveUsage = ocLiveCache.get(element.requestId);
+    const ocTokLabel = append(ocTok, $55("span.opencode-usage-pill-label", void 0, ocLiveUsage ? `${openCodeUsageNumber(ocLiveUsage.estimatedOutput) > 0 ? "\u2248" : ""}${formatOpenCodeCompactTokens(ocLiveUsage.total)} tok` : "0 tok"));
+    let ocLivePending = false;
+    let ocLiveTicks = 0;
+    const ocHover = this.hoverService.setupManagedHover(getDefaultHoverDelegate("element"), ocTok, { element: () => buildOpenCodeUsagePanel(ocLiveUsage ?? { steps: 0, reportedSteps: 0, durationMs: Date.now() - startedAt }) });
+    templateData.elementDisposables.add(ocHover);
+    const ocFetchLive = () => {
+      if (ocLivePending || element.isComplete) return;
+      ocLivePending = true;
+      Promise.resolve(this.commandService.executeCommand("opencode.liveTurnUsage", element.requestId)).then((usage) => {
+        if (usage && typeof usage === "object") {
+          ocLiveUsage = usage;
+          ocLiveCache.delete(element.requestId);
+          ocLiveCache.set(element.requestId, usage);
+          if (ocLiveCache.size > 50) ocLiveCache.delete(ocLiveCache.keys().next().value);
+          ocTokLabel.textContent = `${openCodeUsageNumber(usage.estimatedOutput) > 0 ? "\u2248" : ""}${formatOpenCodeCompactTokens(usage.total)} tok`;
+          ocTok.ariaLabel = `\u672C\u8F6E\u7528\u91CF ${formatOpenCodeExactTokens(usage.total)}`;
+        }
+      }, () => {
+        ocTok.style.display = "none";
+      }).finally(() => {
+        ocLivePending = false;
+      });
+    };
+    clock.classList.add("active");
+    const targetWindow = getWindow(clock);
+    let handle;
+    const stop = () => {
+      if (handle !== void 0) {
+        targetWindow.clearInterval(handle);
+        handle = void 0;
+      }
+    };
+    const tick = () => {
+      if (element.isComplete) {
+        stop();
+        clock.classList.remove("active");
+        clearNode(clock);
+        onComplete();
+        return;
+      }
+      label3.textContent = `\u8FD0\u884C\u4E2D\uFF0C\u7528\u65F6 ${formatOpenCodeDuration(Math.max(1e3, Date.now() - startedAt))} \xB7`;
+      if (ocLiveTicks++ % 2 === 0) ocFetchLive();
+    };
+    tick();
+    handle = targetWindow.setInterval(tick, 1e3);
+    templateData.openCodeRunClockTimer.value = toDisposable(stop);
+    templateData.elementDisposables.add(toDisposable(() => templateData.openCodeRunClockTimer.clear()));
+  }
+  /**
    * Renders the branch variant badge (模型 · 分支 i/N · 主线) into the response
    * footer details line. Called after `renderChatResponseDetails` so the badge
    * is re-created whenever the details line is refreshed.
@@ -973,6 +1214,10 @@ var ChatListItemRenderer = class extends Disposable {
     const parts = [];
     if (rowInfo.modelId) {
       parts.push(rowInfo.modelId);
+    }
+    const openCodeRoleLabel = { critic: "\u5BA1\u67E5\u8005", alternative: "\u66FF\u4EE3\u65B9\u6848", minimal: "\u6700\u5C0F\u6539\u52A8", verifier: "\u9A8C\u8BC1\u4F18\u5148" }[rowInfo.role ?? ""];
+    if (openCodeRoleLabel) {
+      parts.push(openCodeRoleLabel);
     }
     parts.push(rowInfo.variantKind === "merge" ? localize(12406, null) : localize(12407, null, rowInfo.variantIndex + 1, rowInfo.variantCount));
     if (rowInfo.isCanonical) {
@@ -1049,6 +1294,9 @@ var ChatListItemRenderer = class extends Disposable {
     ChatContextKeys.openCodeBranchCanDelete.bindTo(templateData.contextKeyService).set(openCodeBranchRowInfo?.canDelete ?? false);
     ChatContextKeys.openCodeBranchHasPrev.bindTo(templateData.contextKeyService).set(openCodeBranchRowInfo?.hasPrev ?? false);
     ChatContextKeys.openCodeBranchHasNext.bindTo(templateData.contextKeyService).set(openCodeBranchRowInfo?.hasNext ?? false);
+    const openCodeLastResponse = this.viewModel && isResponseVM(element) ? this.viewModel.getItems().filter(isResponseVM).at(-1) : void 0;
+    ChatContextKeys.openCodeBranchCanRunAll.bindTo(templateData.contextKeyService).set(!!openCodeLastResponse && openCodeLastResponse.id === element.id && !openCodeBranchRowInfo?.group.mergedRequestId);
+    ChatContextKeys.openCodeBranchCanCompare.bindTo(templateData.contextKeyService).set(isResponseVM(element) && (openCodeBranchRowInfo?.group.variants.filter((variant) => !variant.canceled).length ?? 0) >= 2);
     if (isResponseVM(element)) {
       ChatContextKeys.responseSupportsIssueReporting.bindTo(templateData.contextKeyService).set(!!element.agent?.metadata.supportIssueReporting);
       ChatContextKeys.responseVote.bindTo(templateData.contextKeyService).set(element.vote === 1 /* Up */ ? "up" : element.vote === 0 /* Down */ ? "down" : "");
@@ -1082,6 +1330,7 @@ var ChatListItemRenderer = class extends Disposable {
         tokenStatsHover.value = this.hoverService.setupManagedHover(getDefaultHoverDelegate("element"), templateData.footerDetailsContainer, tokenStats);
       }
       this.renderOpenCodeBranchVariantBadge(templateData.footerDetailsContainer, openCodeBranchRowInfo, isResponseVM(element));
+      renderOpenCodeTurnUsage(templateData.footerDetailsContainer, isResponseVM(element) && element.isComplete ? element.result?.metadata?.opencodeTurnUsage : void 0, templateData.openCodeUsageHover, this.hoverService);
       if (!completedAtElement) {
         responseTimingListeners.clear();
         return;
@@ -1115,6 +1364,7 @@ var ChatListItemRenderer = class extends Disposable {
       }));
     };
     updateResponseDetails();
+    this.updateOpenCodeRunClock(element, templateData, updateResponseDetails);
     ChatContextKeys.responseHasError.bindTo(templateData.contextKeyService).set(isResponseVM(element) && !!element.errorDetails);
     const isFiltered = !!(isResponseVM(element) && element.errorDetails?.responseIsFiltered);
     ChatContextKeys.responseIsFiltered.bindTo(templateData.contextKeyService).set(isFiltered);
@@ -1331,7 +1581,23 @@ var ChatListItemRenderer = class extends Disposable {
     }
     if (icon2 instanceof URI) {
       const avatarIcon = $("img.icon");
-      avatarIcon.src = FileAccess.uriToBrowserUri(icon2).toString(true);
+      const ocSrc = FileAccess.uriToBrowserUri(icon2).toString(true);
+      // OpenCode p21: 头像图片偶尔加载失败（扩展资源尚未就绪等）会显示破图：先重试两次，仍失败就换成默认图标
+      let ocTries = 0;
+      avatarIcon.onerror = () => {
+        if (ocTries++ < 2) {
+          setTimeout(() => {
+            if (avatarIcon.isConnected) avatarIcon.src = ocSrc + (ocSrc.includes("?") ? "&" : "?") + "oc_r=" + ocTries;
+          }, 400 * ocTries);
+          return;
+        }
+        try {
+          const fb = $(ThemeIcon.asCSSSelector(Codicon.chatSparkle));
+          if (avatarIcon.parentElement) avatarIcon.parentElement.replaceWith($(".avatar.codicon-avatar", void 0, fb));
+        } catch {
+        }
+      };
+      avatarIcon.src = ocSrc;
       templateData.avatarContainer.replaceChildren($(".avatar", void 0, avatarIcon));
     } else {
       const avatarIcon = $(ThemeIcon.asCSSSelector(templateData.rowContainer.classList.contains("interactive-item-compact") ? getCompactCodicon(icon2) : icon2));
@@ -1422,6 +1688,10 @@ var ChatListItemRenderer = class extends Disposable {
       }
     }
     if (isWaitingForMcpServers(partsToRender)) {
+      return void 0;
+    }
+    // OpenCode: 「正在工作」之类的提示去掉，只留底部「运行中，用时 · token」一行（待确认的工具仍会提示）
+    if (templateData?.openCodeRunClock) {
       return void 0;
     }
     const workingParts = getWorkingProgressRelevantParts(partsToRender);
@@ -3431,10 +3701,6 @@ var ChatListItemRenderer = class extends Disposable {
     }
     if (result.feedback) {
       return localize(12365, null);
-    }
-    const action = review.actions.find((a) => a.label === result.action);
-    if (action?.permissionLevel === "autopilot") {
-      return localize(12364, null);
     }
     return localize(12363, null);
   }

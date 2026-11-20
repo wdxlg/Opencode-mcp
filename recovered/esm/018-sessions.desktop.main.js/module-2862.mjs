@@ -20,6 +20,7 @@ import { ILanguageModelsService } from "./module-0968.mjs";
 import { IDialogService } from "./module-0267.mjs";
 import { ICommandService } from "./module-0087.mjs";
 import { IInstantiationService } from "./module-0077.mjs";
+import { isOpenCodeAutoApproveMode } from "./module-0965.mjs";
 
 
 // src/vs/workbench/contrib/mcp/common/mcpSamplingService.ts
@@ -93,7 +94,8 @@ var McpSamplingService = class extends Disposable {
   }
   async _getMatchingModel(opts) {
     const model = await this._getMatchingModelInner(opts.server, opts.isDuringToolCall, opts.params.modelPreferences);
-    const globalAutoApprove = this._configurationService.getValue("chat.tools.global.autoApprove" /* GlobalAutoApprove */);
+    // OpenCode: 「权限」按钮为自动允许 / 全自动时，MCP 服务器的采样请求也不再逐次询问（取代已删除的全局自动批准设置）
+    const globalAutoApprove = isOpenCodeAutoApproveMode(this._configurationService);
     if (model === 0 /* UnsureAllowedDuringChat */) {
       if (globalAutoApprove) {
         this._sessionSets.allowedDuringChat.set(opts.server.definition.id, true);

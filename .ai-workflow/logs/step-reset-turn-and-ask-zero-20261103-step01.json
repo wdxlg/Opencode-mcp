@@ -1,0 +1,56 @@
+{
+  "task_id": "step-reset-turn-and-ask-zero-20261103-step01",
+  "at": "2026-11-02T18:16:24.049091+00:00",
+  "pre_commit": "f39d7fdc052ce7c28952a08ef3f35564e4818ced",
+  "post_commit": "94bdc2ea4dec2bd4af1cbc1000b39063f0aaf83c",
+  "branch": "refs/heads/task/step-reset-turn-and-ask-zero-20261103-step01",
+  "live_rules_revision": 118,
+  "files": [
+    {
+      "path": "recovered/shared/automation-store.mjs",
+      "bytes": 136432,
+      "sha256": "6275158c4a6f4d24874d62d435e2115c26c521cca676927426964e56ab842519"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/automation-store.mjs",
+      "bytes": 136432,
+      "sha256": "6275158c4a6f4d24874d62d435e2115c26c521cca676927426964e56ab842519"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0043.mjs",
+      "bytes": 14940,
+      "sha256": "d27acb5c472fe274eced1180e44a2a12a73e8142f5dc1f72a9f8c750f49607a7"
+    },
+    {
+      "path": "recovered/esm/002-agent-host.js/module-0028.mjs",
+      "bytes": 14730,
+      "sha256": "1a07c6b4b532f867a94dafac0bbc787d0607e5a38074270e2a9c2db2a1ab020c"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0140.mjs",
+      "bytes": 27789,
+      "sha256": "7219bcd08bea8979c51fd74d5e308f0be2cdcb3f35f357d5f54b82f220730d6f"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0143.mjs",
+      "bytes": 46554,
+      "sha256": "a42fbcf79c839107dcd80527aeeea84d4d3e5f6c56a62b87b043a8f98c4c83ef"
+    },
+    {
+      "path": "recovered/typescript/extensions/opencode/src/bridge-constants.ts",
+      "bytes": 33543,
+      "sha256": "5fc40cf56936c2515bd979c699fb6ee92e407f94eb27b12e75194520d213482d"
+    },
+    {
+      "path": "defaults/copy-prompt.txt",
+      "bytes": 5999,
+      "sha256": "a156fa2c2d8c11f7faca4785aaaf4e0365eec417e32020fe2f0ea5727d52c65e"
+    },
+    {
+      "path": "defaults/manifest.json",
+      "bytes": 80777,
+      "sha256": "965771478a0f241b1b98fc80ec0aca0f5606036a1f1ea5dae4b3afbc07fdabf7"
+    }
+  ],
+  "verification": "STEP_BUDGET_TURN_AND_ASK_ZERO_VERIFY_ALL_PASS & test-task-autonomy 7/7 pass & verify-build 0 errors"
+}

@@ -1,0 +1,44 @@
+{
+  "id": "info-collector",
+  "sourceName": "info-collector",
+  "title": "多平台信息搜集与热点追踪",
+  "category": "内容与自媒体自动化",
+  "repo": "local/opencode-builtin-skills",
+  "commit": "f266a10f65c42b8764125229f587b546ad4d2249",
+  "sourcePath": "skills/info-collector/",
+  "sourceUrl": "https://github.com/joyce677/TrendRadar",
+  "license": "Apache-2.0",
+  "licenseBasis": "Bundled skill LICENSE.txt",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "内置可迁移 Python + Playwright (Microsoft Edge) 脚本，不含任何个人账号凭据。",
+  "modifications": [
+    "Integrated directly into OpenCode default bundled skills with self-contained scripts/ directory."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "agents/openai.yaml",
+      "upstreamSha256": "bcd123cb4f4c11db34ad7f797b3e724037a0a446bd601e9bfd821a2754a855cc"
+    },
+    {
+      "path": "LICENSE.txt",
+      "upstreamSha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"
+    },
+    {
+      "path": "scripts/config.json",
+      "upstreamSha256": "f44c9e3c923ae00649bea22129f18d01dd2d3a632b06134ee30a3ae6615bc5d6"
+    },
+    {
+      "path": "scripts/info.cmd",
+      "upstreamSha256": "1353ad2e3d0a0e46b1ad655a9aea4e67ee39afd1affa4f582806e4b7dd221626"
+    },
+    {
+      "path": "scripts/info_cli.py",
+      "upstreamSha256": "116b5cc693afd66e3a16be164d659824482a0288087cdb4c978080a4ad88a927"
+    },
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "9a4f6764b5b7932d894a988a69aaa4fac2a730fb10f41b77e5f6e7d36db7733c"
+    }
+  ]
+}

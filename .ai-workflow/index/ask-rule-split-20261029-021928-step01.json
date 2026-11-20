@@ -1,0 +1,70 @@
+{
+  "task_id": "ask-rule-split-20261029-021928-step01",
+  "status": "source_and_build_complete_function_unverified",
+  "files": [
+    {
+      "path": "tasks/ask-rule-split-20261029-021928-step01/task.md",
+      "purpose": "任务状态与使用方法",
+      "sha256": "ac2eb758d2118313a8140036d77612590cc25c976222712dc7aa538b89e0b997"
+    },
+    {
+      "path": "tasks/ask-rule-split-20261029-021928-step01/progress.md",
+      "purpose": "进度摘要",
+      "sha256": "631bf1044b8aa2f65c6f2b9ee019054f05adcd4ad9101c160b19f9ccad0d83da"
+    },
+    {
+      "path": "recovered/shared/automation-store.mjs",
+      "purpose": "默认规则与保守迁移真源",
+      "sha256": "4670b4459b6d63b9dc9fceb619af24d0f3d1be90831de71fa84a87dfcb24fa29"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/automation-store.mjs",
+      "purpose": "构建同步副本",
+      "sha256": "4670b4459b6d63b9dc9fceb619af24d0f3d1be90831de71fa84a87dfcb24fa29"
+    },
+    {
+      "path": "README.md",
+      "purpose": "版本与共享规则风险说明",
+      "sha256": "8998bd2fee0775aa52e40f1131228ee34d9e1240d9ae5cd3de3f925ccf13d5bc"
+    },
+    {
+      "path": "package.json",
+      "purpose": "源码版本与构建入口",
+      "sha256": "2b00f9a8b6f654827b2ebf10644f900bfd771f2baf1f75119545e79514bc30cc"
+    },
+    {
+      "path": "reports/build/000-extension.js.json",
+      "purpose": "编译回执与既有警告",
+      "sha256": "e217e59d7b42487017af91aad21f01742a35fe92bd741296578c3ab803fcf610"
+    },
+    {
+      "path": "reports/source-build.json",
+      "purpose": "28 个编译单元回执",
+      "sha256": "ddc1fdea8bbdb99d579d2e5040ed6b5b606bf01bdfffee951cb4325457fec26a"
+    },
+    {
+      "path": "opencode/resources/app/extensions/opencode/dist/extension.js",
+      "purpose": "源码内运行版扩展构建输出",
+      "sha256": "8dfce3012cc5cd7976babbfedfc875370080116fbb09e7f59b3079bd93bd548c"
+    },
+    {
+      "path": "opencode/OPENCODE-RELEASE.json",
+      "purpose": "运行版发布清单，保留源 HEAD 与 dirty 事实",
+      "sha256": "2aea746a008c2243cb869f68bbc63d6f8b2ff0a8ce011ed85c7ead23862cd5cc"
+    },
+    {
+      "path": "backup/ask-rule-split-20261029-021928-step01/memory-before.sqlite",
+      "purpose": "工作流 SQL 一致性备份，不入 Git",
+      "sha256": "4d0cd64a0134a61096bac19030360f0e372c7e6de46a7d37780e4922d4798034"
+    },
+    {
+      "path": ".ai-workflow/logs/ask-rule-split-20261029-021928-step01.json",
+      "purpose": "本任务操作记录",
+      "sha256": "5aa64f3b9aa0e5717631470064abd1306e23344e360e750c53e1e030c0762fcd"
+    }
+  ],
+  "completed_at": "2026-10-29T02:33:32+08:00",
+  "source_commit": "e5dbacc0565b5b53516942a69d48ede99312d3a3",
+  "branch": "refs/heads/task/ask-rule-split-20261029-021928-step01",
+  "user_acceptance": "not_run"
+}

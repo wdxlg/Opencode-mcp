@@ -28,18 +28,28 @@ function sameJsonValue2(left, right) {
   }
 }
 
+// When a collector is active (validateToolInput), every problem is recorded and reported in one
+// error so callers can fix all fields at once instead of one per round trip.
+var activeCollector;
+var MAX_REPORTED_INPUT_ERRORS = 20;
 function fail(path36, message2) {
-  throw new Error(`INVALID_ARGUMENT: ${path36} ${message2}`);
+  const line = `${path36} ${message2}`;
+  if (activeCollector) {
+    activeCollector.push(line);
+    return;
+  }
+  throw new Error(`INVALID_ARGUMENT: ${line}`);
 }
 
 function validateType(path36, expected, value) {
   if (typeof expected !== "string") return;
   const valid = expected === "object" ? Boolean(value) && typeof value === "object" && !Array.isArray(value) : expected === "array" ? Array.isArray(value) : expected === "integer" ? Number.isInteger(value) : expected === "number" ? typeof value === "number" && Number.isFinite(value) : expected === "string" ? typeof value === "string" : expected === "boolean" ? typeof value === "boolean" : expected === "null" ? value === null : true;
   if (!valid) fail(path36, `must be ${expected}; received ${valueType(value)}.`);
+  return valid;
 }
 
 function validateSchema(schema, value, path36) {
-  validateType(path36, schema.type, value);
+  if (validateType(path36, schema.type, value) === false) return;
   if (Array.isArray(schema.enum) && !schema.enum.some((allowed) => sameJsonValue2(allowed, value))) {
     fail(path36, `must be one of ${schema.enum.map((item) => JSON.stringify(item)).join(", ")}.`);
   }
@@ -89,10 +99,16 @@ function validateSchema(schema, value, path36) {
     const row = value;
     const properties = schemaObject(schema.properties) ?? {};
     if (Array.isArray(schema.required)) {
+      const missing = [];
       for (const key of schema.required) {
         if (typeof key === "string" && (!Object.prototype.hasOwnProperty.call(row, key) || row[key] === void 0)) {
+          missing.push(key);
           fail(`${path36}.${key}`, "is required.");
         }
+      }
+      if (missing.length && activeCollector) {
+        const required = schema.required.filter((key) => typeof key === "string");
+        activeCollector.push(`${path36} requires: ${required.join(", ")}.`);
       }
     }
     for (const [key, item] of Object.entries(row)) {
@@ -111,6 +127,18 @@ function validateSchema(schema, value, path36) {
 function validateToolInput(toolName, inputSchema, input) {
   const schema = schemaObject(inputSchema);
   if (!schema) throw new Error(`Invalid input schema for tool ${toolName}.`);
-  validateSchema(schema, input, toolName);
+  const previous = activeCollector;
+  const errors = [];
+  activeCollector = errors;
+  try {
+    validateSchema(schema, input, toolName);
+  } finally {
+    activeCollector = previous;
+  }
+  if (!errors.length) return;
+  const unique = [...new Set(errors)];
+  const shown = unique.slice(0, MAX_REPORTED_INPUT_ERRORS);
+  const more = unique.length > shown.length ? ` (+${unique.length - shown.length} more)` : "";
+  throw new Error(`INVALID_ARGUMENT: ${shown.join(" ")}${more}`);
 }
 export { schemaObject, valueType, sameJsonValue2, fail, validateType, validateSchema, validateToolInput };

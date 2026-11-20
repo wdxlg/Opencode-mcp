@@ -368,9 +368,12 @@ var NativeWindow = class extends BaseWindow {
   }
   //#region Window Lifecycle
   onBeforeShutdown({ veto, reason }) {
+    // OpenCode: the main process already hid the window; bring it back for a dialog or a veto.
+    this.ocHideWhileClosing(reason);
     if (reason === 1 /* CLOSE */) {
       const confirmBeforeCloseSetting = this.configurationService.getValue("window.confirmBeforeClose");
-      const confirmBeforeClose = confirmBeforeCloseSetting === "always" || confirmBeforeCloseSetting === "keyboardOnly" && ModifierKeyEmitter.getInstance().isModifierPressed;
+      // OpenCode: an automation-launched instance (OPENCODE_AUTOMATION_RUN=1) quits by itself without a close confirmation
+      const confirmBeforeClose = globalThis.vscode?.process?.env?.OPENCODE_AUTOMATION_RUN !== "1" && (confirmBeforeCloseSetting === "always" || confirmBeforeCloseSetting === "keyboardOnly" && ModifierKeyEmitter.getInstance().isModifierPressed);
       if (confirmBeforeClose) {
         return veto((async () => {
           let actualReason = reason;
@@ -393,7 +396,37 @@ var NativeWindow = class extends BaseWindow {
     }
     this.progressOnBeforeShutdown(reason);
   }
+  // OpenCode: once closing is confirmed (or needs no confirmation), hide the window right away instead of
+  // showing a frozen window while terminals/backups/extensions shut down. Show it again on a veto or a dialog.
+  ocHideWhileClosing(reason) {
+    if (isMacintosh || reason !== 1 /* CLOSE */ && reason !== 2 /* QUIT */ || this.ocClosingHidden) {
+      return;
+    }
+    void (async () => {
+      try {
+        if (reason === 2 /* QUIT */ && await this.nativeHostService.getWindowCount() > 1) {
+          return;
+        }
+        const listeners = [];
+        const stop = () => listeners.splice(0).forEach((l) => l.dispose());
+        const restore = () => {
+          stop();
+          if (this.ocClosingHidden) {
+            this.ocClosingHidden = false;
+            void this.nativeHostService.ocSetWindowHidden(false);
+          }
+        };
+        listeners.push(this.lifecycleService.onShutdownVeto(restore));
+        listeners.push(this.dialogService.onWillShowDialog(restore));
+        listeners.push(this.lifecycleService.onWillShutdown(stop));
+        this.ocClosingHidden = true;
+        await this.nativeHostService.ocSetWindowHidden(true);
+      } catch {
+      }
+    })();
+  }
   progressOnBeforeShutdown(reason) {
+    this.ocHideWhileClosing(reason);
     this.progressService.withProgress({
       location: 10 /* Window */,
       // use window progress to not be too annoying about this operation

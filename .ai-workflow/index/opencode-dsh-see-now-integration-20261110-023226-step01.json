@@ -1,0 +1,45 @@
+{
+  "task": "opencode-dsh-see-now-integration-20261110-023226-step01",
+  "files": [
+    {
+      "path": "recovered/shared/see-now/",
+      "purpose": "vendored dsh-see-now core + OpenCode glue",
+      "status": "added"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/see-now/",
+      "purpose": "sync copy for bundle",
+      "status": "added"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0030.mjs",
+      "purpose": "register see_now",
+      "status": "modified"
+    },
+    {
+      "path": "recovered/shared/windows-mcp-integration.mjs",
+      "purpose": "routing note",
+      "status": "modified"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/windows-mcp-integration.mjs",
+      "purpose": "sync copy",
+      "status": "modified"
+    },
+    {
+      "path": "scripts/sync-shared.cjs",
+      "purpose": "mirror see-now dir",
+      "status": "modified (own hunk only)"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/modules.json",
+      "purpose": "register see-now modules",
+      "status": "modified (own entries only)"
+    },
+    {
+      "path": "tasks/opencode-dsh-see-now-integration-20261110-023226-step01/",
+      "purpose": "task records",
+      "status": "added"
+    }
+  ]
+}

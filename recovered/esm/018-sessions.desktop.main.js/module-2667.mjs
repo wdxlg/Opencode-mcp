@@ -13,7 +13,6 @@ import { NEW_WINDOW_COMMAND_ID, OPEN_FOLDER_COMMAND_ID, newWindowTooltip, openFo
 import { OpenCodeBridgeStatusMessage } from "./module-2664.mjs";
 import { OpenCodeBridgePublicUrlField, encodeMcpAddressForDisplay } from "./module-2660.mjs";
 import { ThemeIcon } from "./module-0086.mjs";
-import { BRIDGE_QUICK_LINKS_SETTING, DEFAULT_QUICK_LINKS, QUICK_LINK_MAX_NAME_LENGTH, QUICK_LINK_MAX_URL_LENGTH, isValidQuickLinkUrl, readQuickLinks } from "./module-2658.mjs";
 import { describeBridgeStartupFailure } from "./module-2665.mjs";
 import { bridgeSettingWriteTarget, isBridgeSettingProjectOverride } from "./module-2655.mjs";
 import { AICustomizationManagementEditorInput } from "./module-2622.mjs";
@@ -57,7 +56,7 @@ var BRIDGE_PERSISTENT_MODE = "opencode.bridge.persistentMode";
 
 var NGROK_VIDEO_TUTORIAL_URL = "https://www.bilibili.com/video/BV1NMt36yEZt/";
 
-var DEFAULT_ARENA_PROMPT = "使用上方 MCP_URL_BASE64 接入 MCP，完成 initialize 与 initialized 握手，先通过 tools/list 阅读工具规则并创建或更新 Bridge 任务卡。接入时必须完整读取已设置的全部已启用规则：调用 bridge_get_effective_rules，再调用 bridge_acknowledge_rules 确认当前哈希。未读取和确认规则，不执行工作区操作；工具不可用时如实说明，不能假装已经读取。";
+import { DEFAULT_TASK_MCP_PROMPT as DEFAULT_ARENA_PROMPT, buildMcpConnectionPrompt } from "./task-handoff-prompts.mjs";
 
 var BRIDGE_COPY_PROMPT_SETTING = "opencode.bridge.copyPromptText";
 
@@ -83,8 +82,6 @@ var OpenCodeBridgeWidget = class extends Disposable {
     this.providerChoiceStacks = /* @__PURE__ */ new Map();
     this.cleaningTunnel = false;
     this.lastDefaultPromptIndex = -1;
-    this.quickLinkButtons = [];
-    this.quickLinkRowButtons = [];
     this.busy = false;
     this.statusRequestVersion = 0;
     this.statusRefreshInFlight = false;
@@ -153,8 +150,6 @@ var OpenCodeBridgeWidget = class extends Disposable {
     this.cleanupButton.label = `$(${Codicon.trash.id}) ${localizeBridge("opencodeBridge.cleanup", "Clean up processes")}`;
     this.cleanupButton.setTitle(localizeBridge("opencodeBridge.cleanupDetail", "Terminate only tunnel processes left behind by a crashed previous session. The running Bridge is not stopped; other windows, editors, proxy tools and tunnels are not affected."));
     this._register(this.cleanupButton.onDidClick(() => this.cleanupTunnel()));
-    this.quickLinkButtonsContainer = append(heroControls, $(".opencode-bridge-quick-links"));
-    this.renderQuickLinkButtons();
     const securityNote = append(heroCard, $(".opencode-bridge-security-note"));
     const warningIcon3 = append(securityNote, $("span"));
     warningIcon3.classList.add(...ThemeIcon.asClassNameArray(Codicon.warning));
@@ -377,50 +372,6 @@ var OpenCodeBridgeWidget = class extends Disposable {
     this._register(this.configurationService.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(BRIDGE_PERSISTENT_MODE)) {
         this.renderPersistentModeToggle(this.configurationService.getValue(BRIDGE_PERSISTENT_MODE) === true);
-      }
-    }));
-    this.quickLinksCard = append(this.root, $("details.opencode-bridge-card.opencode-bridge-quick-links-card"));
-    this.quickLinksCard.open = false;
-    const quickLinksSummary = append(this.quickLinksCard, $("summary"));
-    append(quickLinksSummary, $("h3", void 0, localizeBridge("opencodeBridge.quickLinks", "Quick open")));
-    const quickLinksBody = append(this.quickLinksCard, $(".opencode-bridge-quick-links-body"));
-    append(quickLinksBody, $(
-      "p.opencode-bridge-help",
-      void 0,
-      localizeBridge("opencodeBridge.quickLinksHelp", "Shortcuts you add here appear as buttons at the top of this page and open in the OpenCode built-in browser.")
-    ));
-    const quickLinkForm = append(quickLinksBody, $(".opencode-bridge-quick-link-form"));
-    this.quickLinkNameInput = append(quickLinkForm, $("input.opencode-bridge-input.opencode-bridge-quick-link-name-input"));
-    this.quickLinkNameInput.type = "text";
-    this.quickLinkNameInput.spellcheck = false;
-    this.quickLinkNameInput.placeholder = localizeBridge("opencodeBridge.quickLinkNamePlaceholder", "Name");
-    this.quickLinkUrlInput = append(quickLinkForm, $("input.opencode-bridge-input.opencode-bridge-quick-link-url-input"));
-    this.quickLinkUrlInput.type = "text";
-    this.quickLinkUrlInput.spellcheck = false;
-    this.quickLinkUrlInput.placeholder = localizeBridge("opencodeBridge.quickLinkUrlPlaceholder", "https://\u2026");
-    this.quickLinkAddButton = this._register(new Button(quickLinkForm, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
-    this.quickLinkAddButton.label = `$(${Codicon.add.id}) ${localizeBridge("opencodeBridge.quickLinkAdd", "Add")}`;
-    this._register(this.quickLinkAddButton.onDidClick(() => this.addQuickLink()));
-    for (const input of [this.quickLinkNameInput, this.quickLinkUrlInput]) {
-      this._register(addDisposableListener(input, "input", () => this.updateControls()));
-      this._register(addDisposableListener(input, "keydown", (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          void this.addQuickLink();
-        }
-      }));
-    }
-    this.quickLinkMessage = append(quickLinksBody, $(".opencode-bridge-quick-link-message"));
-    this.quickLinkList = append(quickLinksBody, $(".opencode-bridge-quick-link-list"));
-    this.renderQuickLinksList();
-    const quickLinkFooter = append(quickLinksBody, $(".opencode-bridge-quick-link-footer"));
-    this.quickLinkRestoreButton = this._register(new Button(quickLinkFooter, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
-    this.quickLinkRestoreButton.label = `$(${Codicon.refresh.id}) ${localizeBridge("opencodeBridge.quickLinkRestoreDefaults", "Restore defaults")}`;
-    this._register(this.quickLinkRestoreButton.onDidClick(() => void this.restoreQuickLinksDefaults()));
-    this._register(this.configurationService.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration(BRIDGE_QUICK_LINKS_SETTING)) {
-        this.renderQuickLinkButtons();
-        this.renderQuickLinksList();
       }
     }));
     const advanced = append(this.root, $("details.opencode-bridge-card.opencode-bridge-advanced-card"));
@@ -901,11 +852,7 @@ var OpenCodeBridgeWidget = class extends Disposable {
   async copyArenaPrompt() {
     const url = this.lastStatus?.publicUrl?.trim();
     const prompt = url ? this.resolveArenaPrompt() : this.configuredArenaPrompt() || DEFAULT_ARENA_PROMPT;
-    const text2 = url ? `MCP_URL_BASE64=${encodeMcpAddressForDisplay(url)}
-
-${prompt}` : prompt;
-    const httpClientInstructions = "用 Bash 工具手动实现 MCP HTTP 客户端：\n先 initialize 获取 session，再 notifications/initialized 完成握手，\n再 tools/list 确认接口并同步 Bridge 任务卡，\n立即调用 bridge_get_effective_rules 完整读取当前工作区全部已启用规则，\n再 bridge_acknowledge_rules 确认返回的 rules_hash，最后才做工作区只读验证。\n本机规则在连接握手说明中也会全文下发；规则切换后必须重新读取确认。";
-    await this.copyText(`${text2}\n\n${httpClientInstructions}`);
+    await this.copyText(buildMcpConnectionPrompt(url ? encodeMcpAddressForDisplay(url) : "", prompt));
   }
   async copyText(text2) {
     if (!text2) return;
@@ -1233,7 +1180,6 @@ ${localizeBridge("opencodeBridge.workScopeProjectOverride", "This project sets i
     this.cleanupButton.enabled = !this.cleaningTunnel;
     this.persistentModeToggle.disabled = this.busy;
     this.startupPinPageToggle.disabled = this.busy;
-    this.quickLinkAddButton.enabled = !this.busy && Boolean(this.quickLinkNameInput.value.trim()) && Boolean(this.quickLinkUrlInput.value.trim());
     this.startStopButton.label = running ? `$(${Codicon.debugStop.id}) ${localizeBridge("opencodeBridge.stop", "Stop Bridge")}` : starting ? `$(${Codicon.stopCircle.id}) ${localizeBridge("opencodeBridge.cancelStart", "Cancel start")}` : `$(${Codicon.play.id}) ${localizeBridge("opencodeBridge.start", "Start Bridge")}`;
     this.startStopButton.setTitle(starting ? localizeBridge("opencodeBridge.cancelStartTitle", "Stop the start attempt and return the Bridge to stopped") : "");
   }
@@ -1241,115 +1187,6 @@ ${localizeBridge("opencodeBridge.workScopeProjectOverride", "This project sets i
     if (this.lastStatus?.tunnelProvider === "ngrok") this.domainInput.focus();
     else if (this.lastStatus?.tunnelProvider === "cloudflare-named") this.namedTunnelDomainInput.focus();
     else this.cloudflareProviderButton.focus();
-  }
-  /**
-   * The configured shortcuts, or the defaults when the setting has never been
-   * written.
-   *
-   * An unset setting must fall back: returning [] left a fresh install with no
-   * shortcut buttons at all, even though DEFAULT_QUICK_LINKS exists. An
-   * explicitly empty array is respected, so a user who deletes every shortcut
-   * keeps an empty row instead of having the defaults reappear.
-   */
-  readQuickLinks() {
-    return readQuickLinks(this.configurationService);
-  }
-  isValidQuickLinkUrl(value2) {
-    return isValidQuickLinkUrl(value2);
-  }
-  renderQuickLinkButtons() {
-    clearNode(this.quickLinkButtonsContainer);
-    this.quickLinkButtons.forEach((button) => button.dispose());
-    this.quickLinkButtons = [];
-    for (const link2 of this.readQuickLinks()) {
-      if (!this.isValidQuickLinkUrl(link2.url)) continue;
-      const button = this._register(new Button(this.quickLinkButtonsContainer, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
-      button.label = `$(${Codicon.linkExternal.id}) ${link2.name}`;
-      button.setTitle(link2.url);
-      this._register(button.onDidClick(() => this.commandService.executeCommand("simpleBrowser.show", link2.url)));
-      this.quickLinkButtons.push(button);
-    }
-  }
-  renderQuickLinksList() {
-    clearNode(this.quickLinkList);
-    this.quickLinkRowButtons.forEach((button) => button.dispose());
-    this.quickLinkRowButtons = [];
-    const links = this.readQuickLinks();
-    if (!links.length) {
-      this.quickLinkList.classList.add("empty");
-      this.quickLinkList.textContent = localizeBridge("opencodeBridge.quickLinksEmpty", "No custom shortcuts yet.");
-      return;
-    }
-    this.quickLinkList.classList.remove("empty");
-    for (const link2 of links) {
-      const row = append(this.quickLinkList, $(".opencode-bridge-quick-link-row"));
-      const text2 = append(row, $(".opencode-bridge-quick-link-text"));
-      append(text2, $(".opencode-bridge-quick-link-name-text", void 0, link2.name));
-      append(text2, $(".opencode-bridge-quick-link-url-text", void 0, link2.url));
-      const actions = append(row, $(".opencode-bridge-quick-link-actions"));
-      const openButton = this._register(new Button(actions, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
-      openButton.label = `$(${Codicon.linkExternal.id}) ${localizeBridge("opencodeBridge.quickLinkOpen", "Open")}`;
-      this._register(openButton.onDidClick(() => this.commandService.executeCommand("simpleBrowser.show", link2.url)));
-      this.quickLinkRowButtons.push(openButton);
-      const deleteButton2 = this._register(new Button(actions, { ...defaultButtonStyles, secondary: true, supportIcons: true }));
-      deleteButton2.label = `$(${Codicon.trash.id}) ${localizeBridge("opencodeBridge.quickLinkDelete", "Delete")}`;
-      this._register(deleteButton2.onDidClick(() => this.removeQuickLink(link2)));
-      this.quickLinkRowButtons.push(deleteButton2);
-    }
-  }
-  async addQuickLink() {
-    const name = this.quickLinkNameInput.value.trim();
-    const url = this.quickLinkUrlInput.value.trim();
-    if (!name) {
-      this.renderQuickLinkMessage(localizeBridge("opencodeBridge.quickLinkNameRequired", "Enter a name for the shortcut."));
-      this.quickLinkNameInput.focus();
-      return;
-    }
-    if (!this.isValidQuickLinkUrl(url)) {
-      this.renderQuickLinkMessage(localizeBridge("opencodeBridge.quickLinkUrlInvalid", "Enter a valid http:// or https:// address."));
-      this.quickLinkUrlInput.focus();
-      return;
-    }
-    const normalizedUrl = url.slice(0, QUICK_LINK_MAX_URL_LENGTH);
-    const links = this.readQuickLinks();
-    if (links.some((link2) => link2.url.toLowerCase() === normalizedUrl.toLowerCase())) {
-      this.renderQuickLinkMessage(localizeBridge("opencodeBridge.quickLinkUrlDuplicate", "This address is already in the list."));
-      this.quickLinkUrlInput.focus();
-      return;
-    }
-    const next = [...links, { name: name.slice(0, QUICK_LINK_MAX_NAME_LENGTH), url: normalizedUrl }];
-    try {
-      await this.configurationService.updateValue(BRIDGE_QUICK_LINKS_SETTING, next, 2 /* USER */);
-      this.quickLinkNameInput.value = "";
-      this.quickLinkUrlInput.value = "";
-      this.renderQuickLinkMessage("");
-      this.updateControls();
-    } catch (error) {
-      this.renderQuickLinkMessage(error instanceof Error ? error.message : String(error));
-    }
-  }
-  async removeQuickLink(link2) {
-    const result = await this.dialogService.confirm({
-      type: "warning",
-      message: localizeBridge("opencodeBridge.quickLinkDeleteConfirm", "Delete the quick open shortcut \u201C{0}\u201D?", link2.name),
-      detail: localizeBridge("opencodeBridge.quickLinkDeleteConfirmDetail", "The button is removed from the top of this page."),
-      primaryButton: localizeBridge("opencodeBridge.quickLinkDelete", "Delete")
-    });
-    if (!result.confirmed) return;
-    const next = this.readQuickLinks().filter((candidate) => candidate.url !== link2.url || candidate.name !== link2.name);
-    try {
-      await this.configurationService.updateValue(BRIDGE_QUICK_LINKS_SETTING, next, 2 /* USER */);
-    } catch (error) {
-      this.renderQuickLinkMessage(error instanceof Error ? error.message : String(error));
-    }
-  }
-  async restoreQuickLinksDefaults() {
-    try {
-      await this.configurationService.updateValue(BRIDGE_QUICK_LINKS_SETTING, DEFAULT_QUICK_LINKS.map((link2) => ({ ...link2 })), 2 /* USER */);
-      this.renderQuickLinkMessage(localizeBridge("opencodeBridge.quickLinkRestored", "Restored the default shortcuts."));
-    } catch (error) {
-      this.renderQuickLinkMessage(error instanceof Error ? error.message : String(error));
-    }
   }
   async saveCopyPromptText() {
     const value2 = this.copyPromptInput.value.trim();
@@ -1377,10 +1214,6 @@ ${localizeBridge("opencodeBridge.workScopeProjectOverride", "This project sets i
   renderCopyPromptMessage(message) {
     this.copyPromptMessage.textContent = message;
     this.copyPromptMessage.classList.toggle("visible", Boolean(message));
-  }
-  renderQuickLinkMessage(message) {
-    this.quickLinkMessage.textContent = message;
-    this.quickLinkMessage.classList.toggle("visible", Boolean(message));
   }
   dispose() {
     this.disposed = true;

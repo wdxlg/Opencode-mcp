@@ -1,0 +1,79 @@
+{
+  "task_id": "opencode-leanrea-replace-20261027-212700-step01",
+  "at": "2026-10-27T21:28:05+08:00",
+  "status": "completed",
+  "decision": {
+    "replace_old_rea": true,
+    "target": "source-local opencode",
+    "offline_tests": true,
+    "confirmation_gate": "user-granted one-time exception"
+  },
+  "baseline": "f06af9657f62c398a64dd325989e94852d7c1d8e",
+  "snapshot_tag": "pre/opencode-leanrea-replace-20261027-212700-step01",
+  "backup_sha256": "bfdaa77b2ff1dc84664394a3a3a15774f48782d27ba30e2fb5fdeea448337425",
+  "archive_sha256": "3cc768730c91ccd8d9da683f0932b03edc672a1895feae869b9b634887743c5b",
+  "scope": "source plus source-local runtime; preserve formal runtime and shared skills",
+  "events": [
+    {
+      "phase": "snapshot",
+      "result": "verified",
+      "file_count": 6572
+    },
+    {
+      "phase": "implementation",
+      "result": "completed",
+      "legacy_default_files_removed": 6572,
+      "skill": "leanrea",
+      "legacy_rule_policy": "render exact old defaults without rewriting shared state"
+    },
+    {
+      "phase": "offline_tests",
+      "result": "passed",
+      "targeted": 27,
+      "concurrency": 7,
+      "version_isolation": 13,
+      "publisher_fixture": "passed including customized files and injected rollback",
+      "full_legacy_suite": "not rerun"
+    },
+    {
+      "phase": "build",
+      "result": "verified",
+      "bundles": 28,
+      "standalone": 70,
+      "product_integrity_checks": 10,
+      "warnings": "one pre-existing CommonJS warning identical to baseline",
+      "application_executed": false
+    },
+    {
+      "phase": "publish",
+      "result": "verified",
+      "destination": "source-local opencode",
+      "runtime_files_sha256_verified": 11020,
+      "legacy_runtime_files_removed": 6572,
+      "backup": ".update-backup/1793108798771-f15c118f",
+      "formal_instance_stopped": false,
+      "formal_program_or_configuration_modified": false
+    },
+    {
+      "phase": "limitations",
+      "first_launch_verified": false,
+      "source_local_legacy_rea_config_entries": 1,
+      "external_tools_and_real_targets_tested": false,
+      "tests_and_dependency_install_external_network_accessed": false,
+      "existing_bridge_control_connection_used": true,
+      "bridge_temporary_scripts_sampled_removed": 2
+    },
+    {
+      "phase": "corrected_failures",
+      "items": [
+        "version-isolation stale fixture and missing VM imports; corrected and rerun",
+        "publisher fixture missing reports directory; corrected and rerun",
+        "rejected timeout and patch context; no write",
+        "git pager exited normally"
+      ]
+    }
+  ],
+  "completed_at": "2026-10-27T21:50:06+08:00",
+  "source_commit": "2722df0f9023bf85238d509a0ace5cb4a4d81021",
+  "version": "1.0.0-recovered.26"
+}

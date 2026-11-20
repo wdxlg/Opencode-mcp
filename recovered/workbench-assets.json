@@ -1,15 +1,22 @@
 {
   "version": 1,
   "static": [
-    "resources/app/extensions/opencode/media/task-workbench/index.html",
-    "resources/app/extensions/opencode/media/task-workbench/style.css",
     "resources/app/extensions/opencode/media/task-workbench/automation.css",
     "resources/app/extensions/opencode/media/task-workbench/rules.html",
-    "resources/app/extensions/opencode/media/task-workbench/collaboration.html"
+    "resources/app/extensions/opencode/media/task-workbench/collaboration.html",
+    "resources/app/extensions/opencode/media/task-workbench/work.css",
+    "resources/app/extensions/opencode/media/task-workbench/work.html",
+    "resources/app/extensions/opencode/media/task-workbench/automations.html",
+    "resources/app/extensions/opencode/media/task-workbench/icons/opencode-icons.woff",
+    "resources/app/extensions/opencode/media/task-workbench/icons/work-light.svg",
+    "resources/app/extensions/opencode/media/task-workbench/icons/work-dark.svg",
+    "resources/app/extensions/opencode/media/task-workbench/icons/automations-light.svg",
+    "resources/app/extensions/opencode/media/task-workbench/icons/automations-dark.svg"
   ],
   "scripts": [
-    "resources/app/extensions/opencode/media/task-workbench/app.js",
     "resources/app/extensions/opencode/media/task-workbench/rules.js",
-    "resources/app/extensions/opencode/media/task-workbench/collaboration.js"
+    "resources/app/extensions/opencode/media/task-workbench/collaboration.js",
+    "resources/app/extensions/opencode/media/task-workbench/work.js",
+    "resources/app/extensions/opencode/media/task-workbench/automations.js"
   ]
 }

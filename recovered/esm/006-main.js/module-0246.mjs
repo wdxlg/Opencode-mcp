@@ -193,37 +193,7 @@ var init_windowsMainService = __esm({
         this.handleChatRequest(openConfig, [window2]);
       }
       async openAgentsWindow(openConfig, folderUri, sessionResource, source) {
-        this.logService.trace("windowsManager#openAgentsWindow");
-        if (product_default.opencodeAgentsWindowEnabled === false) {
-          throw new Error("OPENCODE_NATIVE_AGENTS_WINDOW_DISABLED: Use Bridge in the main OpenCode window.");
-        }
-        const windows = await this.open(await this.ensureAgentsWindow(openConfig));
-        if (windows.length > 0) {
-          const openSource = source ?? (openConfig.cli.agents ? "commandLine" /* CommandLine */ : "unknown" /* Unknown */);
-          windows[0].sendWhenReady("vscode:selectAgentsFolder", CancellationToken.None, folderUri?.toJSON(), sessionResource?.toJSON(), openSource);
-        }
-        return windows;
-      }
-      async ensureAgentsWindow(openConfig) {
-        const agentSessionsWorkspaceUri = this.environmentMainService.agentSessionsWorkspace;
-        if (!agentSessionsWorkspaceUri) {
-          throw new Error("Agents workspace is not configured");
-        }
-        const workspaceExists = await this.fileService.exists(agentSessionsWorkspaceUri);
-        if (!workspaceExists) {
-          const emptyWorkspaceContent = JSON.stringify({ folders: [] }, null, "	");
-          await this.fileService.writeFile(agentSessionsWorkspaceUri, VSBuffer.fromString(emptyWorkspaceContent));
-        }
-        return {
-          urisToOpen: [{ workspaceUri: agentSessionsWorkspaceUri }],
-          userEnv: openConfig.userEnv,
-          cli: openConfig.cli,
-          noRecentEntry: true,
-          context: openConfig.context,
-          contextWindowId: openConfig.contextWindowId,
-          initialStartup: openConfig.initialStartup,
-          forceNewWindow: true
-        };
+        throw new Error("OPENCODE_NATIVE_AGENTS_WINDOW_DISABLED: Use Bridge in the main OpenCode window.");
       }
       async open(openConfig) {
         this.logService.trace("windowsManager#open");

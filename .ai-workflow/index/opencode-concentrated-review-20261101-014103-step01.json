@@ -1,0 +1,134 @@
+{
+  "task": "opencode-concentrated-review-20261101-014103-step01",
+  "status": "源码构建完成；运行版更新阻塞",
+  "snapshot": "28a1013ea0eeb69d743e6186c7576443f7696cd8",
+  "files": [
+    {
+      "path": "recovered/shared/automation-workbench.mjs",
+      "role": "本机工作台与权限确认",
+      "status": "implemented",
+      "sha256": "67351d38f68cd1a8ca475b53e06eb129a3e87d4e66f3e190726b041023fd92ab"
+    },
+    {
+      "path": "recovered/shared/collaboration-review.mjs",
+      "role": "独立持久化人工审阅记录",
+      "status": "implemented",
+      "sha256": "cc64e5d8d8406a3284de086459426cb2c808bb89edc59b1fce06559a05a65f02"
+    },
+    {
+      "path": "recovered/shared/collaboration-merge.mjs",
+      "role": "显式确认的 Git 合并实现",
+      "status": "implemented",
+      "sha256": "4b9c0933a5bd0a53a5f5eba885e00449ea26ee12e6ecc600795f3e83011a1b64"
+    },
+    {
+      "path": "recovered/shared/collaboration-workspaces.mjs",
+      "role": "受控 Git 环境",
+      "status": "implemented",
+      "sha256": "ca1e624bbe8124b090f337c124f65faf0ca6f1547ac8acaf9de88c3ed509f477"
+    },
+    {
+      "path": "recovered/shared/project-memory.mjs",
+      "role": "交接自述与当次观察分离",
+      "status": "implemented",
+      "sha256": "edda107a02cff298c173d5da3f8b868fa6dcc4a39701f6bfbec95047fde5f4e6"
+    },
+    {
+      "path": "scripts/sync-shared.cjs",
+      "role": "同步共享模块到入口变体",
+      "status": "implemented",
+      "sha256": "1c5991969c71719ac39475df07a5beb3f6723dd17cc5cc3a3df87376e9c83373"
+    },
+    {
+      "path": "assets/resources/app/extensions/opencode/media/task-workbench/collaboration.html",
+      "role": "集中看板和人工审阅结构",
+      "status": "implemented",
+      "sha256": "186640e5077c62a81b026380d6fe30c0cc2b6ba6005d30e39fd5aa6093177235"
+    },
+    {
+      "path": "assets/resources/app/extensions/opencode/media/task-workbench/automation.css",
+      "role": "原生主题样式",
+      "status": "implemented",
+      "sha256": "f53388258a491da048f495c804022788a2b700602a69f5d938d13ddfac9ccf76"
+    },
+    {
+      "path": "recovered/standalone/resources/app/extensions/opencode/media/task-workbench/collaboration.js",
+      "role": "交互逻辑",
+      "status": "implemented",
+      "sha256": "c6a6402f0818c4f627fcc2a504948d24278f89d7e4d926285be9752eec2cfd52"
+    },
+    {
+      "path": "tasks/opencode-concentrated-review-20261101-014103-step01/task.md",
+      "role": "任务及验收记录",
+      "status": "new"
+    },
+    {
+      "path": "tasks/opencode-concentrated-review-20261101-014103-step01/progress.md",
+      "role": "进度与阻塞记录",
+      "status": "new"
+    },
+    {
+      "path": "COLLABORATION-REVIEW-AND-MERGE.md",
+      "role": "使用说明",
+      "status": "implemented",
+      "sha256": "169b11da991b9b483c0cb37f88c486b87a0cee13dcc81d757f91fe0cfb45ccc7"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/automation-workbench.mjs",
+      "role": "共享入口同步",
+      "status": "implemented",
+      "sha256": "67351d38f68cd1a8ca475b53e06eb129a3e87d4e66f3e190726b041023fd92ab"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/collaboration-review.mjs",
+      "role": "共享入口同步",
+      "status": "implemented",
+      "sha256": "cc64e5d8d8406a3284de086459426cb2c808bb89edc59b1fce06559a05a65f02"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/collaboration-merge.mjs",
+      "role": "共享入口同步",
+      "status": "implemented",
+      "sha256": "4b9c0933a5bd0a53a5f5eba885e00449ea26ee12e6ecc600795f3e83011a1b64"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/collaboration-workspaces.mjs",
+      "role": "共享入口同步",
+      "status": "implemented",
+      "sha256": "ca1e624bbe8124b090f337c124f65faf0ca6f1547ac8acaf9de88c3ed509f477"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/project-memory.mjs",
+      "role": "共享入口同步",
+      "status": "implemented",
+      "sha256": "edda107a02cff298c173d5da3f8b868fa6dcc4a39701f6bfbec95047fde5f4e6"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/modules.json",
+      "role": "共享入口同步",
+      "status": "implemented",
+      "sha256": "2e5c5e26d1ebf2927a28074ba6f61498a7c14f24255ac46d6edb8636dc643bd1"
+    },
+    {
+      "path": "recovered/esm/003-mcp-server.js/project-memory.mjs",
+      "role": "共享入口同步",
+      "status": "implemented",
+      "sha256": "edda107a02cff298c173d5da3f8b868fa6dcc4a39701f6bfbec95047fde5f4e6"
+    }
+  ],
+  "source_commit": "ebf6ade22404317b5b4cfd0b79281b1884326a9c",
+  "source_ref": "refs/heads/task/opencode-concentrated-review-20261101-014103-step01",
+  "build": {
+    "mode": "source-only",
+    "success": true,
+    "bundles": 28,
+    "standalone": 70,
+    "tests": "not_run",
+    "runtime": "not_published_target_running"
+  },
+  "records": {
+    "sql_delivery_table": "opencode_concentrated_review_delivery",
+    "sql_files_table": "opencode_concentrated_review_files",
+    "sql_file_rows": 17
+  }
+}

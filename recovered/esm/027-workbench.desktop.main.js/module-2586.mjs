@@ -100,12 +100,46 @@ var LocalAgentsSessionsController = class extends Disposable {
       }
       const removedSessionResources = e.sessionResources.filter((resource) => getChatSessionType(resource) === this.chatSessionType);
       if (removedSessionResources.length) {
-        for (const resource of removedSessionResources) {
-          this._items.delete(resource);
-        }
-        this._onDidChangeChatSessionItems.fire({ removed: removedSessionResources });
+        // OpenCode sessions-close-1740: 模型被释放（例如关闭编辑器标签页）≠ 会话被删除。
+        // ChatService 在触发本事件前已把有内容的会话写入历史（willDisposeModel → storeSessions），
+        // 因此这里重新读取历史：仍在历史中的会话原地保留（换成历史条目），只有真正删除/空会话才从列表移除。
+        this.ocHandleDisposedSessions(removedSessionResources);
       }
     }));
+  }
+  async ocHandleDisposedSessions(resources) {
+    // OpenCode sessions-close-1740
+    let historyItems = [];
+    try {
+      historyItems = await this.getHistoryItems();
+    } catch {
+      historyItems = [];
+    }
+    if (this._isDisposed) {
+      return;
+    }
+    const historyByResource = new ResourceMap();
+    for (const item of historyItems) {
+      historyByResource.set(item.resource, item);
+    }
+    const removed = [];
+    const addedOrUpdated = [];
+    for (const resource of resources) {
+      const historyItem = this.chatService.getSession(resource) ? void 0 : historyByResource.get(resource);
+      if (historyItem) {
+        this._items.set(resource, historyItem);
+        addedOrUpdated.push(historyItem);
+      } else if (this._items.has(resource) || !this.chatService.getSession(resource)) {
+        this._items.delete(resource);
+        removed.push(resource);
+      }
+    }
+    if (addedOrUpdated.length > 0 || removed.length > 0) {
+      this._onDidChangeChatSessionItems.fire({
+        ...addedOrUpdated.length > 0 ? { addedOrUpdated } : void 0,
+        ...removed.length > 0 ? { removed } : void 0
+      });
+    }
   }
   async tryUpdateLiveSessionItem(model) {
     const updated = this.toChatSessionItem(await chatModelToChatDetail(model));

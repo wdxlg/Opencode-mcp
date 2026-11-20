@@ -610,12 +610,6 @@
           ]
         },
         {
-          "module": "module-0164",
-          "bindings": [
-            "registerOpenCodeCustomAgents"
-          ]
-        },
-        {
           "module": "module-0162",
           "bindings": [
             "onCodexAuthChange",
@@ -1029,6 +1023,110 @@
         }
       ],
       "sha256": "0a45025e956e5575ca715b3f63b1524a09c7672bbf4a02c523c79ee87700e914"
+    },
+    {
+      "file": "see-now/asr.js",
+      "modulePath": "maintained/shared/see-now/asr.js"
+    },
+    {
+      "file": "see-now/binaries.js",
+      "modulePath": "maintained/shared/see-now/binaries.js"
+    },
+    {
+      "file": "see-now/capture.js",
+      "modulePath": "maintained/shared/see-now/capture.js"
+    },
+    {
+      "file": "see-now/cuts.js",
+      "modulePath": "maintained/shared/see-now/cuts.js"
+    },
+    {
+      "file": "see-now/layout.js",
+      "modulePath": "maintained/shared/see-now/layout.js"
+    },
+    {
+      "file": "see-now/opencode-see-now.mjs",
+      "modulePath": "maintained/shared/see-now/opencode-see-now.mjs"
+    },
+    {
+      "file": "see-now/pack.js",
+      "modulePath": "maintained/shared/see-now/pack.js"
+    },
+    {
+      "file": "see-now/pipeline.js",
+      "modulePath": "maintained/shared/see-now/pipeline.js"
+    },
+    {
+      "file": "see-now/png.js",
+      "modulePath": "maintained/shared/see-now/png.js"
+    },
+    {
+      "file": "see-now/scale.js",
+      "modulePath": "maintained/shared/see-now/scale.js"
+    },
+    {
+      "file": "see-now/sheet.js",
+      "modulePath": "maintained/shared/see-now/sheet.js"
+    },
+    {
+      "file": "see-now/tiers.js",
+      "modulePath": "maintained/shared/see-now/tiers.js"
+    },
+    {
+      "file": "see-now/tokens.js",
+      "modulePath": "maintained/shared/see-now/tokens.js"
+    },
+    {
+      "file": "multica/core.mjs",
+      "modulePath": "maintained/shared/multica/core.mjs"
+    },
+    {
+      "file": "multica/hooks.mjs",
+      "modulePath": "maintained/shared/multica/hooks.mjs"
+    },
+    {
+      "file": "multica/task-sync.mjs",
+      "modulePath": "maintained/shared/multica/task-sync.mjs"
+    },
+    {
+      "file": "multica/run-records.mjs",
+      "modulePath": "maintained/shared/multica/run-records.mjs"
+    },
+    {
+      "file": "multica/steer.mjs",
+      "modulePath": "maintained/shared/multica/steer.mjs"
+    },
+    {
+      "file": "multica/review-gate.mjs",
+      "modulePath": "maintained/shared/multica/review-gate.mjs"
+    },
+    {
+      "file": "multica/squad.mjs",
+      "modulePath": "maintained/shared/multica/squad.mjs"
+    },
+    {
+      "file": "multica/retry.mjs",
+      "modulePath": "maintained/shared/multica/retry.mjs"
+    },
+    {
+      "file": "multica/inbox.mjs",
+      "modulePath": "maintained/shared/multica/inbox.mjs"
+    },
+    {
+      "file": "multica/usage.mjs",
+      "modulePath": "maintained/shared/multica/usage.mjs"
+    },
+    {
+      "file": "multica/skills-lock.mjs",
+      "modulePath": "maintained/shared/multica/skills-lock.mjs"
+    },
+    {
+      "file": "multica/permissions.mjs",
+      "modulePath": "maintained/shared/multica/permissions.mjs"
+    },
+    {
+      "file": "multica/channels.mjs",
+      "modulePath": "maintained/shared/multica/channels.mjs"
     },
     {
       "modulePath": "src/apply-patch.ts",
@@ -2171,7 +2269,8 @@
         {
           "module": "module-0110",
           "bindings": [
-            "managedStdioEnvironment"
+            "managedStdioEnvironment",
+            "windowsMcpDirectEnvironment"
           ]
         },
         {
@@ -2183,7 +2282,7 @@
           ]
         }
       ],
-      "sha256": "5fce09961748c630ba7cfab1164fc403e98530ff03e4014e5aaa065a07d3b981"
+      "sha256": "05a236ff9c726619b583c5a95dd136ff3b30fad5a6fdab911d7e81d0efa48097"
     },
     {
       "modulePath": "extensions/opencode/src/external-mcp-catalog.ts",
@@ -5347,6 +5446,8 @@
         "hasCredentials",
         "stdioProxyEnvironment",
         "managedStdioEnvironment",
+        "isWindowsMcpLaunch",
+        "windowsMcpDirectEnvironment",
         "MANAGED_STDIO_WINDOWS_ENV",
         "MANAGED_STDIO_POSIX_ENV",
         "canonical"
@@ -5359,7 +5460,7 @@
           ]
         }
       ],
-      "sha256": "3f51334023e6aa90e804b85101a3b44fc07e25e521ca53e578a29d9ea6bd8d04"
+      "sha256": "a32e884bd9b554aa274001519dd112c7f48eda5c8a006411b07af092c3b1af41"
     },
     {
       "modulePath": "extensions/opencode/src/external-mcp-network-commands.ts",
@@ -5478,8 +5579,8 @@
         {
           "module": "module-0000",
           "bindings": [
-            "init_define_OPENCODE_BUILD_INFO",
-            "__toESM"
+            "__toESM",
+            "init_define_OPENCODE_BUILD_INFO"
           ]
         },
         {
@@ -5503,8 +5604,8 @@
         {
           "module": "module-0024",
           "bindings": [
-            "listInstalledSkillsForAgent",
-            "importGlobalSkillWithPrompt"
+            "importGlobalSkillWithPrompt",
+            "listInstalledSkillsForAgent"
           ]
         },
         {
@@ -5517,11 +5618,13 @@
         {
           "module": "module-0140",
           "bindings": [
-            "resolveBridgeToolConcurrency",
+            "BRIDGE_SERVER_INSTRUCTIONS",
             "BRIDGE_TOOL_CONCURRENCY_SETTING",
-            "CHAT_BRIDGE_CONTROL_TOOL_NAMES",
             "BRIDGE_TOOL_DEFINITIONS",
-            "BRIDGE_SERVER_INSTRUCTIONS"
+            "CHAT_BRIDGE_CONTROL_TOOL_NAMES",
+            "pickOcRecommendedAnswer",
+            "readOcChatPermissionSettings",
+            "resolveBridgeToolConcurrency"
           ]
         },
         {
@@ -5533,9 +5636,9 @@
         {
           "module": "module-0053",
           "bindings": [
+            "customToolsFingerprint",
             "listEnabledCustomTools",
             "loadCustomTools",
-            "customToolsFingerprint",
             "toStatusEntries"
           ]
         },
@@ -5568,8 +5671,8 @@
         {
           "module": "module-0057",
           "bindings": [
-            "toggleCustomTool",
-            "deleteCustomTool"
+            "deleteCustomTool",
+            "toggleCustomTool"
           ]
         },
         {
@@ -5581,19 +5684,19 @@
         {
           "module": "module-0157",
           "bindings": [
-            "classifyBridgeStartFailure",
-            "BridgeStartError"
+            "BridgeStartError",
+            "classifyBridgeStartFailure"
           ]
         },
         {
           "module": "module-0118",
           "bindings": [
             "acquireBridgeTunnelLease",
-            "isBridgeTunnelLeaseConflict",
             "bridgeTunnelLeaseResources",
-            "recordTunnelOwnership",
             "clearTunnelOwnership",
-            "reclaimStaleTunnelOwner"
+            "isBridgeTunnelLeaseConflict",
+            "reclaimStaleTunnelOwner",
+            "recordTunnelOwnership"
           ]
         },
         {
@@ -5605,21 +5708,21 @@
         {
           "module": "module-0106",
           "bindings": [
-            "resolveExtensionHostProxy",
-            "fetchWithExtensionHostFallbacks"
+            "fetchWithExtensionHostFallbacks",
+            "resolveExtensionHostProxy"
           ]
         },
         {
           "module": "module-0158",
           "bindings": [
-            "normalizeEdgeRouteSetting",
             "CLOUDFLARE_EDGE_ROUTE_SETTING",
-            "chooseQuickTunnelRoute",
-            "quickTunnelEdgeTimeoutMs",
-            "QUICK_TUNNEL_EDGE_TIMEOUT_MS",
             "QUICK_TUNNEL_CONFIG_NAME",
             "QUICK_TUNNEL_CONFIG_TEXT",
-            "quickTunnelArgs"
+            "QUICK_TUNNEL_EDGE_TIMEOUT_MS",
+            "chooseQuickTunnelRoute",
+            "normalizeEdgeRouteSetting",
+            "quickTunnelArgs",
+            "quickTunnelEdgeTimeoutMs"
           ]
         },
         {
@@ -5632,12 +5735,14 @@
           "module": "module-0115",
           "bindings": [
             "isNgrokEndpointBusy",
-            "ngrokStartFailure",
-            "isNonRetryableNgrokFailure"
+            "isNonRetryableNgrokFailure",
+            "mayRetryNgrokReplacement",
+            "ngrokSessionStatusLine",
+            "ngrokStartFailure"
           ]
         }
       ],
-      "sha256": "f66fbff5148113cdb518aa1dbe82ae4ff125f1acf07bcde1ed4fee598de8f30f"
+      "sha256": "f7ab2a3b5f21d567bd540aef0a5996926e788bbaabb6b88c677e903723efa490"
     },
     {
       "modulePath": "src/bridge-ngrok-failure.ts",
@@ -7122,6 +7227,15 @@
       "modulePath": "extensions/opencode/src/bridge-constants.ts",
       "file": "module-0140.mjs",
       "exportedBindings": [
+        "readOcChatPermissionSettings",
+        "resolveOcChatToolPermission",
+        "pickOcRecommendedAnswer",
+        "OC_FULL_AUTO_FREE_TEXT",
+        "ocChatToolCategory",
+        "strictestOcPermission",
+        "OC_PERMISSION_CATEGORY_TOOL_NAMES",
+        "OC_PERMISSION_CATEGORY_LABELS",
+        "OC_PERMISSION_ALWAYS_ALLOWED",
         "bridgeHostInstructions",
         "resolveBridgeToolConcurrency",
         "MAX_REQUEST_BYTES",
@@ -7148,6 +7262,7 @@
         "UPDATE_PLAN_TOOL",
         "REPORT_PROGRESS_TOOL",
         "CONFIGURE_MCP_TOOL",
+        "BRIDGE_BATCH_TOOL",
         "BRIDGE_TOOL_DEFINITIONS",
         "CHAT_BRIDGE_CONTROL_TOOL_NAMES"
       ],
@@ -7163,6 +7278,8 @@
           "bindings": [
             "BRIDGE_BASH_TERMINAL_CONTRACT",
             "BRIDGE_COMMAND_OWNER_RULE",
+            "BRIDGE_MCP_WORKFLOW_INSTRUCTIONS",
+            "BRIDGE_PIPELINE_STATUS_RULE",
             "CODE_STRUCTURE_GUIDANCE"
           ]
         },
@@ -7181,8 +7298,8 @@
         {
           "module": "module-0042",
           "bindings": [
-            "IDE_TOOL_DEFINITIONS",
-            "BRIDGE_EXCLUDED_TOOL_NAMES"
+            "BRIDGE_EXCLUDED_TOOL_NAMES",
+            "IDE_TOOL_DEFINITIONS"
           ]
         },
         {
@@ -7192,7 +7309,7 @@
           ]
         }
       ],
-      "sha256": "f664bfe21ad4cb93f76040aad03d33106fb169cc800fa49c02f945eb367a1559"
+      "sha256": "e9570a00ebed7a7cef493f4c69e09879ea0c9aea57a9658ced8d9c6aef532264"
     },
     {
       "modulePath": "extensions/opencode/src/bridge-conversation-overview-prompt.ts",
@@ -7690,11 +7807,12 @@
         {
           "module": "module-0110",
           "bindings": [
-            "managedStdioEnvironment"
+            "managedStdioEnvironment",
+            "windowsMcpDirectEnvironment"
           ]
         }
       ],
-      "sha256": "cc327e8aeb96265e0169a0003e42a377988b8beace3e4f178253610c8df761b7"
+      "sha256": "936d00b1586535eef368abc3fa75f6f73cc63d9d2def867e96303ea10b05d0f8"
     },
     {
       "modulePath": "node_modules/@modelcontextprotocol/client/dist/stdio.mjs",
@@ -7945,24 +8063,6 @@
       "sha256": "bb822a1c9f90765bb737827c139e9824f7b164d19a66f3be4184f482bd147992"
     },
     {
-      "modulePath": "extensions/opencode/src/custom-agents.ts",
-      "file": "module-0164.mjs",
-      "exportedBindings": [
-        "registerOpenCodeCustomAgents",
-        "vscode13"
-      ],
-      "imports": [
-        {
-          "module": "module-0000",
-          "bindings": [
-            "init_define_OPENCODE_BUILD_INFO",
-            "__toESM"
-          ]
-        }
-      ],
-      "sha256": "e078da74ab26ca3147117a6dd62753f445e4b41764525009095c116ed083b32d"
-    },
-    {
       "modulePath": "extensions/opencode/src/ide-tool-broker.ts",
       "file": "module-0165.mjs",
       "exportedBindings": [
@@ -8006,7 +8106,6 @@
         "MAX_CAPTURED_OUTPUT_BYTES",
         "DEFAULT_OUTPUT_BYTES",
         "MAX_OUTPUT_BYTES2",
-        "MAX_IDLE_TERMINALS",
         "PTY_EXIT_DATA_FLUSH_MS",
         "PTY_OUTPUT_DRAIN_QUIET_MS",
         "PTY_OUTPUT_DRAIN_MAX_MS",
@@ -8028,15 +8127,15 @@
         {
           "module": "module-0000",
           "bindings": [
-            "init_define_OPENCODE_BUILD_INFO",
-            "__toESM"
+            "__toESM",
+            "init_define_OPENCODE_BUILD_INFO"
           ]
         },
         {
           "module": "module-0169",
           "bindings": [
-            "windowsManagedBashProtocol",
-            "parseManagedPrompt"
+            "parseManagedPrompt",
+            "windowsManagedBashProtocol"
           ]
         },
         {
@@ -8044,8 +8143,8 @@
           "bindings": [
             "ManagedCommandCanceller",
             "NATIVE_MANAGED_COMMAND_OWNER_ID",
-            "managedCommandNotAccessibleError",
-            "forceCancellationRequiresConfirmation"
+            "forceCancellationRequiresConfirmation",
+            "managedCommandNotAccessibleError"
           ]
         },
         {
@@ -8092,9 +8191,15 @@
           "bindings": [
             "validateToolInput"
           ]
+        },
+        {
+          "module": "module-0038",
+          "bindings": [
+            "resolveSafePath"
+          ]
         }
       ],
-      "sha256": "484f8144b169e7761acc0813326c36a11024959c24aa62b926c0d5843c111e0a"
+      "sha256": "155f9a3635b016b4af7cae1747d9abf61ed944afed0503267be613c33a5aca50"
     },
     {
       "modulePath": "src/managed-command-id.ts",
@@ -8469,6 +8574,13 @@
       "modulePath": "extensions/opencode/src/native-chat.ts",
       "file": "module-0177.mjs",
       "exportedBindings": [
+        "normalizeBranchParallel",
+        "createBufferedChatStream",
+        "parallelBranchLimit",
+        "classifyBackgroundCommand",
+        "requestBackgroundCommandApproval",
+        "cancelParallelBranchesCommand",
+        "manageParallelBranchesCommand",
         "chatTaskOwnerFromHistory",
         "collectEnabledMcpTools",
         "boundAttachedReference",
@@ -8490,7 +8602,6 @@
         "turnLabel",
         "buildCanonicalAgentHistory",
         "planBranchRound",
-        "resolveOpenCodeMode",
         "selectedModeInstructions",
         "isCheckpointResumePrompt",
         "checkpointIdFromHistory",
@@ -8509,58 +8620,65 @@
         "MAX_PASTED_IMAGE_BYTES",
         "MAX_TOTAL_PASTED_IMAGE_BYTES",
         "BUILTIN_AGENT_TOOL_NAMES",
-        "CHAT_TASK_OWNER_METADATA_KEY"
+        "CHAT_TASK_OWNER_METADATA_KEY",
+        "applyBranchWorktreeCommand",
+        "discardBranchWorktreeCommand",
+        "cleanupBranchWorktreesCommand"
       ],
       "imports": [
         {
           "module": "module-0000",
           "bindings": [
-            "init_define_OPENCODE_BUILD_INFO",
-            "__toESM"
+            "__toESM",
+            "init_define_OPENCODE_BUILD_INFO"
           ]
         },
         {
           "module": "module-0140",
           "bindings": [
+            "BRIDGE_TOOL_DEFINITIONS",
             "CHAT_BRIDGE_CONTROL_TOOL_NAMES",
-            "BRIDGE_TOOL_DEFINITIONS"
+            "OC_PERMISSION_CATEGORY_LABELS",
+            "readOcChatPermissionSettings",
+            "resolveOcChatToolPermission"
           ]
         },
         {
           "module": "module-0179",
           "bindings": [
-            "assistantHistoryContent",
+            "OPENCODE_TOOL_CONTEXT_METADATA_KEY",
             "ToolHistoryContextCollector",
-            "OPENCODE_TOOL_CONTEXT_METADATA_KEY"
+            "assistantHistoryContent"
           ]
         },
         {
           "module": "module-0163",
           "bindings": [
-            "branchGroupMetadata",
-            "OPENCODE_BRANCH_GROUP_METADATA_KEY"
+            "OPENCODE_BRANCH_GROUP_METADATA_KEY",
+            "branchGroupMetadata"
           ]
         },
         {
           "module": "module-0181",
           "bindings": [
-            "resolveMergeModelReference",
-            "buildMergePrompt"
+            "buildMergePrompt",
+            "resolveMergeModelReference"
           ]
         },
         {
           "module": "module-0043",
           "bindings": [
-            "CODE_STRUCTURE_GUIDANCE"
+            "CODE_STRUCTURE_GUIDANCE",
+            "TASK_PLANNING_PRIORITY"
           ]
         },
         {
           "module": "module-0178",
           "bindings": [
-            "OPENCODE_CHECKPOINT_RECOVERABLE_METADATA_KEY",
-            "OPENCODE_CHECKPOINT_ID_METADATA_KEY",
             "AgentCheckpointStore",
-            "OPENCODE_CHECKPOINT_REASON_METADATA_KEY"
+            "OPENCODE_CHECKPOINT_ID_METADATA_KEY",
+            "OPENCODE_CHECKPOINT_REASON_METADATA_KEY",
+            "OPENCODE_CHECKPOINT_RECOVERABLE_METADATA_KEY"
           ]
         },
         {
@@ -8578,23 +8696,24 @@
         {
           "module": "module-0182",
           "bindings": [
-            "retainedFolderTarget",
+            "CHAT_ACTIVE_FOLDER_METADATA_KEY",
+            "chatWorkspaceScope",
             "explicitFolderTargets",
             "requestsOpenWorkspace",
-            "CHAT_ACTIVE_FOLDER_METADATA_KEY"
+            "retainedFolderTarget"
           ]
         },
         {
           "module": "module-0162",
           "bindings": [
-            "codexAuthManager",
+            "CODEX_BETA_HEADER",
             "CODEX_ORIGINATOR",
             "CODEX_USER_AGENT",
-            "CODEX_BETA_HEADER"
+            "codexAuthManager"
           ]
         }
       ],
-      "sha256": "d3b633dd0968658cf98195dbcef425d068c5d1061d81cfc0207df475c63ad03d"
+      "sha256": "e0b1722a4801da3e685a8c104957bbfbd6e97e0eac3a2dc49bf04fa94cff132c"
     },
     {
       "modulePath": "extensions/opencode/src/agent-checkpoint-store.ts",
@@ -8952,20 +9071,12 @@
       "modulePath": "maintained/shared/concurrency-runtime.mjs"
     },
     {
-      "file": "task-workbench.mjs",
-      "modulePath": "maintained/shared/task-workbench.mjs"
-    },
-    {
       "file": "automation-store.mjs",
       "modulePath": "maintained/shared/automation-store.mjs"
     },
     {
       "file": "automation-workbench.mjs",
       "modulePath": "maintained/shared/automation-workbench.mjs"
-    },
-    {
-      "file": "workbench-mcp-publisher.mjs",
-      "modulePath": "maintained/shared/workbench-mcp-publisher.mjs"
     },
     {
       "file": "external-mcp-content.mjs",
@@ -9026,6 +9137,90 @@
     {
       "file": "project-memory.mjs",
       "modulePath": "maintained/shared/project-memory.mjs"
+    },
+    {
+      "file": "bundled-leanrea.mjs",
+      "modulePath": "maintained/shared/bundled-leanrea.mjs"
+    },
+    {
+      "file": "tunnel-proxy.mjs",
+      "modulePath": "maintained/opencode/tunnel-proxy.mjs"
+    },
+    {
+      "file": "cloud-agent.mjs",
+      "modulePath": "maintained/opencode/cloud-agent.mjs"
+    },
+    {
+      "file": "collaboration-review.mjs",
+      "modulePath": "maintained/shared/collaboration-review.mjs"
+    },
+    {
+      "file": "collaboration-merge.mjs",
+      "modulePath": "maintained/shared/collaboration-merge.mjs"
+    },
+    {
+      "file": "task-handoff-prompts.mjs",
+      "modulePath": "maintained/shared/task-handoff-prompts.mjs"
+    },
+    {
+      "file": "workspace-activity.mjs",
+      "modulePath": "maintained/shared/workspace-activity.mjs"
+    },
+    {
+      "file": "collaboration-policy.mjs",
+      "modulePath": "maintained/shared/collaboration-policy.mjs"
+    },
+    {
+      "file": "rea-integration.mjs",
+      "modulePath": "maintained/shared/rea-integration.mjs"
+    },
+    {
+      "file": "tool-guards.mjs",
+      "modulePath": "maintained/shared/tool-guards.mjs"
+    },
+    {
+      "file": "sandbox-lowil.mjs",
+      "modulePath": "maintained/shared/sandbox-lowil.mjs"
+    },
+    {
+      "file": "work-automation.mjs",
+      "modulePath": "maintained/shared/work-automation.mjs"
+    },
+    {
+      "file": "work-store.mjs",
+      "modulePath": "maintained/shared/work-store.mjs"
+    },
+    {
+      "file": "autopilot-store.mjs",
+      "modulePath": "maintained/shared/autopilot-store.mjs"
+    },
+    {
+      "file": "shadow-checkpoints.mjs",
+      "modulePath": "maintained/shared/shadow-checkpoints.mjs"
+    },
+    {
+      "file": "spec-mode.mjs",
+      "modulePath": "maintained/shared/spec-mode.mjs"
+    },
+    {
+      "file": "task-memory-fork.mjs",
+      "modulePath": "maintained/shared/task-memory-fork.mjs"
+    },
+    {
+      "file": "default-system-prompt.mjs",
+      "modulePath": "maintained/shared/default-system-prompt.mjs"
+    },
+    {
+      "file": "canvas-console.mjs",
+      "modulePath": "maintained/shared/canvas-console.mjs"
+    },
+    {
+      "file": "member-custom.mjs",
+      "modulePath": "maintained/shared/member-custom.mjs"
+    },
+    {
+      "file": "collab-ports.mjs",
+      "modulePath": "maintained/shared/collab-ports.mjs"
     }
   ],
   "publicExports": [],

@@ -591,6 +591,20 @@ var LanguageModelsService = class {
           continue;
         }
         const configuration2 = await this._resolveConfiguration(group2, vendor.configuration);
+        // OpenCode: 只保存了模型设置、缺少必填连接配置（如 baseUrl）的分组不再重复拉取同一批模型（否则模型列表翻倍）；其设置作用到默认模型上
+        const ocRequired = Array.isArray(vendor.configuration?.required) ? vendor.configuration.required : [];
+        if (allModels.length > 0 && ocRequired.length > 0 && ocRequired.some((key) => configuration2?.[key] === void 0 || configuration2?.[key] === null || String(configuration2?.[key]).trim() === "")) {
+          if (group2.settings) {
+            for (const model of allModels) {
+              const modelConfig = group2.settings[model.metadata.id];
+              if (modelConfig) {
+                perModelConfigurations.set(model.identifier, { ...modelConfig });
+              }
+            }
+          }
+          languageModelsGroups.push({ group: group2, modelIdentifiers: [] });
+          continue;
+        }
         try {
           const models = await provider.provideLanguageModelChatInfo({ group: group2.name, silent, configuration: configuration2 }, CancellationToken.None);
           if (models.length) {

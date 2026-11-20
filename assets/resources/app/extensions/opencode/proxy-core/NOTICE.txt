@@ -1,0 +1,10 @@
+Mihomo v1.19.31 (Windows x64 compatible)
+
+本目录包含独立运行的 Mihomo 代理核心，使用 GPL-3.0 许可证。
+原始分发文件取自用户指定的 Facet 安装目录，二进制与源码散列已与其 ARTIFACT.json 核对一致。
+保留 LICENSE、对应版本源码 mihomo-source.tar.gz 和 ARTIFACT.json 中的来源/散列信息。
+项目主页：https://github.com/MetaCubeX/mihomo
+
+本程序将核心作为独立子进程运行，使用本实例的临时/数据目录和回环监听端口。
+不启用系统代理、TUN 或外部控制接口；代理失败不回落直连。
+Facet 仅作为代理工作台交互布局参考，不修改或携带 Facet 的账号及应用数据。

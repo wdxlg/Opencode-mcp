@@ -1,0 +1,326 @@
+diff --git a/recovered/esm/000-extension.js/module-0177.mjs b/recovered/esm/000-extension.js/module-0177.mjs
+index b2df7636..98971871 100644
+--- a/recovered/esm/000-extension.js/module-0177.mjs
++++ b/recovered/esm/000-extension.js/module-0177.mjs
+@@ -3,7 +3,7 @@
+ // Original module marker: extensions/opencode/src/native-chat.ts
+ import { __toESM, init_define_OPENCODE_BUILD_INFO } from "./module-0000.mjs";
+ import { BRIDGE_TOOL_DEFINITIONS, CHAT_BRIDGE_CONTROL_TOOL_NAMES, OC_PERMISSION_CATEGORY_LABELS, ocDangerousCustomToolReason, ocDangerousToolCall, readOcChatPermissionSettings, resolveOcChatToolPermission } from "./module-0140.mjs";
+-import { OPENCODE_TOOL_CONTEXT_METADATA_KEY, ToolHistoryContextCollector, assistantHistoryContent } from "./module-0179.mjs";
++import { OPENCODE_TOOL_CONTEXT_METADATA_KEY, ToolHistoryContextCollector, assistantHistoryContent, responsePartText, mcpOutputText, redactValue, boundedTechnicalText, boundedHistoryText, MAX_TOOL_INPUT_CHARS, MAX_TOOL_OUTPUT_CHARS, MAX_ASSISTANT_TEXT_CHARS } from "./module-0179.mjs";
+ import { OPENCODE_BRANCH_GROUP_METADATA_KEY, branchGroupMetadata } from "./module-0163.mjs";
+ import { buildMergePrompt, resolveMergeModelReference } from "./module-0181.mjs";
+ import { CODE_STRUCTURE_GUIDANCE, TASK_PLANNING_PRIORITY } from "./module-0043.mjs";
+@@ -308,8 +308,50 @@ function ocPushAssistantHistory(result, turn) {
+     result.push({ role: "assistant", content: content || "(empty answer)", replay: replay.messages, replayModel: typeof replay.model === "string" ? replay.model : void 0 });
+     return;
+   }
++  // chat-gaps item3: 没有重放记录的旧轮次，用聊天记录里的工具卡片还原成结构化的 tool_calls / tool 消息（没有推理内容）。
++  const synthetic = ocSyntheticReplay(turn);
++  if (synthetic) {
++    result.push({ role: "assistant", content: content || "(empty answer)", replay: synthetic, replaySynthetic: true });
++    return;
++  }
+   result.push({ role: "assistant", content });
+ }
++function ocSyntheticReplay(turn) {
++  const response = turn?.response;
++  if (!Array.isArray(response)) return void 0;
++  const calls = [];
++  const results = [];
++  const texts = [];
++  const seen = /* @__PURE__ */ new Set();
++  for (const part of response) {
++    const text2 = responsePartText(part);
++    if (text2 && !(part && typeof part === "object" && part.toolSpecificData)) {
++      texts.push(text2);
++      continue;
++    }
++    const row = part && typeof part === "object" ? part : void 0;
++    const data = row?.toolSpecificData && typeof row.toolSpecificData === "object" ? row.toolSpecificData : void 0;
++    if (!row || !data || row.isComplete === false) continue;
++    const id = typeof row.toolCallId === "string" && row.toolCallId ? row.toolCallId : "";
++    const name = typeof row.toolName === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(row.toolName) ? row.toolName : "";
++    if (!id || !name || seen.has(id)) continue;
++    let args = typeof data.input === "string" ? data.input.trim() : data.input && typeof data.input === "object" ? JSON.stringify(data.input) : "";
++    try {
++      const parsed = JSON.parse(args || "{}");
++      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) continue;
++      args = JSON.stringify(redactValue(parsed));
++    } catch {
++      continue;
++    }
++    const output3 = typeof data.output === "string" ? data.output : mcpOutputText(data.output) || (typeof row.errorMessage === "string" ? row.errorMessage : typeof data.summary === "string" ? data.summary : "");
++    seen.add(id);
++    calls.push({ id, type: "function", function: { name, arguments: args.length > MAX_TOOL_INPUT_CHARS * 4 ? "{}" : args } });
++    results.push({ role: "tool", tool_call_id: id, content: boundedTechnicalText(output3 || "(no output recorded)", MAX_TOOL_OUTPUT_CHARS) });
++  }
++  if (!calls.length) return void 0;
++  const answer = boundedHistoryText(texts.join("\n"), MAX_ASSISTANT_TEXT_CHARS, "\n\u2026[assistant response truncated in history]\n");
++  return [{ role: "assistant", content: "", reasoning_content: "", tool_calls: calls }, ...results, ...answer ? [{ role: "assistant", content: answer }] : []];
++}
+ async function toAgentHistory(context) {
+   const result = [];
+   for (const turn of Array.isArray(context?.history) ? context.history : []) {
+@@ -2328,7 +2370,8 @@ function ocLearnedContextGet(context, baseUrl, model) {
+     if (!entry || typeof entry !== "object") return {};
+     const out = {};
+     if (Number.isInteger(entry.window) && entry.window >= 1024 && entry.window <= 1e7) out.learnedWindow = entry.window;
+-    // OpenCode dsh-metrics: no learned tokenRatio (dsh has no calibration); stored ratios are ignored
++    // chat-gaps item2: 学到的估算校准系数只取 >1 的部分（估算只会被调高），供下一轮开局的历史预算使用
++    if (typeof entry.tokenRatio === "number" && Number.isFinite(entry.tokenRatio) && entry.tokenRatio > 1 && entry.tokenRatio <= 3) out.tokenRatio = entry.tokenRatio;
+     return out;
+   } catch {
+     return {};
+@@ -2375,7 +2418,7 @@ function ocLearnedContextUpdate(context, baseUrl, model, data) {
+ function ocReportContextUsage(stream, item) {
+   try {
+     const data = item && typeof item.data === "object" && item.data !== null ? item.data : void 0;
+-    if (!data || data.subagent || typeof stream?.usage !== "function") return;
++    if (!data || data.subagent || data.compaction || typeof stream?.usage !== "function") return;
+     const usage = data.usage && typeof data.usage === "object" ? data.usage : {};
+     const rawBreakdown = data.contextBreakdown && typeof data.contextBreakdown === "object" ? data.contextBreakdown : {};
+     const breakdown = { ...rawBreakdown, mcp: usageCount(rawBreakdown.mcp) + usageCount(rawBreakdown.skills) };
+diff --git a/recovered/esm/002-agent-host.js/agent-compaction.mjs b/recovered/esm/002-agent-host.js/agent-compaction.mjs
+index e65131d1..bf7dcad1 100644
+--- a/recovered/esm/002-agent-host.js/agent-compaction.mjs
++++ b/recovered/esm/002-agent-host.js/agent-compaction.mjs
+@@ -44,6 +44,7 @@ function createContextCompactor(env, deps) {
+   };
+   const requestPlainCompletion = async (plainMessages, options = {}) => {
+     const withTools = options.tools === true;
++    const requestStartedAt = Date.now();
+     const headers2 = buildAgentRequestHeaders({ input2, codex, anthropic });
+     const noop = () => void 0;
+     let completion2;
+@@ -69,14 +70,31 @@ function createContextCompactor(env, deps) {
+         ...codexServiceTier ? { service_tier: codexServiceTier } : {}
+       }), input2, fetchImpl, (response, timers) => parseCodexResponse(response, timers, noop, noop, codex), "OpenAI Responses (context compaction)");
+     } else {
+-      completion2 = await requestChatCompletion(env.endpoint, headers2, JSON.stringify({
++      // chat-gaps item6: 摘要请求同样要 usage（stream_options），提供商拒收时去掉重试并按路由记住（与主请求共用记录）
++      const usageRouteKey = `${env.endpoint}\n${input2.model}`;
++      const chatBody = (includeUsage) => JSON.stringify({
+         model: input2.model,
+         messages: plainMessages,
+         // dsh-context-align item2: 走缓存的摘要请求与主请求同样的 thinking 设置和工具定义，保证前缀一致
+         ...deepSeek ? { thinking: { type: withTools && env.deepSeekThinking ? "enabled" : "disabled" }, max_tokens: Math.min(withTools && env.deepSeekThinking ? 32768 : 8192, Math.max(1024, maxOutputTokens)) } : {},
+         ...withTools && env.tools?.length ? { tools: env.tools } : {},
+-        stream: true
+-      }), input2, fetchImpl, noop, noop);
++        stream: true,
++        ...includeUsage ? { stream_options: { include_usage: true } } : {}
++      });
++      const usageAllowed = !deps.streamUsageUnsupportedRoutes?.has(usageRouteKey);
++      try {
++        completion2 = await requestChatCompletion(env.endpoint, headers2, chatBody(usageAllowed), input2, fetchImpl, noop, noop);
++      } catch (error2) {
++        if (!usageAllowed || input2.signal?.aborted || !deps.isStreamUsageOptionRejected?.(error2)) throw error2;
++        deps.streamUsageUnsupportedRoutes?.add(usageRouteKey);
++        completion2 = await requestChatCompletion(env.endpoint, headers2, chatBody(false), input2, fetchImpl, noop, noop);
++      }
++    }
++    // chat-gaps item6: 摘要请求也报用量（标记 compaction，扩展不拿它更新上下文圆环，但计入本轮花费）
++    if (completion2?.usage) {
++      const u = completion2.usage;
++      console.error(`[context-compaction] usage prompt=${u.input + u.cacheRead + u.cacheWrite} cached=${u.cacheRead} output=${u.output} tools=${withTools}`);
++      emitTrace({ type: "usage", step: options.step ?? 0, data: { model: input2.model, compaction: true, usage: u, llmMs: Date.now() - requestStartedAt } });
+     }
+     const content = completion2?.message?.content;
+     return typeof content === "string" ? content.trim() : contextTextOf(content).trim();
+@@ -127,7 +145,7 @@ function createContextCompactor(env, deps) {
+     const replayBudget = Math.max(2048, usableContextWindow() - 8192);
+     if (replayTokens <= replayBudget) {
+       try {
+-        summary = dshUnframeSummary(await requestPlainCompletion(replayMessages, { tools: true }));
++        summary = dshUnframeSummary(await requestPlainCompletion(replayMessages, { tools: true, step: options.step }));
+       } catch (error2) {
+         input2.signal?.throwIfAborted();
+         console.error(`[agent-host] context compaction (replay) request failed: ${error2 instanceof Error ? error2.message.slice(0, 300) : String(error2)}`);
+diff --git a/recovered/esm/002-agent-host.js/agent-tool-catalog.mjs b/recovered/esm/002-agent-host.js/agent-tool-catalog.mjs
+index 53ced42b..8e374b42 100644
+--- a/recovered/esm/002-agent-host.js/agent-tool-catalog.mjs
++++ b/recovered/esm/002-agent-host.js/agent-tool-catalog.mjs
+@@ -74,7 +74,7 @@ async function buildAgentToolCatalog(input2, client, fileToolRequestOptions) {
+     const dropped = availableTools.splice(MAX_API_TOOLS);
+     console.error(`[agent-host] tools trimmed to ${MAX_API_TOOLS}; dropped ${dropped.length}: ${dropped.map((tool) => tool.name).join(",")}`);
+   }
+-  if (!input2.subagentDepth && input2.subagents !== false && availableTools.some((tool) => tool.name === "read_files") && !availableTools.some((tool) => tool.name === SUBAGENT_TOOL_NAME)) availableTools.push(SUBAGENT_TOOL);
++  if ((!input2.subagentDepth || input2.subagentToolPolicy) && input2.subagents !== false && availableTools.some((tool) => tool.name === "read_files") && !availableTools.some((tool) => tool.name === SUBAGENT_TOOL_NAME)) availableTools.push(SUBAGENT_TOOL);
+   // prompt-cache-step02: 工具按名字排序，MCP 列表顺序变化不再让请求前缀（工具定义）失效
+   availableTools.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+   const availableToolNames = new Set(availableTools.map((tool) => tool.name));
+diff --git a/recovered/esm/002-agent-host.js/agent-tool-exec.mjs b/recovered/esm/002-agent-host.js/agent-tool-exec.mjs
+index 29e1b617..4c33a916 100644
+--- a/recovered/esm/002-agent-host.js/agent-tool-exec.mjs
++++ b/recovered/esm/002-agent-host.js/agent-tool-exec.mjs
+@@ -36,7 +36,7 @@ function createToolCallExecutor({ input2, client, availableToolNames, externalTo
+         call,
+         toolName,
+         toolResult: { isError: true },
+-        toolText: `${toolName || "(unnamed)"} unavailable: ${unavailableReason}. Only the tools listed in this conversation may be called. Currently available tools: ${[...availableToolNames].join(", ") || "(none)"}.`,
++        toolText: `${toolName || "(unnamed)"} unavailable: ${unavailableReason}. Only the tools listed in this conversation may be called. Currently available tools: ${(input2.subagentToolPolicy ? [...availableToolNames].filter((name) => name !== "spawn_subagent" && (input2.subagentToolPolicy.full || name === "tool_search" || input2.subagentToolPolicy.executable?.includes(name))) : [...availableToolNames]).join(", ") || "(none)"}.`,
+         toolImages: [],
+         durationMs: Date.now() - startedAt
+       };
+diff --git a/recovered/esm/002-agent-host.js/module-0029.mjs b/recovered/esm/002-agent-host.js/module-0029.mjs
+index c43b7b83..80c30925 100644
+--- a/recovered/esm/002-agent-host.js/module-0029.mjs
++++ b/recovered/esm/002-agent-host.js/module-0029.mjs
+@@ -19,6 +19,7 @@ import { OC_CHARS_PER_TOKEN, OC_BLOCK_OVERHEAD, ocCharTokenWeight, estimatedToke
+ var DSH_COMPACTION_THRESHOLD_RATIO = 0.8;
+ var DSH_COMPACTION_RETAIN_RATIO = 0.16;
+ var DSH_COMPACTION_HEADROOM_TOKENS = 65536;
++var DSH_COMPACTION_HEADROOM_SHARE = 0.2;
+ var DSH_COMPACTION_ATTEMPTS = 2;
+ var dshWarnedPressureConfigTargets = /* @__PURE__ */ new Set();
+ import { ModelStreamTimeoutError, readResponseText, looksLikeEventStream, usageNumber, promptUsageKeysSeen, notePromptUsageKeys, normalizeModelUsage, mergeUsageRecord, createChatEventStreamProcessor, parseChatCompletionResponse, codexOutputSnapshot, createCodexEventStreamProcessor, parseCodexResponse, anthropicStopReason, anthropicMessageSnapshot, createAnthropicEventStreamProcessor, parseAnthropicResponse } from "./agent-stream-parsers.mjs";
+@@ -615,19 +616,22 @@ async function runSubagentTool(input2, dependencies, emitTrace, call, args, star
+   if (!task) return fail("spawn_subagent needs a non-empty task.");
+   const full = args?.mode === "full";
+   const parentAllowed = Array.isArray(input2.allowedTools) ? input2.allowedTools : void 0;
+-  const allowedTools = full ? parentAllowed?.filter((name) => name !== SUBAGENT_TOOL_NAME) : SUBAGENT_READ_TOOLS.filter((name) => !parentAllowed || parentAllowed.includes(name));
++  const executable = full ? void 0 : SUBAGENT_READ_TOOLS.filter((name) => !parentAllowed || parentAllowed.includes(name));
++  // chat-gaps item5: 子 agent 沿用父 agent 的系统提示和完整工具定义（请求前缀与父 agent 相同，能命中提示缓存），
++  // 子任务说明放进第一条用户消息；能执行哪些工具由 subagentToolPolicy 在执行时限制。
++  const extra = typeof args?.context === "string" && args.context.trim() ? `\n\nContext from the parent agent:\n${args.context.trim()}` : "";
++  const toolRule = full ? `You may use any listed tool except ${SUBAGENT_TOOL_NAME}.` : `You are read-only: you may call only ${executable.join(", ") || "(no tools)"}, plus tool_search if listed. Other listed tools will be refused.`;
+   try {
+     const sub = await runOpenAICompatibleAgent({
+       ...input2,
+-      prompt: task,
++      prompt: `<subagent_task>\n${SUBAGENT_INSTRUCTIONS}\n${toolRule}${extra}\n\nTask:\n${task}\n</subagent_task>`,
++      subagentToolPolicy: { full, executable },
+       images: void 0,
+       history: [],
+       checkpoint: void 0,
+       contextCheckpoint: void 0,
+       compactOnly: false,
+-      allowedTools,
+       approveTools: full ? input2.approveTools : void 0,
+-      modeInstructions: SUBAGENT_INSTRUCTIONS + (typeof args?.context === "string" && args.context.trim() ? `\n\nContext from the parent agent:\n${args.context.trim()}` : ""),
+       subagentDepth: (input2.subagentDepth ?? 0) + 1,
+       onCheckpoint: void 0,
+       onTrace: (item) => {
+@@ -694,6 +698,7 @@ function ocSafeTail(text, length) {
+   if (code >= 56320 && code <= 57343) cut += 1;
+   return text.slice(cut);
+ }
++var OC_SPILL_DUPLICATE_PREVIEW_CHARS = 2e3;
+ var OC_SPILL_EXEMPT_TOOLS = /* @__PURE__ */ new Set(["read_files"]);
+ var ocSpillDirs = /* @__PURE__ */ new Map();
+ function ocSpillDir(workspaceRoot) {
+@@ -740,14 +745,25 @@ function ocSpillToolText(text, toolName, options = {}) {
+   if (OC_SPILL_EXEMPT_TOOLS.has(toolName) || ocSpillPrice(value) <= OC_TOOL_RESULT_MAX_TOKENS) return value;
+   let locator;
+   let inWorkspace = false;
++  let duplicate = false;
+   try {
+     const fsX = require("node:fs");
+     const pathX = require("node:path");
+     const spill = ocSpillDir(options.workspaceRoot);
+     inWorkspace = spill.inWorkspace;
+     const safeName = String(toolName || "tool").replace(/[^A-Za-z0-9_.-]+/g, "_").slice(0, 60) || "tool";
+-    locator = pathX.join(spill.dir, `${(0, import_node_crypto.randomBytes)(6).toString("hex")}-${safeName}.txt`);
+-    fsX.writeFileSync(locator, value, { encoding: "utf8", mode: 384 });
++    // chat-gaps item4: 文件名用内容哈希；同样的输出已经存过时不再把 12.5K 预览再塞一遍，只给开头一小段和路径。
++    locator = pathX.join(spill.dir, `${(0, import_node_crypto.createHash)("sha256").update(value).digest("hex").slice(0, 12)}-${safeName}.txt`);
++    if (fsX.existsSync(locator) && fsX.statSync(locator).size === Buffer.byteLength(value, "utf8")) {
++      const now = /* @__PURE__ */ new Date();
++      try {
++        fsX.utimesSync(locator, now, now);
++      } catch {
++      }
++      duplicate = true;
++    } else {
++      fsX.writeFileSync(locator, value, { encoding: "utf8", mode: 384 });
++    }
+   } catch (error2) {
+     locator = void 0;
+     console.error(`[agent-host] spill: could not store the full ${toolName} result: ${error2 instanceof Error ? error2.message : String(error2)}`);
+@@ -755,6 +771,10 @@ function ocSpillToolText(text, toolName, options = {}) {
+   const hint = inWorkspace && options.readFilesAvailable ? options.runCommandAvailable ? "Use read_files with start_line/end_line on this path to read parts of it, or run_command with grep to search it" : "Use read_files with start_line/end_line on this path to read parts of it" : options.runCommandAvailable ? "Use run_command with sed -n 'START,ENDp' or grep on this path to read or search within it" : "Re-run the tool with a narrower scope if you need the omitted part";
+   const notice = (bytes) => locator ? `(Omitted ${bytes} bytes. Full formatted result stored at: ${locator}. ${hint}.)` : `(Omitted ${bytes} bytes; the full result could not be stored. Re-run the tool with a narrower scope if you need the omitted part.)`;
+   const totalBytes = Buffer.byteLength(value, "utf8");
++  if (duplicate && locator) {
++    const preview = ocSafeHead(value, OC_SPILL_DUPLICATE_PREVIEW_CHARS);
++    return `${preview}${OC_SPILL_GAP}\n\n(This output is identical to an earlier ${toolName} result already stored at: ${locator} (${totalBytes} bytes); only the first ${Buffer.byteLength(preview, "utf8")} bytes are repeated here. ${hint}.)`;
++  }
+   const reserved = ocSpillPrice(OC_SPILL_GAP) + ocSpillPrice(`\n\n${notice(totalBytes)}`);
+   const budgetChars = Math.max(0, (OC_TOOL_RESULT_MAX_TOKENS - reserved - OC_BLOCK_OVERHEAD) * OC_CHARS_PER_TOKEN);
+   const head = ocSafeHead(value, Math.floor(budgetChars / 2));
+@@ -960,8 +980,10 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+     const budget = W - O;
+     const target = `${input2.baseUrl ?? ""}|${input2.model ?? ""}|W=${W}|O=${O}|r=${contextSettings.threshold ?? ""}|k=${contextSettings.keepRecentTokens ?? ""}`;
+     if (budget <= 0) return { error: `${input2.model ?? "model"} reserves ${O} completion tokens of its ${W}-token context window, leaving no message budget`, target, budget };
+-    const pressureBudget = budget - DSH_COMPACTION_HEADROOM_TOKENS;
+-    if (pressureBudget <= 0) return { error: `${input2.model ?? "model"} reserves ${O} completion tokens and ${DSH_COMPACTION_HEADROOM_TOKENS} headroom tokens of its ${W}-token context window, leaving no pressure budget`, target, budget };
++    // chat-gaps item1: dsh 固定 65536 余量会让 W−O < 64K 的模型完全跳过自动压缩；余量改为 min(65536, 20% × (W−O))，大窗口与 dsh 完全一致。
++    const headroom = Math.min(DSH_COMPACTION_HEADROOM_TOKENS, Math.floor(budget * DSH_COMPACTION_HEADROOM_SHARE));
++    const pressureBudget = budget - headroom;
++    if (pressureBudget <= 0) return { error: `${input2.model ?? "model"} reserves ${O} completion tokens and ${headroom} headroom tokens of its ${W}-token context window, leaving no pressure budget`, target, budget };
+     const ratio = contextSettings.threshold !== void 0 ? contextSettings.threshold : DSH_COMPACTION_THRESHOLD_RATIO;
+     const threshold = Math.floor(Math.min(W * ratio, pressureBudget));
+     const retain = contextSettings.keepRecentTokens !== void 0 ? contextSettings.keepRecentTokens : Math.floor(budget * DSH_COMPACTION_RETAIN_RATIO);
+@@ -986,8 +1008,9 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+     emitTrace({ type: "context_compaction", step, data: { phase: "config_error", reason: "threshold", error: spec.error, window: managedContextWindow } });
+   };
+   // OpenCode context-fixes step05: 估算值 × 校准系数（提供商实测 input / 本地估算，按 提供商+模型 平滑学习）。
+-  // dsh-metrics-20261119 (AH): dsh has no learned calibration; ratio fixed at 1 (calibrated() = identity).
+-  let tokenRatio = 1;
++  // chat-gaps item2: 估算只会被调高——按 提供商+模型 学到的 实测 prompt / 本地估算（≥1，≤3）。估算偏高时保持 1，与 dsh 一致；
++  // 偏低时（重复文本、代码等）开局的历史预算与压缩触发点不再晚到。轮内仍以提供商实测值为基线（measuredContext）。
++  let tokenRatio = typeof contextSettings.tokenRatio === "number" && contextSettings.tokenRatio > 1 ? Math.min(3, contextSettings.tokenRatio) : 1;
+   let tokenRatioSamples = 0;
+   const calibrated = (tokens) => Math.ceil(tokens * tokenRatio);
+   if (codex && (!input2.codexAuth?.accessToken.trim() || !input2.codexAuth.accountId.trim())) {
+@@ -1014,7 +1037,7 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+     const toolNames = availableTools.map((tool) => tool.name);
+     const restoredCheckpoint = usableCheckpoint(input2.checkpoint, input2, availableToolNames);
+     const toolDefinitionTokens = advertisedTools.length ? estimatedTokens(advertisedTools.map((tool) => [tool.name, tool.description ?? "", tool.inputSchema ?? {}])) + 4 : 0;
+-    const contextCompactor = createContextCompactor({ input2, fetchImpl, emitTrace, availableToolNames, toolDefinitionTokens, codex, anthropic, deepSeek, deepSeekThinking, tools, anthropicTools, codexTools, anthropicMaxOutputTokens, responsesReasoningEffort, codexServiceTier, maxOutputTokens, calibrated, usableContextWindow, keepRecentContextTokens, get messages() { return messages; }, get endpoint() { return endpoint; }, get responses() { return responses; }, get managedContextWindow() { return managedContextWindow; } }, { requestModelStream, requestChatCompletion, contextHistoryHash, summarizeEvictedHistory });
++    const contextCompactor = createContextCompactor({ input2, fetchImpl, emitTrace, availableToolNames, toolDefinitionTokens, codex, anthropic, deepSeek, deepSeekThinking, tools, anthropicTools, codexTools, anthropicMaxOutputTokens, responsesReasoningEffort, codexServiceTier, maxOutputTokens, calibrated, usableContextWindow, keepRecentContextTokens, get messages() { return messages; }, get endpoint() { return endpoint; }, get responses() { return responses; }, get managedContextWindow() { return managedContextWindow; } }, { requestModelStream, requestChatCompletion, contextHistoryHash, summarizeEvictedHistory, streamUsageUnsupportedRoutes, isStreamUsageOptionRejected });
+     const cs = contextCompactor.state;
+     const { applyContextCheckpoint, contextCheckpointResult, currentContextTokens, requestPlainCompletion, compactContext } = contextCompactor;
+     let messages;
+@@ -1271,7 +1294,7 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+           ...completion.usage ? { usage: completion.usage } : {},
+           // dsh-context-align item6: 工具占比只算真正发给模型的工具定义（延迟加载未发出的不算）
+           contextBreakdown: contextBreakdownOf(messages, advertisedTools),
+-          ...tokenRatio !== 1 ? { tokenRatio } : {},
++          ...tokenRatioSamples || tokenRatio !== 1 ? { tokenRatio } : {},
+           llmMs: stepEndedAt - stepStartedAt,
+           ...firstDeltaAt !== void 0 ? { ttftMs: firstDeltaAt - stepStartedAt, generationMs: stepEndedAt - firstDeltaAt } : {}
+         }
+@@ -1282,6 +1305,15 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+         {
+           const localEstimate = contextMessagesTokens(messages) + toolDefinitionTokens + contextMessageTokens(completion.message);
+           cs.measuredContext = { tokens: completion.usage.total >= localEstimate ? completion.usage.total : localEstimate, length: messages.length };
++          const rawEstimate = contextMessagesTokens(messages) + toolDefinitionTokens;
++          const reportedPrompt = completion.usage.input + completion.usage.cacheRead + completion.usage.cacheWrite;
++          if (rawEstimate >= 2e3 && reportedPrompt > 0) {
++            const sample = Math.min(3, Math.max(0.3, reportedPrompt / rawEstimate));
++            const previousRatio = tokenRatio;
++            tokenRatio = Math.min(3, Math.max(1, tokenRatioSamples ? tokenRatio * 0.7 + sample * 0.3 : Math.max(tokenRatio, sample)));
++            tokenRatioSamples += 1;
++            if (!input2.subagentDepth && Math.abs(tokenRatio - previousRatio) >= 0.02) emitTrace({ type: "context_learned", step, data: { model: input2.model, tokenRatio: Number(tokenRatio.toFixed(4)), source: "usage" } });
++          }
+         }
+       }
+       const message = completion.message;
+@@ -1339,6 +1371,15 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+             unavailableReason: `Model attempted unavailable tool: ${toolName}`
+           };
+         }
++        const subPolicy = input2.subagentToolPolicy;
++        if (subPolicy && toolName !== TOOL_SEARCH_TOOL_NAME && (toolName === SUBAGENT_TOOL_NAME || !subPolicy.full && !subPolicy.executable?.includes(toolName))) {
++          return {
++            call,
++            toolName,
++            args: {},
++            unavailableReason: `${toolName} is not available to this ${subPolicy.full ? "" : "read-only "}sub-agent`
++          };
++        }
+         // tool-defer-step01: 直接调用了未加载的延迟工具时，把它的定义加进后续请求
+         if (toolName !== TOOL_SEARCH_TOOL_NAME) loadDeferredTools([toolName]);
+         let args;

@@ -13,16 +13,17 @@ const userHex=Buffer.from('fixture-user').toString('hex');
 // All candidates are under this new fixture directory, never an installed E:\\\\OpenCode.
 const winApp=path.win32.join(base,'legacy-app','resources','app');
 const posixApp=path.posix.join(slashBase,'legacy-app','resources','app');
-test(()=>assert.equal(defaultGlobalSkillsDirectory(winApp,'fixture-user','win32'),path.win32.join(base,'OpenCode-Skills',userHex)));
-test(()=>assert.equal(defaultGlobalSkillsDirectory(posixApp,'fixture-user','linux'),path.posix.join(slashBase,'OpenCode-Skills',userHex)));
-test(()=>assert.equal(defaultGlobalSkillsDirectory(posixApp,'','linux'),path.posix.join(slashBase,'OpenCode-Skills','user')));
-test(()=>assert.equal(defaultGlobalSkillsDirectory(path.posix.join(slashBase,'OpenCode.app/Contents/Resources/app'),'fixture-user','darwin'),path.posix.join(slashBase,'OpenCode-Skills',userHex)));
-test(()=>assert.equal(defaultGlobalSkillsDirectory(posixApp,'fixture-user','linux',path.posix.join(slashBase,'image/OpenCode.AppImage')),path.posix.join(slashBase,'image/OpenCode-Skills',userHex)));
+// 全局 Skill 目录现在固定为 ~/.opencode/skills（不再按安装位置/便携档/用户名区分）；参数仍可传但不影响结果。
+test(()=>assert.equal(defaultGlobalSkillsDirectory(winApp,'fixture-user','win32'),path.join(os.homedir(),'.opencode','skills')));
+test(()=>assert.equal(defaultGlobalSkillsDirectory(posixApp,'fixture-user','linux'),path.join(os.homedir(),'.opencode','skills')));
+test(()=>assert.equal(defaultGlobalSkillsDirectory(posixApp,'','linux'),path.join(os.homedir(),'.opencode','skills')));
+test(()=>assert.equal(defaultGlobalSkillsDirectory(path.posix.join(slashBase,'OpenCode.app/Contents/Resources/app'),'fixture-user','darwin'),path.join(os.homedir(),'.opencode','skills')));
+test(()=>assert.equal(defaultGlobalSkillsDirectory(posixApp,'fixture-user','linux',path.posix.join(slashBase,'image/OpenCode.AppImage')),path.join(os.homedir(),'.opencode','skills')));
 const ownApp=path.join(base,'bundled-app','resources','app');
 fs.mkdirSync(path.join(ownApp,'extensions/opencode/defaults'),{recursive:true});
 fs.writeFileSync(path.join(ownApp,'extensions/opencode/defaults/manifest.json'),'{}');
 const ownProfile=path.join(base,'portable-profile');process.env.VSCODE_PORTABLE=ownProfile;
-test(()=>assert.equal(defaultGlobalSkillsDirectory(ownApp,'fixture-user'),path.join(ownProfile,'skills')));
+test(()=>assert.equal(defaultGlobalSkillsDirectory(ownApp,'fixture-user'),path.join(os.homedir(),'.opencode','skills')));
 delete process.env.VSCODE_PORTABLE;
 test(()=>assert.equal(defaultGlobalSkillsDirectory(ownApp,'fixture-user'),path.join(os.homedir(),'.opencode','skills')));
 test(()=>{configureGlobalSkills(()=>undefined);assert.equal(globalSkillsDirectory(),undefined);});

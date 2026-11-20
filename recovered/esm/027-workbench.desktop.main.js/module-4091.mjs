@@ -88,10 +88,10 @@ var BrowserEditorResolverContribution = class {
         {
           id: BrowserEditorInput.EDITOR_ID,
           label: localize(7992, null),
-          priority: "option" /* option */
+          priority: "default" /* OpenCode: 预览模式下本地 HTML 默认用内置浏览器打开；源码模式下不参与（走文本编辑器） */
         },
         {
-          canSupportResource: (resource) => resource.scheme === Schemas.file,
+          canSupportResource: (resource) => resource.scheme === Schemas.file && globalThis.__ocPreviewMode !== false,
           singlePerResource: true
         },
         {

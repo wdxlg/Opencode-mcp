@@ -1,0 +1,97 @@
+{
+  "task_id": "opencode-feature-prune-20261024-183000-step01",
+  "status": "completed",
+  "sourceCommit": "c60c0bec7a3273be94144f0ae316359ae39d1aff",
+  "files": [
+    {
+      "path": "MODULE-RECOVERY.md",
+      "status": "updated",
+      "sha256": "c5a811791c98265a01e13958e3cddef3ee3284eebf706996f3567d5f09e47be1"
+    },
+    {
+      "path": "assets/resources/app/extensions/opencode/package.json",
+      "status": "updated",
+      "sha256": "cc5c7a3a82683849139b494a3df501ea5efe6936b7ad1a007c7e450f2c242f61"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/automation-workbench.mjs",
+      "status": "updated",
+      "sha256": "bd85745031db790c7be27d778811034ae4230e0c289af1623a51436af186180c"
+    },
+    {
+      "path": "recovered/esm/006-main.js/module-0246.mjs",
+      "status": "updated",
+      "sha256": "945cbbb8aa7f0ac544a62d39de206a4c05e2bf021c883b503acbdaa6a6d7e7c2"
+    },
+    {
+      "path": "recovered/esm/018-sessions.desktop.main.js/entry.mjs",
+      "status": "updated",
+      "sha256": "638b102d78dc01ff9abcb5793d48979e0648f88988458e7d8d01d316cb3e89e2"
+    },
+    {
+      "path": "recovered/esm/018-sessions.desktop.main.js/module-2654.mjs",
+      "status": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "recovered/esm/018-sessions.desktop.main.js/module-2659.mjs",
+      "status": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "recovered/esm/018-sessions.desktop.main.js/modules.json",
+      "status": "updated",
+      "sha256": "c652b474ee15f83355b3703028d8013b6954cfc430f193f2daa55fbad0316154"
+    },
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/entry.mjs",
+      "status": "updated",
+      "sha256": "6cf53f8e0f97cb0f9649d18216bca7f32dc8126d71dca73eadf67e999090edc1"
+    },
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/module-1618.mjs",
+      "status": "updated",
+      "sha256": "3e9073376597fcae6c4db90ea7c96e1d73668ec3196addc7f2ecb2983775e796"
+    },
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/module-2679.mjs",
+      "status": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/module-2684.mjs",
+      "status": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "recovered/esm/027-workbench.desktop.main.js/modules.json",
+      "status": "updated",
+      "sha256": "9dbd1572a427f16a26f276c47f96026f0b2348c300cf3b0ee1cbc0982c86109e"
+    },
+    {
+      "path": "recovered/shared/automation-workbench.mjs",
+      "status": "updated",
+      "sha256": "bd85745031db790c7be27d778811034ae4230e0c289af1623a51436af186180c"
+    }
+  ],
+  "records": [
+    {
+      "path": "tasks/opencode-feature-prune-20261024-183000-step01/task.md",
+      "purpose": "目标、边界与交付状态"
+    },
+    {
+      "path": "tasks/opencode-feature-prune-20261024-183000-step01/progress.md",
+      "purpose": "恢复进度"
+    },
+    {
+      "path": ".ai-workflow/logs/opencode-feature-prune-20261024-183000-step01.json",
+      "purpose": "脱敏执行回执与失败记录"
+    },
+    {
+      "path": ".ai-workflow/index/opencode-feature-prune-20261024-183000-step01.json",
+      "purpose": "源码及记录索引"
+    }
+  ],
+  "runtimeCommit": "c60c0bec7a3273be94144f0ae316359ae39d1aff",
+  "updatedAt": "2026-10-24T10:39:52.199Z"
+}

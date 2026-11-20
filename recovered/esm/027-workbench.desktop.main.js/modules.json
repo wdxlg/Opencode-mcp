@@ -55060,10 +55060,6 @@
       "modulePath": "src/vs/workbench/contrib/chat/common/constants.ts",
       "file": "module-0964.mjs",
       "exportedBindings": [
-        "isChatPermissionLevel",
-        "getChatPermissionLevelFromDefaultConfiguration",
-        "isAutoApproveLevel",
-        "isAutopilotLevel",
         "isChatInputModel",
         "isSupportedChatFileScheme",
         "getComputedDefaultSessionType",
@@ -55080,8 +55076,6 @@
         "isVisibleEditorChatSessionType",
         "getVisibleNonLocalEditorChatSessionTypes",
         "ChatModeKind",
-        "ChatPermissionLevel",
-        "chatPermissionLevels",
         "ChatAgentLocation",
         "chatAlwaysUnsupportedFileSchemes",
         "chatInputSchemes",
@@ -55094,7 +55088,13 @@
         "OPEN_AGENTS_WINDOW_PRECONDITION",
         "ChatEditorTitleMaxLength",
         "CONTEXT_MODELS_EDITOR",
-        "CONTEXT_MODELS_SEARCH_FOCUS"
+        "CONTEXT_MODELS_SEARCH_FOCUS",
+        "OPENCODE_PERMISSION_MODE_SETTING",
+        "OPENCODE_PERMISSION_MODES",
+        "normalizeOpenCodePermissionMode",
+        "getOpenCodePermissionMode",
+        "isOpenCodeAutoApproveMode",
+        "isOpenCodeFullAutoMode"
       ],
       "imports": [
         {
@@ -55107,9 +55107,9 @@
           "module": "module-0960",
           "bindings": [
             "IChatSessionsService",
-            "localChatSessionType",
             "SessionType",
-            "isAgentHostTarget"
+            "isAgentHostTarget",
+            "localChatSessionType"
           ]
         },
         {
@@ -55145,8 +55145,8 @@
         {
           "module": "module-0962",
           "bindings": [
-            "getRememberedSessionType",
             "clearUserSelectedSessionType",
+            "getRememberedSessionType",
             "storeUserSelectedSessionType"
           ]
         },
@@ -55172,12 +55172,12 @@
         {
           "module": "module-0949",
           "bindings": [
-            "IsSessionsWindowContext",
-            "IsAuxiliaryWindowContext"
+            "IsAuxiliaryWindowContext",
+            "IsSessionsWindowContext"
           ]
         }
       ],
-      "sha256": "0075fbabc30e526c56a8c8d09ddd1bf5c0538dfcd22e2bb2bca12287bb02d964"
+      "sha256": "efeca400af0ff6bd3f9192cd8db7c09184c49c1d8c35b07cd97ce4b15483038e"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/common/actions/chatContextKeys.ts",
@@ -55190,8 +55190,8 @@
         {
           "module": "module-0089",
           "bindings": [
-            "RawContextKey",
-            "ContextKeyExpr"
+            "ContextKeyExpr",
+            "RawContextKey"
           ]
         },
         {
@@ -55225,7 +55225,7 @@
           ]
         }
       ],
-      "sha256": "80c2d36573588e174145ba18ac0899056f18fe1e3075a22f56ae46dcbc6ccbec"
+      "sha256": "bde26fb0ee3c8d5fb8daa2db247a83e6d6d7845bebe6a62efcf39a93f2497159"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/common/languageModelsConfiguration.ts",
@@ -140474,47 +140474,6 @@
       "sha256": "c6eb40a410f16cddf96cf91c05904a79032645d2b1ef8a7535b5621882f74e9e"
     },
     {
-      "modulePath": "src/vs/workbench/contrib/chat/browser/chatGoalSummaryService.ts",
-      "file": "module-2014.mjs",
-      "exportedBindings": [
-        "cleanGoalSummary",
-        "IChatGoalSummaryService",
-        "MAX_PROMPT_CHARS",
-        "MAX_SUMMARY_CHARS",
-        "CACHE_SIZE",
-        "REFUSAL_PREFIX_RE",
-        "ChatGoalSummaryService"
-      ],
-      "imports": [
-        {
-          "module": "module-0077",
-          "bindings": [
-            "createDecorator"
-          ]
-        },
-        {
-          "module": "module-0008",
-          "bindings": [
-            "LRUCache"
-          ]
-        },
-        {
-          "module": "module-0000",
-          "bindings": [
-            "__decorateClass",
-            "__decorateParam"
-          ]
-        },
-        {
-          "module": "module-0967",
-          "bindings": [
-            "ILanguageModelsService"
-          ]
-        }
-      ],
-      "sha256": "7fd60273ede7df64a81be2b41e0b3cbfd94cb32d895369014f1096011e15c91b"
-    },
-    {
       "modulePath": "src/vs/workbench/contrib/chat/browser/chatBranchService.ts",
       "file": "module-2015.mjs",
       "exportedBindings": [
@@ -143678,8 +143637,8 @@
           "module": "module-0075",
           "bindings": [
             "$",
-            "append",
             "addDisposableListener",
+            "append",
             "isHTMLElement"
           ]
         },
@@ -143698,8 +143657,8 @@
         {
           "module": "module-0982",
           "bindings": [
-            "getAgentSessionProvider",
             "getAgentCanContinueIn",
+            "getAgentSessionProvider",
             "getAgentSessionProviderIcon",
             "getAgentSessionProviderName"
           ]
@@ -143748,7 +143707,7 @@
           ]
         }
       ],
-      "sha256": "10ebff352112e7212cc48873fe8806b4324fe3b837d8491a8d1bb7afad5a5d5d"
+      "sha256": "330b87e4e3f3f6a0238a2f0333354ae322d9e1f0fb06ae81f18e2bc3698c702a"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/widget/input/chatInputModelUtils.ts",
@@ -144512,20 +144471,7 @@
         "KNOWN_MODE_VALUES"
       ],
       "imports": [],
-      "sha256": "98ccd7e5ec30b66ab552368103bfcc7985783885ee4facf139515ccda7d55620"
-    },
-    {
-      "modulePath": "src/vs/workbench/contrib/chat/common/agentHostConfigPolicy.ts",
-      "file": "module-2047.mjs",
-      "exportedBindings": [
-        "isAutoApprovePolicyRestricted",
-        "isAssistedPermissionsEnabled",
-        "isPermissionLevelVisible",
-        "isAutoApproveValuePolicyRestricted",
-        "normalizeSessionConfigValue"
-      ],
-      "imports": [],
-      "sha256": "13d01bca55ba437c9a76bdae5b71eb807a5f300e95a56c6e7aa16355df075264"
+      "sha256": "39c28cef5f4adf13cdb93907bf3f90c865a0b1dc478b795051877d1a619b48cf"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/common/modelSelection.ts",
@@ -145547,7 +145493,6 @@
         "SwitchToNextModelAction",
         "SwitchToNextPinnedModelAction",
         "OpenModelPickerAction",
-        "OpenPermissionPickerAction",
         "OpenModePickerAction",
         "OpenSessionTargetPickerAction",
         "OpenDelegationPickerAction",
@@ -145611,8 +145556,8 @@
         {
           "module": "module-0972",
           "bindings": [
-            "IChatService",
-            "ChatStopCancellationNoopEventName"
+            "ChatStopCancellationNoopEventName",
+            "IChatService"
           ]
         },
         {
@@ -145656,11 +145601,11 @@
         {
           "module": "module-1476",
           "bindings": [
-            "CHAT_CATEGORY",
-            "handleModeSwitch",
             "ACTION_ID_NEW_CHAT",
+            "CHAT_CATEGORY",
+            "clearChatSessionPreservingType",
             "handleCurrentEditingSession",
-            "clearChatSessionPreservingType"
+            "handleModeSwitch"
           ]
         },
         {
@@ -145673,8 +145618,8 @@
           "module": "module-2057",
           "bindings": [
             "ctxHasEditorModification",
-            "ctxIsGlobalEditingSession",
-            "ctxHasRequestInProgress"
+            "ctxHasRequestInProgress",
+            "ctxIsGlobalEditingSession"
           ]
         },
         {
@@ -145770,7 +145715,7 @@
           ]
         }
       ],
-      "sha256": "4d439ee7de4b00e1fadb9f4b5b52c2fb4bfd9cf7fc2c196ed870d16d70d798dd"
+      "sha256": "f38cc6875d9b0f46dc4fdaf456187ba2a8390d940bbbe3d7fdff280c9fe7e012"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/common/widget/chatColors.ts",
@@ -146015,7 +145960,9 @@
       "exportedBindings": [
         "truncateToLimit",
         "createAskQuestionsToolData",
-        "AUTOPILOT_ASK_USER_RESPONSE",
+        "getEffectiveRecommendedOptions",
+        "buildRecommendedAnswer",
+        "AUTO_ANSWER_FREE_TEXT",
         "AskQuestionsToolId",
         "SoftLimits",
         "HardLimits",
@@ -146080,8 +146027,8 @@
         {
           "module": "module-0972",
           "bindings": [
-            "IChatToolInvocation",
-            "IChatService"
+            "IChatService",
+            "IChatToolInvocation"
           ]
         },
         {
@@ -146126,9 +146073,15 @@
           "bindings": [
             "IConfigurationService"
           ]
+        },
+        {
+          "module": "module-0964",
+          "bindings": [
+            "isOpenCodeFullAutoMode"
+          ]
         }
       ],
-      "sha256": "8a1854313706e947b03ab1d81f7f8093070dc3a8b50d36582678e174028c7a00"
+      "sha256": "99df88cdb3399a1556cff735fb2202cdbc897a7be00586e9dad044addf4490ff"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/common/voiceClient/voiceConfirmation.ts",
@@ -149125,7 +149078,6 @@
         "invalidParams",
         "joinPath2",
         "safeStringify2",
-        "migrateLegacyAutopilotConfig",
         "getAgentHostTerminalAutoApproveRulesConfig",
         "normalizeAgentHostTerminalAutoApproveRulesConfig",
         "isDefaultOnlyAutoApproveRule",
@@ -149210,7 +149162,7 @@
           ]
         }
       ],
-      "sha256": "f5ca3d4e0a41dc61e203a74c2d3e2ea86cbc443ab92a30af6fbf358d8372d0bf"
+      "sha256": "0f16ebbadcd4c79a040f355fe5ab5c0e773403e46c4055001f1c51561f5a98d7"
     },
     {
       "modulePath": "src/vs/platform/agentHost/common/reasoningEffort.ts",
@@ -149263,65 +149215,6 @@
         }
       ],
       "sha256": "c963e15ec388c7cd217c4111200e501c2abb5f8300830d77f3a5f64b74c9f803"
-    },
-    {
-      "modulePath": "src/vs/workbench/contrib/chat/common/chatPermissionStorageKeys.ts",
-      "file": "module-2105.mjs",
-      "exportedBindings": [
-        "AUTOPILOT_DONT_SHOW_AGAIN_KEY",
-        "AUTO_APPROVE_DONT_SHOW_AGAIN_KEY",
-        "ASSISTED_APPROVAL_DONT_SHOW_AGAIN_KEY"
-      ],
-      "imports": [],
-      "sha256": "ae3f00b010fb823d2f9995e36326ad12180a8aa051121507dc0b8e1bf0ab585b"
-    },
-    {
-      "modulePath": "src/vs/workbench/contrib/chat/common/chatPermissionWarnings.ts",
-      "file": "module-2106.mjs",
-      "exportedBindings": [
-        "dontShowAgainKey",
-        "resetShownWarnings",
-        "hasShownElevatedWarning",
-        "getElevatedWarningCopy",
-        "maybeConfirmElevatedPermissionLevel",
-        "shownWarnings",
-        "ELEVATION_RANK"
-      ],
-      "imports": [
-        {
-          "module": "module-2105",
-          "bindings": [
-            "AUTOPILOT_DONT_SHOW_AGAIN_KEY",
-            "AUTO_APPROVE_DONT_SHOW_AGAIN_KEY",
-            "ASSISTED_APPROVAL_DONT_SHOW_AGAIN_KEY"
-          ]
-        },
-        {
-          "module": "module-0001",
-          "bindings": [
-            "localize"
-          ]
-        },
-        {
-          "module": "module-0085",
-          "bindings": [
-            "Codicon"
-          ]
-        },
-        {
-          "module": "module-0266",
-          "bindings": [
-            "severity_default"
-          ]
-        },
-        {
-          "module": "module-0462",
-          "bindings": [
-            "MarkdownString"
-          ]
-        }
-      ],
-      "sha256": "459f2b33d8820f72aea15afc856f4ddf06ff81ceab86304581fc64c6dacfb00f"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/agentSessions/agentHost/agentHostSessionWorkingDirectoryResolver.ts",
@@ -150498,11 +150391,11 @@
         {
           "module": "module-2108",
           "bindings": [
-            "computeWorkingDirectories",
-            "supportsMultipleWorkingDirectories",
+            "IAgentHostNewSessionFolderService",
             "computeDesiredWorkingDirectories",
+            "computeWorkingDirectories",
             "hasImmutablePrimaryWorkingDirectory",
-            "IAgentHostNewSessionFolderService"
+            "supportsMultipleWorkingDirectories"
           ]
         },
         {
@@ -150542,21 +150435,9 @@
           ]
         },
         {
-          "module": "module-0964",
-          "bindings": [
-            "getChatPermissionLevelFromDefaultConfiguration"
-          ]
-        },
-        {
           "module": "module-2046",
           "bindings": [
             "KNOWN_MODE_VALUES"
-          ]
-        },
-        {
-          "module": "module-2102",
-          "bindings": [
-            "migrateLegacyAutopilotConfig"
           ]
         },
         {
@@ -150633,7 +150514,7 @@
           ]
         }
       ],
-      "sha256": "fe9543317098074d47e811fc2eea6df82d0348d58927d58e1037a6efd2dfcb01"
+      "sha256": "bcbebe555fa2d0c784fcd928723b01bca7c80f5983956c6b1734cee0959da520"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/agentSessions/agentHost/agentHostChatInputPicker.ts",
@@ -150641,17 +150522,14 @@
       "exportedBindings": [
         "getConfigIcon",
         "toActionItems",
-        "getAgentHostSandboxSettingId",
         "getConfigPickerTriggerLabel",
         "isSelectedValue",
-        "getAutoApproveHover",
         "getEnumValueDescription",
         "getConfigPickerTriggerHover",
         "getConfigPickerItemHover",
         "getPermissionsLearnMoreUrl",
         "getConfigPickerListOptions",
         "renderPickerTrigger",
-        "isWellKnownAutoApproveSchema",
         "isClaimedByDedicatedPicker",
         "resolveConfigChipValue",
         "FILTER_THRESHOLD",
@@ -150670,25 +150548,8 @@
           ]
         },
         {
-          "module": "module-2047",
-          "bindings": [
-            "isAutoApproveValuePolicyRestricted",
-            "isAutoApprovePolicyRestricted",
-            "isAssistedPermissionsEnabled",
-            "isPermissionLevelVisible",
-            "normalizeSessionConfigValue"
-          ]
-        },
-        {
-          "module": "module-0960",
-          "bindings": [
-            "SessionType"
-          ]
-        },
-        {
           "module": "module-1107",
           "bindings": [
-            "getAgentHostCopilotSandboxSettingId",
             "IAgentHostService"
           ]
         },
@@ -150707,25 +150568,19 @@
         {
           "module": "module-0075",
           "bindings": [
-            "append",
             "$",
+            "EventHelper",
             "EventType",
             "addDisposableListener",
-            "EventHelper",
+            "append",
             "clearNode"
           ]
         },
         {
           "module": "module-0251",
           "bindings": [
-            "Gesture",
-            "EventType2"
-          ]
-        },
-        {
-          "module": "module-2046",
-          "bindings": [
-            "KNOWN_AUTO_APPROVE_VALUES"
+            "EventType2",
+            "Gesture"
           ]
         },
         {
@@ -150744,18 +150599,6 @@
           ]
         },
         {
-          "module": "module-2104",
-          "bindings": [
-            "AgentHostCustomTerminalToolEnabledSettingId"
-          ]
-        },
-        {
-          "module": "module-0052",
-          "bindings": [
-            "autorun"
-          ]
-        },
-        {
           "module": "module-2074",
           "bindings": [
             "toAgentHostBackendSessionUri"
@@ -150764,8 +150607,7 @@
         {
           "module": "module-0961",
           "bindings": [
-            "isUntitledChatSession",
-            "getChatSessionType"
+            "isUntitledChatSession"
           ]
         },
         {
@@ -150796,24 +150638,6 @@
           "module": "module-2096",
           "bindings": [
             "withChatInputPickerMotion"
-          ]
-        },
-        {
-          "module": "module-1105",
-          "bindings": [
-            "isAgentSandboxEnabledValue"
-          ]
-        },
-        {
-          "module": "module-0964",
-          "bindings": [
-            "isChatPermissionLevel"
-          ]
-        },
-        {
-          "module": "module-2106",
-          "bindings": [
-            "maybeConfirmElevatedPermissionLevel"
           ]
         },
         {
@@ -150872,31 +150696,13 @@
           ]
         },
         {
-          "module": "module-0267",
-          "bindings": [
-            "IDialogService"
-          ]
-        },
-        {
-          "module": "module-0512",
-          "bindings": [
-            "IStorageService"
-          ]
-        },
-        {
-          "module": "module-0963",
-          "bindings": [
-            "IAgentHostEnablementService"
-          ]
-        },
-        {
           "module": "module-0476",
           "bindings": [
             "BaseActionViewItem"
           ]
         }
       ],
-      "sha256": "b6c1c329d3c6b8920883e45c03e384e6366756f3552e6aaacee249d8aa53f0a7"
+      "sha256": "3d17292b16b24c70d06f16aaaec72f8caee1cf9e10b2d382b1850d347cd15be2"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/agentSessions/agentHost/agentHostChatInputPicker.contribution.ts",
@@ -150905,7 +150711,6 @@
         "getAgentHostPickerProperty",
         "OpenAgentHostFolderPickerAction",
         "OpenAgentHostModePickerAction",
-        "OpenAgentHostAutoApprovePickerAction",
         "OpenAgentHostPermissionModePickerAction",
         "OpenAgentHostCodexApprovalsPickerAction"
       ],
@@ -150933,19 +150738,19 @@
         {
           "module": "module-0965",
           "bindings": [
-            "ChatContextKeys",
-            "ChatContextKeyExprs"
+            "ChatContextKeyExprs",
+            "ChatContextKeys"
           ]
         },
         {
           "module": "module-0949",
           "bindings": [
-            "WorkspaceFolderCountContext",
-            "IsSessionsWindowContext"
+            "IsSessionsWindowContext",
+            "WorkspaceFolderCountContext"
           ]
         }
       ],
-      "sha256": "c04e0554ee8767350871f42e22554ca5f127a102d3c19f1b480bba9cf04a27c2"
+      "sha256": "01633296fd58db6c51d3c023abeb6931c5f9c5ce9465c17dc97e2046eec1db71"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/agentSessions/agentHost/agentHostGenericConfigChips.ts",
@@ -151778,7 +151583,7 @@
           ]
         }
       ],
-      "sha256": "f5624d6962aa0613973d406767798b36d8470ea68c7882397ee86b72323de0d3"
+      "sha256": "6ca0cf0f5e174c19744fce9ed511518da72840040ccd4a71e99643d2e2d7b9b6"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/chatPetService.ts",
@@ -152456,15 +152261,15 @@
         {
           "module": "module-0075",
           "bindings": [
+            "$",
+            "DisposableResizeObserver",
+            "EventType",
+            "addDisposableListener",
+            "append",
+            "clearNode",
             "h",
             "hide",
-            "DisposableResizeObserver",
-            "show",
-            "clearNode",
-            "append",
-            "$",
-            "addDisposableListener",
-            "EventType"
+            "show"
           ]
         },
         {
@@ -152634,7 +152439,7 @@
           ]
         }
       ],
-      "sha256": "409cceeea3bde37c24391d4c2bd7b521bbd8f30120cab7695f964589ad77cc2e"
+      "sha256": "7d0329d346fe550fde7d404b9d9b7a9eda69689c2a5dca77d99a267790309203"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/widget/chatCardListbox.ts",
@@ -155938,62 +155743,6 @@
       "sha256": "9533c6451065c58509044a9e96d10f41943f8df325e20c8e5ef3ddd94cbd3acb"
     },
     {
-      "modulePath": "src/vs/workbench/contrib/chat/browser/widget/input/chatGoalBannerWidget.ts",
-      "file": "module-2174.mjs",
-      "exportedBindings": [
-        "$39",
-        "ChatGoalBannerWidget"
-      ],
-      "imports": [
-        {
-          "module": "module-0075",
-          "bindings": [
-            "$",
-            "append",
-            "addDisposableListener",
-            "EventType"
-          ]
-        },
-        {
-          "module": "module-0012",
-          "bindings": [
-            "Disposable"
-          ]
-        },
-        {
-          "module": "module-0017",
-          "bindings": [
-            "Emitter"
-          ]
-        },
-        {
-          "module": "module-0086",
-          "bindings": [
-            "ThemeIcon"
-          ]
-        },
-        {
-          "module": "module-0085",
-          "bindings": [
-            "Codicon"
-          ]
-        },
-        {
-          "module": "module-0001",
-          "bindings": [
-            "localize"
-          ]
-        },
-        {
-          "module": "module-2038",
-          "bindings": [
-            "setChatInputStackSlot"
-          ]
-        }
-      ],
-      "sha256": "af5e35b8dd289b6afb03b317656b3f00c59229ccba3ac58e282eac9f6598fee7"
-    },
-    {
       "modulePath": "src/vs/workbench/contrib/chat/browser/widget/input/chatInputNotificationWidget.ts",
       "file": "module-2175.mjs",
       "exportedBindings": [
@@ -157837,172 +157586,6 @@
       "sha256": "4b12bb8b72fd1c1df1a92b39d6bb0306d6927a20bcc0145e2468a50673438156"
     },
     {
-      "modulePath": "src/vs/workbench/contrib/chat/browser/widget/input/permissionPickerActionItem.ts",
-      "file": "module-2195.mjs",
-      "exportedBindings": [
-        "getPermissionLevelMeta",
-        "sanitizeIdSegment",
-        "getLocalSandboxEnabledSettingId",
-        "DEFAULT_PERMISSION_LEVELS",
-        "PermissionPickerActionItem"
-      ],
-      "imports": [
-        {
-          "module": "module-0001",
-          "bindings": [
-            "localize"
-          ]
-        },
-        {
-          "module": "module-0086",
-          "bindings": [
-            "ThemeIcon"
-          ]
-        },
-        {
-          "module": "module-0085",
-          "bindings": [
-            "Codicon"
-          ]
-        },
-        {
-          "module": "module-0014",
-          "bindings": [
-            "isWindows"
-          ]
-        },
-        {
-          "module": "module-2096",
-          "bindings": [
-            "ChatInputPickerActionViewItem"
-          ]
-        },
-        {
-          "module": "module-2106",
-          "bindings": [
-            "maybeConfirmElevatedPermissionLevel"
-          ]
-        },
-        {
-          "module": "module-0960",
-          "bindings": [
-            "SessionType"
-          ]
-        },
-        {
-          "module": "module-0032",
-          "bindings": [
-            "URI"
-          ]
-        },
-        {
-          "module": "module-0017",
-          "bindings": [
-            "Emitter"
-          ]
-        },
-        {
-          "module": "module-0012",
-          "bindings": [
-            "MutableDisposable"
-          ]
-        },
-        {
-          "module": "module-0052",
-          "bindings": [
-            "autorun"
-          ]
-        },
-        {
-          "module": "module-1105",
-          "bindings": [
-            "isAgentSandboxEnabledValue"
-          ]
-        },
-        {
-          "module": "module-0467",
-          "bindings": [
-            "renderLabelWithIcons"
-          ]
-        },
-        {
-          "module": "module-2040",
-          "bindings": [
-            "getCompactCodicon"
-          ]
-        },
-        {
-          "module": "module-0075",
-          "bindings": [
-            "$",
-            "reset"
-          ]
-        },
-        {
-          "module": "module-0000",
-          "bindings": [
-            "__decorateClass",
-            "__decorateParam"
-          ]
-        },
-        {
-          "module": "module-0553",
-          "bindings": [
-            "IActionWidgetService"
-          ]
-        },
-        {
-          "module": "module-0352",
-          "bindings": [
-            "IKeybindingService"
-          ]
-        },
-        {
-          "module": "module-0089",
-          "bindings": [
-            "IContextKeyService"
-          ]
-        },
-        {
-          "module": "module-0093",
-          "bindings": [
-            "ITelemetryService"
-          ]
-        },
-        {
-          "module": "module-0132",
-          "bindings": [
-            "IConfigurationService"
-          ]
-        },
-        {
-          "module": "module-0267",
-          "bindings": [
-            "IDialogService"
-          ]
-        },
-        {
-          "module": "module-0272",
-          "bindings": [
-            "IOpenerService"
-          ]
-        },
-        {
-          "module": "module-0512",
-          "bindings": [
-            "IStorageService"
-          ]
-        },
-        {
-          "module": "module-0520",
-          "bindings": [
-            "IHoverService"
-          ]
-        }
-      ],
-      "sha256": "93942d71d4ec085bfa3022731c5f2e07d30cb138beaea0989d75585bdc226f16"
-    },
-    {
       "modulePath": "src/vs/workbench/contrib/chat/browser/widget/input/workspacePickerActionItem.ts",
       "file": "module-2196.mjs",
       "exportedBindings": [
@@ -158880,7 +158463,6 @@
         "INPUT_EDITOR_LINE_HEIGHT",
         "INPUT_EDITOR_PADDING",
         "CachedLanguageModelsKey",
-        "PERMISSION_LEVEL_OPTION_ID",
         "LEGACY_SHARED_INPUT_STATE_TAGS",
         "emptyInputAttachments",
         "ChatInputPart",
@@ -158893,43 +158475,42 @@
           "module": "module-0075",
           "bindings": [
             "$",
-            "clearNode",
-            "h",
-            "hide",
-            "append",
-            "addDisposableListener",
-            "EventType",
-            "getWindow",
-            "addStandardDisposableListener",
-            "isHTMLElement",
             "AnimationFrameScheduler",
             "DisposableResizeObserver",
-            "setVisibility",
+            "EventType",
+            "addDisposableListener",
+            "addStandardDisposableListener",
+            "append",
+            "clearNode",
+            "getTotalWidth",
+            "getWindow",
+            "h",
+            "hide",
+            "isHTMLElement",
             "isKeyboardEvent",
-            "show",
             "scheduleAtNextAnimationFrame",
-            "getTotalWidth"
+            "setVisibility",
+            "show"
           ]
         },
         {
           "module": "module-2177",
           "bindings": [
-            "isChatInputPickerResponsiveState",
-            "ChatInputPickerResponsiveLayout"
+            "ChatInputPickerResponsiveLayout",
+            "isChatInputPickerResponsiveState"
           ]
         },
         {
           "module": "module-2062",
           "bindings": [
+            "ChatEditingSessionSubmitAction",
+            "ChatSessionPrimaryPickerAction",
+            "ChatSubmitAction",
+            "OpenDelegationPickerAction",
             "OpenModePickerAction",
             "OpenModelPickerAction",
-            "ChatSubmitAction",
             "OpenSessionTargetPickerAction",
-            "OpenDelegationPickerAction",
-            "ChatSessionPrimaryPickerAction",
-            "ChatEditingSessionSubmitAction",
-            "OpenWorkspacePickerAction",
-            "OpenPermissionPickerAction"
+            "OpenWorkspacePickerAction"
           ]
         },
         {
@@ -158941,10 +158522,10 @@
         {
           "module": "module-2053",
           "bindings": [
-            "serializeUntitledInputState",
+            "deserializeUntitledInputAttachments",
             "deserializeUntitledInputState",
             "serializeUntitledInputAttachments",
-            "deserializeUntitledInputAttachments"
+            "serializeUntitledInputState"
           ]
         },
         {
@@ -158957,9 +158538,9 @@
           "module": "module-0012",
           "bindings": [
             "Disposable",
-            "MutableDisposable",
             "DisposableMap",
             "DisposableStore",
+            "MutableDisposable",
             "toDisposable"
           ]
         },
@@ -158979,8 +158560,8 @@
         {
           "module": "module-0036",
           "bindings": [
-            "RunOnceScheduler",
-            "DeferredPromise"
+            "DeferredPromise",
+            "RunOnceScheduler"
           ]
         },
         {
@@ -159024,17 +158605,17 @@
         {
           "module": "module-2036",
           "bindings": [
-            "isSessionStarted",
-            "hasModelsTargetingSession",
-            "isModelSupportedForMode",
-            "isModelSupportedForInlineChat",
             "filterModelsForSession",
-            "shouldResetOnModelListChange",
-            "isNewConversation",
-            "shouldRestorePerTypeModelOnSessionSwitch",
-            "mergeModelsWithCache",
+            "hasModelsTargetingSession",
             "isModelHiddenInPicker",
-            "shouldDropAgnosticDraftModel"
+            "isModelSupportedForInlineChat",
+            "isModelSupportedForMode",
+            "isNewConversation",
+            "isSessionStarted",
+            "mergeModelsWithCache",
+            "shouldDropAgnosticDraftModel",
+            "shouldResetOnModelListChange",
+            "shouldRestorePerTypeModelOnSessionSwitch"
           ]
         },
         {
@@ -159065,8 +158646,8 @@
           "module": "module-1470",
           "bindings": [
             "ChatMode",
-            "getModeNameForTelemetry",
-            "IChatModeService"
+            "IChatModeService",
+            "getModeNameForTelemetry"
           ]
         },
         {
@@ -159141,39 +158722,39 @@
         {
           "module": "module-0095",
           "bindings": [
-            "canLog",
-            "ILogService"
+            "ILogService",
+            "canLog"
           ]
         },
         {
           "module": "module-0960",
           "bindings": [
+            "IChatSessionsService",
             "SessionType",
-            "localChatSessionType",
             "isAgentHostTarget",
             "isIChatSessionFileChange2",
-            "IChatSessionsService"
+            "localChatSessionType"
           ]
         },
         {
           "module": "module-0979",
           "bindings": [
             "ChatRequestVariableSet",
-            "isImageVariableEntry",
-            "isExplicitFileOrImageVariableEntry",
-            "isStringVariableEntry",
             "getImageAttachmentLimit",
+            "isAgentHostCompletionVariableEntry",
+            "isBrowserViewVariableEntry",
+            "isElementVariableEntry",
+            "isExplicitFileOrImageVariableEntry",
+            "isImageVariableEntry",
             "isNotebookOutputVariableEntry",
+            "isPasteVariableEntry",
+            "isPastedTextArtifact",
             "isPromptFileVariableEntry",
             "isPromptTextVariableEntry",
-            "isElementVariableEntry",
-            "isPasteVariableEntry",
-            "isSCMHistoryItemVariableEntry",
-            "isSCMHistoryItemChangeVariableEntry",
             "isSCMHistoryItemChangeRangeVariableEntry",
-            "isBrowserViewVariableEntry",
-            "isPastedTextArtifact",
-            "isAgentHostCompletionVariableEntry"
+            "isSCMHistoryItemChangeVariableEntry",
+            "isSCMHistoryItemVariableEntry",
+            "isStringVariableEntry"
           ]
         },
         {
@@ -159213,28 +158794,15 @@
         {
           "module": "module-2138",
           "bindings": [
-            "didExplicitlySwitchChatPetModel",
-            "ChatPetAchievementIds"
+            "ChatPetAchievementIds",
+            "didExplicitlySwitchChatPetModel"
           ]
         },
         {
           "module": "module-2194",
           "bindings": [
-            "isModeConsideredBuiltIn",
-            "ModePickerActionItem"
-          ]
-        },
-        {
-          "module": "module-0964",
-          "bindings": [
-            "isChatPermissionLevel"
-          ]
-        },
-        {
-          "module": "module-2047",
-          "bindings": [
-            "isAutoApproveValuePolicyRestricted",
-            "isAutoApprovePolicyRestricted"
+            "ModePickerActionItem",
+            "isModeConsideredBuiltIn"
           ]
         },
         {
@@ -159282,9 +158850,9 @@
         {
           "module": "module-1349",
           "bindings": [
+            "isDictationActiveForEditor",
             "notifyDictationSubmitted",
-            "onDidChangeDictationEditor",
-            "isDictationActiveForEditor"
+            "onDidChangeDictationEditor"
           ]
         },
         {
@@ -159296,17 +158864,17 @@
         {
           "module": "module-0089",
           "bindings": [
-            "RawContextKey",
             "ContextKeyExpr",
-            "IContextKeyService"
+            "IContextKeyService",
+            "RawContextKey"
           ]
         },
         {
           "module": "module-2157",
           "bindings": [
-            "isTerminalCommandPaste",
+            "handleTerminalCommandPaste",
             "isTerminalCommandInput",
-            "handleTerminalCommandPaste"
+            "isTerminalCommandPaste"
           ]
         },
         {
@@ -159330,8 +158898,8 @@
         {
           "module": "module-0982",
           "bindings": [
-            "getAgentSessionProvider",
-            "AgentSessionProviders"
+            "AgentSessionProviders",
+            "getAgentSessionProvider"
           ]
         },
         {
@@ -159347,12 +158915,6 @@
           ]
         },
         {
-          "module": "module-2174",
-          "bindings": [
-            "ChatGoalBannerWidget"
-          ]
-        },
-        {
           "module": "module-0045",
           "bindings": [
             "transaction"
@@ -159361,10 +158923,10 @@
         {
           "module": "module-2038",
           "bindings": [
-            "chatInputSurfaceStackClass",
-            "chatInputSurfaceStackSlotClass",
             "chatInputStackClass",
             "chatInputStackSlotClass",
+            "chatInputSurfaceStackClass",
+            "chatInputSurfaceStackSlotClass",
             "setChatInputStackInputFocused",
             "setChatInputStackSlot"
           ]
@@ -159402,8 +158964,8 @@
         {
           "module": "module-1837",
           "bindings": [
-            "getSimpleEditorOptions",
             "getSimpleCodeEditorWidgetOptions",
+            "getSimpleEditorOptions",
             "setupSimpleEditorSelectionStyling"
           ]
         },
@@ -159506,8 +159068,8 @@
         {
           "module": "module-2135",
           "bindings": [
-            "MobileChatInputCombinedPickerActionItem",
-            "IChatPhoneInputPresenter"
+            "IChatPhoneInputPresenter",
+            "MobileChatInputCombinedPickerActionItem"
           ]
         },
         {
@@ -159544,8 +159106,8 @@
         {
           "module": "module-2085",
           "bindings": [
-            "ChatSpeechToTextPreparingAction",
             "ChatSpeechToTextConnectingAction",
+            "ChatSpeechToTextPreparingAction",
             "ToggleChatSpeechToTextAction"
           ]
         },
@@ -159582,11 +159144,10 @@
         {
           "module": "module-2126",
           "bindings": [
-            "OpenAgentHostModePickerAction",
-            "OpenAgentHostAutoApprovePickerAction",
-            "OpenAgentHostPermissionModePickerAction",
             "OpenAgentHostCodexApprovalsPickerAction",
             "OpenAgentHostFolderPickerAction",
+            "OpenAgentHostModePickerAction",
+            "OpenAgentHostPermissionModePickerAction",
             "getAgentHostPickerProperty"
           ]
         },
@@ -159600,12 +159161,6 @@
           "module": "module-2196",
           "bindings": [
             "WorkspacePickerActionItem"
-          ]
-        },
-        {
-          "module": "module-2195",
-          "bindings": [
-            "PermissionPickerActionItem"
           ]
         },
         {
@@ -159642,20 +159197,20 @@
         {
           "module": "module-2032",
           "bindings": [
-            "ToolSetOrToolItemAttachmentWidget",
+            "BrowserViewAttachmentWidget",
+            "DefaultChatAttachmentWidget",
+            "ElementChatAttachmentWidget",
+            "FileAttachmentWidget",
+            "ImageAttachmentWidget",
             "NotebookCellOutputChatAttachmentWidget",
+            "PasteAttachmentWidget",
             "PromptFileAttachmentWidget",
             "PromptTextAttachmentWidget",
-            "FileAttachmentWidget",
-            "TerminalCommandAttachmentWidget",
-            "ImageAttachmentWidget",
-            "ElementChatAttachmentWidget",
-            "PasteAttachmentWidget",
             "SCMHistoryItemAttachmentWidget",
             "SCMHistoryItemChangeAttachmentWidget",
             "SCMHistoryItemChangeRangeAttachmentWidget",
-            "BrowserViewAttachmentWidget",
-            "DefaultChatAttachmentWidget"
+            "TerminalCommandAttachmentWidget",
+            "ToolSetOrToolItemAttachmentWidget"
           ]
         },
         {
@@ -159740,9 +159295,9 @@
         {
           "module": "module-0934",
           "bindings": [
-            "SIDE_GROUP",
             "ACTIVE_GROUP",
-            "IEditorService"
+            "IEditorService",
+            "SIDE_GROUP"
           ]
         },
         {
@@ -159754,9 +159309,9 @@
         {
           "module": "module-0981",
           "bindings": [
+            "IChatWidgetService",
             "isIChatResourceViewContext",
-            "isIChatViewViewContext",
-            "IChatWidgetService"
+            "isIChatViewViewContext"
           ]
         },
         {
@@ -159966,7 +159521,7 @@
           ]
         }
       ],
-      "sha256": "1a8eb465b8e51d2b4e907efb75debcb0b79eeb1df4cd8393b3397a1bc90c3956"
+      "sha256": "eb66c26fb230f09f77ea6fbc936652c59fe5a84601252f040c2ec40701a13cc9"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/common/promptTimeline.ts",
@@ -161631,16 +161186,16 @@
         {
           "module": "module-1007",
           "bindings": [
-            "getInlineToolInput",
             "buildSubagentChatUri",
+            "getInlineToolInput",
+            "getToolFileEdits",
+            "getToolOutputText",
             "getToolSubagentContent",
-            "readUsageInfoMeta",
+            "getTurnError",
             "hasReportedUsage",
             "isMessageHiddenFromTranscript",
-            "getTurnError",
             "parseChatUri",
-            "getToolOutputText",
-            "getToolFileEdits"
+            "readUsageInfoMeta"
           ]
         },
         {
@@ -161683,10 +161238,10 @@
         {
           "module": "module-1000",
           "bindings": [
+            "AGENT_HOST_SCHEME",
             "createAgentHostResourceUriMapper",
-            "toAgentHostUri",
             "toAgentHostContentUri",
-            "AGENT_HOST_SCHEME"
+            "toAgentHostUri"
           ]
         },
         {
@@ -161746,20 +161301,20 @@
         {
           "module": "module-2029",
           "bindings": [
+            "AGENT_HOST_SESSION_LINK_SCHEME",
             "buildOpenSessionLinkUri",
-            "isSendMessageTool",
-            "isCreateSessionTool",
             "isCreateChatTool",
-            "parseOpenSessionLinkUri",
+            "isCreateSessionTool",
+            "isSendMessageTool",
             "parseOpenSessionLinkChatId",
-            "AGENT_HOST_SESSION_LINK_SCHEME"
+            "parseOpenSessionLinkUri"
           ]
         },
         {
           "module": "module-0034",
           "bindings": [
-            "isEqual2",
-            "basename2"
+            "basename2",
+            "isEqual2"
           ]
         },
         {
@@ -161771,16 +161326,16 @@
         {
           "module": "module-2234",
           "bindings": [
-            "getElementAttachmentCorrelationId",
-            "AgentHostElementAttachmentDisplayKind"
+            "AgentHostElementAttachmentDisplayKind",
+            "getElementAttachmentCorrelationId"
           ]
         },
         {
           "module": "module-2235",
           "bindings": [
+            "getAgentFeedbackAttachmentMetadata",
             "isAgentFeedbackAnnotationsAttachment",
-            "isAgentFeedbackAttachment",
-            "getAgentFeedbackAttachmentMetadata"
+            "isAgentFeedbackAttachment"
           ]
         },
         {
@@ -161811,16 +161366,16 @@
         {
           "module": "module-0979",
           "bindings": [
-            "toAgentHostCompletionVariableEntryFromMetadata",
             "restoreChatTranscriptContextVariableEntry",
-            "restorePasteVariableEntryFromAttachment"
+            "restorePasteVariableEntryFromAttachment",
+            "toAgentHostCompletionVariableEntryFromMetadata"
           ]
         },
         {
           "module": "module-2236",
           "bindings": [
-            "isBrowserViewAttachment",
-            "getBrowserViewAttachmentMetadata"
+            "getBrowserViewAttachmentMetadata",
+            "isBrowserViewAttachment"
           ]
         },
         {
@@ -161869,8 +161424,8 @@
         {
           "module": "module-0026",
           "bindings": [
-            "win32",
-            "posix"
+            "posix",
+            "win32"
           ]
         },
         {
@@ -161892,7 +161447,7 @@
           ]
         }
       ],
-      "sha256": "adbb110f45a992cccc5984fdd1ea3244585ef7f16d59cf8b13340bc1615de41f"
+      "sha256": "71a801b9c1cf7b8dfef80525ef43b9e40b7f6fcad8d2171b1d7b1c59e3e6a66d"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/agentSessions/agentHost/agentHostSnapshotController.ts",
@@ -172123,12 +171678,6 @@
           ]
         },
         {
-          "module": "module-2047",
-          "bindings": [
-            "isAutoApprovePolicyRestricted"
-          ]
-        },
-        {
           "module": "module-0082",
           "bindings": [
             "Separator"
@@ -172137,9 +171686,9 @@
         {
           "module": "module-0075",
           "bindings": [
-            "h",
             "addDisposableGenericMouseDownListener",
-            "addDisposableListener"
+            "addDisposableListener",
+            "h"
           ]
         },
         {
@@ -172169,8 +171718,8 @@
         {
           "module": "module-0990",
           "bindings": [
-            "createToolSchemaUri",
-            "ILanguageModelToolsService"
+            "ILanguageModelToolsService",
+            "createToolSchemaUri"
           ]
         },
         {
@@ -172283,7 +171832,7 @@
           ]
         }
       ],
-      "sha256": "5f7f84bdda7b5bd4b1ff525404a2a6e169ceb08a1bb80f2e564a20bb743b497a"
+      "sha256": "33dc5af1aa1a0fc1c2c15dada7d40ed49f8ed6308339072c4404d499a8ce6822"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/widget/chatContentParts/toolInvocationParts/chatToolOutputPart.ts",
@@ -173538,22 +173087,22 @@
           "module": "module-0075",
           "bindings": [
             "$",
-            "isHTMLElement",
-            "clearNode",
-            "append",
-            "findParentWithClass",
-            "scheduleAtNextAnimationFrame",
-            "getWindow",
-            "addDisposableListener",
-            "EventType",
             "DisposableResizeObserver",
-            "addStandardDisposableListener",
+            "EventType",
             "WindowIntervalTimer",
-            "reset",
+            "addDisposableListener",
+            "addStandardDisposableListener",
+            "append",
+            "clearNode",
+            "findParentWithClass",
             "getActiveElement",
+            "getWindow",
             "hide",
-            "show",
-            "isAncestorOfActiveElement"
+            "isAncestorOfActiveElement",
+            "isHTMLElement",
+            "reset",
+            "scheduleAtNextAnimationFrame",
+            "show"
           ]
         },
         {
@@ -173585,16 +173134,16 @@
         {
           "module": "module-2211",
           "bindings": [
-            "formatChatResponseElapsedTime",
             "formatChatRequestTimestamp",
-            "formatChatResponseDetails"
+            "formatChatResponseDetails",
+            "formatChatResponseElapsedTime"
           ]
         },
         {
           "module": "module-0040",
           "bindings": [
-            "formatTokenCount",
-            "clamp"
+            "clamp",
+            "formatTokenCount"
           ]
         },
         {
@@ -173606,9 +173155,9 @@
         {
           "module": "module-0972",
           "bindings": [
+            "IChatService",
             "IChatToolInvocation",
-            "isChatFollowup",
-            "IChatService"
+            "isChatFollowup"
           ]
         },
         {
@@ -173641,11 +173190,11 @@
           "module": "module-0012",
           "bindings": [
             "Disposable",
-            "MutableDisposable",
+            "DisposableMap",
             "DisposableStore",
+            "MutableDisposable",
             "dispose",
-            "toDisposable",
-            "DisposableMap"
+            "toDisposable"
           ]
         },
         {
@@ -173682,22 +173231,22 @@
         {
           "module": "module-2301",
           "bindings": [
-            "EditorPool",
-            "DiffEditorPool"
+            "DiffEditorPool",
+            "EditorPool"
           ]
         },
         {
           "module": "module-2368",
           "bindings": [
-            "TreePool",
-            "ChatTreeContentPart"
+            "ChatTreeContentPart",
+            "TreePool"
           ]
         },
         {
           "module": "module-2154",
           "bindings": [
-            "CollapsibleListPool",
-            "ChatUsedReferencesListContentPart"
+            "ChatUsedReferencesListContentPart",
+            "CollapsibleListPool"
           ]
         },
         {
@@ -173721,10 +173270,10 @@
         {
           "module": "module-0978",
           "bindings": [
-            "isRequestVM",
-            "isResponseVM",
+            "getStickyScrollTargetItem",
             "isPendingDividerVM",
-            "getStickyScrollTargetItem"
+            "isRequestVM",
+            "isResponseVM"
           ]
         },
         {
@@ -173905,9 +173454,9 @@
           "module": "module-2210",
           "bindings": [
             "annotateSpecialMarkdownContent",
-            "hasEditCodeblockUriTag",
+            "extractSubAgentInvocationIdFromText",
             "hasCodeblockUriTag",
-            "extractSubAgentInvocationIdFromText"
+            "hasEditCodeblockUriTag"
           ]
         },
         {
@@ -173919,8 +173468,8 @@
         {
           "module": "module-2285",
           "bindings": [
-            "isMcpToolInvocation",
-            "isAskQuestionsToolInvocation"
+            "isAskQuestionsToolInvocation",
+            "isMcpToolInvocation"
           ]
         },
         {
@@ -173933,16 +173482,16 @@
         {
           "module": "module-2289",
           "bindings": [
-            "ChatWorkingProgressContentPart",
-            "ChatProgressContentPart"
+            "ChatProgressContentPart",
+            "ChatWorkingProgressContentPart"
           ]
         },
         {
           "module": "module-0979",
           "bindings": [
+            "getExplicitFileOrImageAttachmentSummary",
             "isExplicitFileOrImageVariableEntry",
-            "isPasteVariableEntry",
-            "getExplicitFileOrImageAttachmentSummary"
+            "isPasteVariableEntry"
           ]
         },
         {
@@ -173997,8 +173546,8 @@
         {
           "module": "module-2029",
           "bindings": [
-            "isCreateSessionTool",
             "isCreateChatTool",
+            "isCreateSessionTool",
             "isSendMessageTool"
           ]
         },
@@ -174293,7 +173842,7 @@
           ]
         }
       ],
-      "sha256": "83b3e2147cd5d001bd199fe36f21fc2dadd9bf5b855a1ca9195f73177fd7955e"
+      "sha256": "744c443f6fd0214eddbfa81d223ab18669d98564cd67943b810580eb71690bc4"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/widget/chatClipboard.ts",
@@ -175313,9 +174862,9 @@
         {
           "module": "module-1476",
           "bindings": [
+            "GENERATE_AGENT_COMMAND_ID",
             "GENERATE_AGENT_INSTRUCTIONS_COMMAND_ID",
             "GENERATE_PROMPT_COMMAND_ID",
-            "GENERATE_AGENT_COMMAND_ID",
             "GENERATE_SKILL_COMMAND_ID",
             "INSERT_FORK_CONVERSATION_COMMAND_ID",
             "INSERT_TROUBLESHOOT_COMMAND_ID"
@@ -175366,7 +174915,7 @@
           ]
         }
       ],
-      "sha256": "960cb3536346012ce91b149f444d2cc2026a4b4760cf07fbec94dee54a9a7a61"
+      "sha256": "4903a7bfc1f171bb57d1e88c0fb766134c5806a697249eaaf1004a9cc02d0278"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/chatTipService.ts",
@@ -175958,43 +175507,43 @@
           "module": "module-0075",
           "bindings": [
             "$",
-            "findParentWithClass",
-            "getTopLeftOffset",
-            "append",
-            "getWindow",
-            "addStandardDisposableListener",
+            "Dimension",
             "EventType",
             "addDisposableListener",
-            "isAncestor",
-            "setVisibility",
+            "addStandardDisposableListener",
+            "append",
             "clearNode",
+            "findParentWithClass",
+            "getTopLeftOffset",
+            "getWindow",
+            "isAncestor",
             "scheduleAtNextAnimationFrame",
-            "Dimension"
+            "setVisibility"
           ]
         },
         {
           "module": "module-0981",
           "bindings": [
-            "isIChatResourceViewContext",
-            "isIChatViewViewContext",
-            "IChatWidgetService",
+            "IChatAccessibilityService",
             "IChatPasteTargetService",
-            "IChatAccessibilityService"
+            "IChatWidgetService",
+            "isIChatResourceViewContext",
+            "isIChatViewViewContext"
           ]
         },
         {
           "module": "module-0987",
           "bindings": [
+            "ChatRequestAgentPart",
+            "ChatRequestDynamicVariablePart",
             "ChatRequestSlashCommandPart",
+            "ChatRequestSlashPromptPart",
             "ChatRequestToolPart",
             "ChatRequestToolSetPart",
-            "ChatRequestDynamicVariablePart",
             "IParsedChatRequest",
             "chatAgentLeader",
             "chatSubcommandLeader",
-            "ChatRequestSlashPromptPart",
-            "formatChatQuestion",
-            "ChatRequestAgentPart"
+            "formatChatQuestion"
           ]
         },
         {
@@ -176014,10 +175563,10 @@
           "module": "module-0012",
           "bindings": [
             "Disposable",
-            "MutableDisposable",
             "DisposableStore",
-            "toDisposable",
-            "thenIfNotDisposed"
+            "MutableDisposable",
+            "thenIfNotDisposed",
+            "toDisposable"
           ]
         },
         {
@@ -176042,8 +175591,8 @@
         {
           "module": "module-2391",
           "bindings": [
-            "ChatReadOnlyBanner",
-            "CHAT_READ_ONLY_BANNER_HEIGHT"
+            "CHAT_READ_ONLY_BANNER_HEIGHT",
+            "ChatReadOnlyBanner"
           ]
         },
         {
@@ -176068,12 +175617,12 @@
         {
           "module": "module-1081",
           "bindings": [
-            "decidedChatEditingResourceContextKey",
-            "hasUndecidedChatEditingResourceContextKey",
-            "hasAppliedChatEditsContextKey",
-            "inChatEditingSessionContextKey",
+            "IChatEditingService",
             "applyingChatEditsFailedContextKey",
-            "IChatEditingService"
+            "decidedChatEditingResourceContextKey",
+            "hasAppliedChatEditsContextKey",
+            "hasUndecidedChatEditingResourceContextKey",
+            "inChatEditingSessionContextKey"
           ]
         },
         {
@@ -176135,9 +175684,9 @@
         {
           "module": "module-2108",
           "bindings": [
+            "IAgentHostNewSessionFolderService",
             "hasImmutablePrimaryWorkingDirectory",
-            "resolveFolderPickerDecisionUpdate",
-            "IAgentHostNewSessionFolderService"
+            "resolveFolderPickerDecisionUpdate"
           ]
         },
         {
@@ -176185,20 +175734,20 @@
         {
           "module": "module-0979",
           "bindings": [
+            "ChatRequestVariableSet",
             "isPastedTextArtifact",
-            "isWorkspaceVariableEntry",
             "isPromptFileVariableEntry",
             "isPromptTextVariableEntry",
-            "toPromptFileVariableEntry",
-            "ChatRequestVariableSet"
+            "isWorkspaceVariableEntry",
+            "toPromptFileVariableEntry"
           ]
         },
         {
           "module": "module-0978",
           "bindings": [
-            "isResponseVM",
+            "ChatViewModel",
             "isRequestVM",
-            "ChatViewModel"
+            "isResponseVM"
           ]
         },
         {
@@ -176253,22 +175802,21 @@
         {
           "module": "module-0025",
           "bindings": [
-            "CancellationToken",
-            "CancellationTokenSource"
+            "CancellationToken"
           ]
         },
         {
           "module": "module-1470",
           "bindings": [
-            "getModeNameForTelemetry",
-            "ChatMode"
+            "ChatMode",
+            "getModeNameForTelemetry"
           ]
         },
         {
           "module": "module-0960",
           "bindings": [
-            "localChatSessionType",
-            "IChatSessionsService"
+            "IChatSessionsService",
+            "localChatSessionType"
           ]
         },
         {
@@ -176335,8 +175883,8 @@
         {
           "module": "module-0990",
           "bindings": [
-            "isToolSet",
-            "ILanguageModelToolsService"
+            "ILanguageModelToolsService",
+            "isToolSet"
           ]
         },
         {
@@ -176366,9 +175914,9 @@
         {
           "module": "module-0973",
           "bindings": [
-            "markChat",
             "ChatPerfMark",
-            "clearChatMarks"
+            "clearChatMarks",
+            "markChat"
           ]
         },
         {
@@ -176410,8 +175958,8 @@
         {
           "module": "module-2138",
           "bindings": [
-            "hasChatPetImageAttachment",
-            "ChatPetAchievementIds"
+            "ChatPetAchievementIds",
+            "hasChatPetImageAttachment"
           ]
         },
         {
@@ -176437,6 +175985,12 @@
           "module": "module-0132",
           "bindings": [
             "IConfigurationService"
+          ]
+        },
+        {
+          "module": "module-0964",
+          "bindings": [
+            "isOpenCodeFullAutoMode"
           ]
         },
         {
@@ -176548,12 +176102,6 @@
           ]
         },
         {
-          "module": "module-2014",
-          "bindings": [
-            "IChatGoalSummaryService"
-          ]
-        },
-        {
           "module": "module-2392",
           "bindings": [
             "IChatSubmitRequestHandlerService"
@@ -176596,7 +176144,7 @@
           ]
         }
       ],
-      "sha256": "e245892c0a0215454e5b135918c43a4072d40f7499d35d2286024cc6503a954f"
+      "sha256": "1a361eb2046f0dc8564cd5df7527b968ec6fbcb636bde7342f3d83142f63d19f"
     },
     {
       "modulePath": "src/vs/workbench/contrib/inlineChat/browser/inlineChatWidget.ts",
@@ -189920,7 +189468,7 @@
           ]
         }
       ],
-      "sha256": "3d52d640d35320b13178b4091a2cced75dc3f7b429af33e66c1ca103de767e53"
+      "sha256": "9fd4d0ffbf138feb4b0d2e6bf594b0a8d8f14255c92700569e352698ee147907"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/common/tools/builtinTools/toolHelpers.ts",
@@ -191411,8 +190959,8 @@
         {
           "module": "module-0965",
           "bindings": [
-            "ChatContextKeys",
-            "ChatContextKeyExprs"
+            "ChatContextKeyExprs",
+            "ChatContextKeys"
           ]
         },
         {
@@ -191501,7 +191049,7 @@
           ]
         }
       ],
-      "sha256": "c4dfbd7bfa8cdf56ce1048ba400e7275c7d08db8f4e672cbdf94cb42007a8971"
+      "sha256": "e617f505412b3f17b7674d46397f7b13f0ad9807cdf18551811f3dfabaa61605"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/actions/chatAgentRecommendationActions.ts",
@@ -194596,8 +194144,7 @@
         "InspectChatModelAction",
         "InspectChatModelReferencesAction",
         "InspectAgentHostSubscriptionsAction",
-        "ClearRecentlyUsedLanguageModelsAction",
-        "ResetChatPermissionWarningDialogsAction"
+        "ClearRecentlyUsedLanguageModelsAction"
       ],
       "imports": [
         {
@@ -194610,8 +194157,8 @@
         {
           "module": "module-0092",
           "bindings": [
-            "registerAction2",
-            "Action2"
+            "Action2",
+            "registerAction2"
           ]
         },
         {
@@ -194691,28 +194238,9 @@
           "bindings": [
             "ILanguageModelsService"
           ]
-        },
-        {
-          "module": "module-0512",
-          "bindings": [
-            "IStorageService"
-          ]
-        },
-        {
-          "module": "module-2105",
-          "bindings": [
-            "AUTOPILOT_DONT_SHOW_AGAIN_KEY",
-            "AUTO_APPROVE_DONT_SHOW_AGAIN_KEY"
-          ]
-        },
-        {
-          "module": "module-2106",
-          "bindings": [
-            "resetShownWarnings"
-          ]
         }
       ],
-      "sha256": "03d6e7df9b4eafcb1710d9dd9dc3eef4cb7e9367fd7f1043e5827c9e4fd85886"
+      "sha256": "12083cf3b40195ff0a90cfa350ec55742f42520de6725c39f96cd0ca44753107"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/actions/chatFileTreeActions.ts",
@@ -201212,8 +200740,6 @@
       "exportedBindings": [
         "isSymbolToolResourceInScope",
         "resolveSymbolToolFileUri",
-        "getChatPermissionLevelForToolInvocation",
-        "getSandboxPrecheckInputsForToolInvocation",
         "findLineNumber",
         "findSymbolColumn",
         "errorResult"
@@ -201229,12 +200755,6 @@
           "module": "module-2633",
           "bindings": [
             "WorkingDirectory"
-          ]
-        },
-        {
-          "module": "module-0964",
-          "bindings": [
-            "isAutoApproveLevel"
           ]
         },
         {
@@ -201256,7 +200776,7 @@
           ]
         }
       ],
-      "sha256": "121fe4e5e4168d1d98aba33feaf9ca86f8ccb14c6ba12e9bd465246d7f29ec89"
+      "sha256": "be3b2f90442c0569d894219213ff0272db49615d812c9920f8fc9d7d83d023c4"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/tools/renameTool.ts",
@@ -205875,17 +205395,6 @@
       "sha256": "c47a30bcea9613139f53b4ef0cfff0660cf955e025978ab3be1d4596cd41b5af"
     },
     {
-      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgePaymentPresentation.ts",
-      "file": "module-2679.mjs",
-      "exportedBindings": [
-        "isBridgePaymentApplied",
-        "isBridgePaidOrderExpired",
-        "canCreateBridgePaymentAfterError"
-      ],
-      "imports": [],
-      "sha256": "51d3bd63506962fabdb7b7944c1ba7e83e9e1da1964d2defd556f24c0a8d1262"
-    },
-    {
       "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgeSettingTarget.ts",
       "file": "module-2680.mjs",
       "exportedBindings": [
@@ -205984,15 +205493,6 @@
       ],
       "imports": [],
       "sha256": "e9cba4549dbf06fde01013182cab3ec6b040e3fa384a80444d46a52739a52177"
-    },
-    {
-      "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgePurchasePresentation.ts",
-      "file": "module-2684.mjs",
-      "exportedBindings": [
-        "getOpenCodeBridgePurchasePresentation"
-      ],
-      "imports": [],
-      "sha256": "5aac0653c9dd4f57e01594ce0bc951d2413acee770799ba6d20e328f66b6b17d"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/aiCustomization/openCodeBridgePublicUrlField.ts",
@@ -213714,10 +213214,45 @@
           ]
         },
         {
+          "module": "module-0082",
+          "bindings": [
+            "Separator",
+            "SubmenuAction",
+            "toAction"
+          ]
+        },
+        {
+          "module": "module-0014",
+          "bindings": [
+            "isWindows"
+          ]
+        },
+        {
+          "module": "module-1105",
+          "bindings": [
+            "isAgentSandboxEnabledValue"
+          ]
+        },
+        {
+          "module": "module-0964",
+          "bindings": [
+            "normalizeOpenCodePermissionMode",
+            "getDefaultNewChatSessionType",
+            "getDefaultNewChatSessionTypeAndReasonFromServices",
+            "getLocalFallbackSessionTypeSelectionReason"
+          ]
+        },
+        {
+          "module": "module-0990",
+          "bindings": [
+            "ILanguageModelToolsService"
+          ]
+        },
+        {
           "module": "module-0012",
           "bindings": [
-            "MutableDisposable",
             "DisposableStore",
+            "MutableDisposable",
             "toDisposable"
           ]
         },
@@ -213731,9 +213266,9 @@
           "module": "module-0981",
           "bindings": [
             "CHAT_WIDGET_VIEW_STATE_CACHE_LIMIT",
+            "ChatViewId",
             "IChatWidgetService",
-            "setModelPreservingInputTypedWhileLoading",
-            "ChatViewId"
+            "setModelPreservingInputTypedWhileLoading"
           ]
         },
         {
@@ -213782,8 +213317,8 @@
         {
           "module": "module-0034",
           "bindings": [
-            "isEqual2",
-            "getComparisonKey"
+            "getComparisonKey",
+            "isEqual2"
           ]
         },
         {
@@ -213803,20 +213338,20 @@
           "module": "module-0961",
           "bindings": [
             "LocalChatSessionUri",
-            "isUntitledChatSession",
+            "getChatSessionType",
             "getNewChatSessionResource",
-            "getChatSessionType"
+            "isUntitledChatSession"
           ]
         },
         {
           "module": "module-0075",
           "bindings": [
-            "append",
             "$",
-            "getWindow",
-            "addDisposableListener",
-            "EventType",
             "EventHelper",
+            "EventType",
+            "addDisposableListener",
+            "append",
+            "getWindow",
             "setVisibility"
           ]
         },
@@ -213883,9 +213418,9 @@
         {
           "module": "module-2064",
           "bindings": [
-            "resolveVoiceGlowColors",
             "isGlowingVoiceState",
-            "readVoiceGlowIntensity"
+            "readVoiceGlowIntensity",
+            "resolveVoiceGlowColors"
           ]
         },
         {
@@ -213989,8 +213524,8 @@
         {
           "module": "module-1449",
           "bindings": [
-            "ProgressBadge",
-            "IActivityService"
+            "IActivityService",
+            "ProgressBadge"
           ]
         },
         {
@@ -214006,18 +213541,10 @@
           ]
         },
         {
-          "module": "module-0964",
-          "bindings": [
-            "getDefaultNewChatSessionTypeAndReasonFromServices",
-            "getLocalFallbackSessionTypeSelectionReason",
-            "getDefaultNewChatSessionType"
-          ]
-        },
-        {
           "module": "module-0960",
           "bindings": [
-            "localChatSessionType",
-            "IChatSessionsService"
+            "IChatSessionsService",
+            "localChatSessionType"
           ]
         },
         {
@@ -214097,6 +213624,24 @@
           "module": "module-0512",
           "bindings": [
             "IStorageService"
+          ]
+        },
+        {
+          "module": "module-0536",
+          "bindings": [
+            "IQuickInputService"
+          ]
+        },
+        {
+          "module": "module-0267",
+          "bindings": [
+            "IFileDialogService"
+          ]
+        },
+        {
+          "module": "module-1379",
+          "bindings": [
+            "IWorkspacesService"
           ]
         },
         {
@@ -214220,7 +213765,7 @@
           ]
         }
       ],
-      "sha256": "56b520e2cf457fdcc3db16597131a65f10cb5f06cb7805f9e3fe1401b8b3fbef"
+      "sha256": "7a8ec6024c272a07ca0f52b262fa3a167cdc2dc8eeeb31ddde6cc8bad18f7a4b"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/chatParticipant.contribution.ts",
@@ -216495,9 +216040,9 @@
           "module": "module-0012",
           "bindings": [
             "Disposable",
-            "MutableDisposable",
             "DisposableMap",
-            "DisposableStore"
+            "DisposableStore",
+            "MutableDisposable"
           ]
         },
         {
@@ -216509,8 +216054,8 @@
         {
           "module": "module-2494",
           "bindings": [
-            "getChatSessionArchiveActionWording",
-            "ChatSessionArchiveActionWordingSettingId"
+            "ChatSessionArchiveActionWordingSettingId",
+            "getChatSessionArchiveActionWording"
           ]
         },
         {
@@ -216522,15 +216067,14 @@
         {
           "module": "module-0960",
           "bindings": [
-            "SessionType",
-            "IChatSessionsService"
+            "IChatSessionsService",
+            "SessionType"
           ]
         },
         {
           "module": "module-0961",
           "bindings": [
-            "getChatSessionType",
-            "isUntitledChatSession"
+            "getChatSessionType"
           ]
         },
         {
@@ -216554,9 +216098,9 @@
         {
           "module": "module-2062",
           "bindings": [
-            "OpenModelPickerAction",
+            "ChatSubmitAction",
             "OpenModePickerAction",
-            "ChatSubmitAction"
+            "OpenModelPickerAction"
           ]
         },
         {
@@ -216602,23 +216146,17 @@
           ]
         },
         {
-          "module": "module-2074",
-          "bindings": [
-            "toAgentHostBackendSessionUri"
-          ]
-        },
-        {
           "module": "module-0462",
           "bindings": [
-            "isMarkdownString",
-            "MarkdownString"
+            "MarkdownString",
+            "isMarkdownString"
           ]
         },
         {
           "module": "module-2275",
           "bindings": [
-            "agentToMarkdown",
-            "agentSlashCommandToMarkdown"
+            "agentSlashCommandToMarkdown",
+            "agentToMarkdown"
           ]
         },
         {
@@ -216725,7 +216263,7 @@
           ]
         }
       ],
-      "sha256": "582f23f8d0cfe8ae63aae485baad5b5509b517341e7b7661f1a642e1b9ab77d3"
+      "sha256": "94c1e7881bad4a99302da303a2b8635663e00837a1d03f832ff31ead0d239bab"
     },
     {
       "modulePath": "src/vs/platform/domWidget/browser/domWidget.ts",
@@ -219059,12 +218597,6 @@
           ]
         },
         {
-          "module": "module-2047",
-          "bindings": [
-            "isAutoApprovePolicyRestricted"
-          ]
-        },
-        {
           "module": "module-0086",
           "bindings": [
             "ThemeIcon"
@@ -219107,7 +218639,7 @@
           ]
         }
       ],
-      "sha256": "27d124df5d2f1b2e9eaee43c614f4596d5e08f561aafdcc37190d561b90c2c08"
+      "sha256": "4e0dddcab99b7b771cf2419707720d89624d6aa2ec0ec87c2159b07075088e01"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/tools/languageModelToolsService.ts",
@@ -219119,11 +218651,7 @@
         "getToolFullReferenceName",
         "getToolSetFullReferenceName",
         "jsonSchemaRegistry",
-        "SkipAutoApproveConfirmationKey",
-        "autoApproveAllReason",
         "toolIdsThatCannotBeAutoApproved",
-        "fetchWebPageToolIds",
-        "globalAutoApproveDescription",
         "OPENCODE_TERMINAL_TOOL_IDS",
         "LanguageModelToolsService"
       ],
@@ -219143,7 +218671,6 @@
         {
           "module": "module-0001",
           "bindings": [
-            "localize2",
             "localize"
           ]
         },
@@ -219152,15 +218679,14 @@
           "bindings": [
             "Disposable",
             "DisposableStore",
-            "toDisposable",
-            "combinedDisposable"
+            "combinedDisposable",
+            "toDisposable"
           ]
         },
         {
           "module": "module-0017",
           "bindings": [
-            "Emitter",
-            "Event2"
+            "Emitter"
           ]
         },
         {
@@ -219210,16 +218736,16 @@
         {
           "module": "module-0990",
           "bindings": [
-            "ToolDataSource",
-            "VSCodeToolReference",
             "SpecedToolAliases",
-            "toolMatchesModel",
-            "isToolSet",
-            "createToolSchemaUri",
-            "stringifyPromptTsxPart",
-            "ToolSetForModel",
             "ToolAndToolSetEnablementMap",
-            "ToolSet"
+            "ToolDataSource",
+            "ToolSet",
+            "ToolSetForModel",
+            "VSCodeToolReference",
+            "createToolSchemaUri",
+            "isToolSet",
+            "stringifyPromptTsxPart",
+            "toolMatchesModel"
           ]
         },
         {
@@ -219274,15 +218800,15 @@
         {
           "module": "module-0025",
           "bindings": [
-            "CancellationTokenSource",
-            "CancellationToken"
+            "CancellationToken",
+            "CancellationTokenSource"
           ]
         },
         {
           "module": "module-0972",
           "bindings": [
-            "IChatToolInvocation",
-            "IChatService"
+            "IChatService",
+            "IChatToolInvocation"
           ]
         },
         {
@@ -219307,21 +218833,13 @@
         {
           "module": "module-0961",
           "bindings": [
-            "chatSessionResourceToId",
-            "getChatSessionType"
-          ]
-        },
-        {
-          "module": "module-0960",
-          "bindings": [
-            "localChatSessionType"
+            "chatSessionResourceToId"
           ]
         },
         {
           "module": "module-0964",
           "bindings": [
-            "isAutoApproveLevel",
-            "isAutopilotLevel"
+            "normalizeOpenCodePermissionMode"
           ]
         },
         {
@@ -219359,12 +218877,6 @@
           "module": "module-0009",
           "bindings": [
             "assertNever"
-          ]
-        },
-        {
-          "module": "module-0266",
-          "bindings": [
-            "severity_default"
           ]
         },
         {
@@ -219458,15 +218970,9 @@
           "bindings": [
             "IToolResultCompressor"
           ]
-        },
-        {
-          "module": "module-2304",
-          "bindings": [
-            "IChatToolRiskAssessmentService"
-          ]
         }
       ],
-      "sha256": "c702bb625d42b19cfdb49a2515b7324caab89b17e70aed6dce47b7927299d8ae"
+      "sha256": "85b0412949bfc6d348fd090080277eb6d5e3bca8939d9d442f55dcde12131ab8"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/tools/toolResultCompressorService.ts",
@@ -220206,30 +219712,11 @@
       "file": "module-2821.mjs",
       "exportedBindings": [
         "applyAgentHostCompletionAction",
-        "getElevatedAutoApproveLevel",
-        "isPolicyBlockedCompletionAction"
+        "isElevatedApprovalConfig",
+        "isBlockedCompletionAction"
       ],
-      "imports": [
-        {
-          "module": "module-2106",
-          "bindings": [
-            "maybeConfirmElevatedPermissionLevel"
-          ]
-        },
-        {
-          "module": "module-0964",
-          "bindings": [
-            "isChatPermissionLevel"
-          ]
-        },
-        {
-          "module": "module-2047",
-          "bindings": [
-            "isAutoApprovePolicyRestricted"
-          ]
-        }
-      ],
-      "sha256": "5c057557b374d4a578c58434fd410bde006fad6cb306dbb4029a3006f14e94c6"
+      "imports": [],
+      "sha256": "c8a32c513c3bfd392ff247955e6616ca66bd801551ba97dd6915be17dbe098c9"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/agentSessions/agentHost/applyAgentHostSessionConfig.ts",
@@ -220251,7 +219738,7 @@
           ]
         }
       ],
-      "sha256": "6f4b6b94cd865236b32b5bc9e0f6fc7bcf4ac4b1cd5740398c956ef84f769ec2"
+      "sha256": "7f42332b192b7341811e86a2b93355f8e1df27815647ea0d6cea218329a0cabe"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/widget/input/editor/agentHostInputCompletionsBase.ts",
@@ -220321,18 +219808,6 @@
           ]
         },
         {
-          "module": "module-0267",
-          "bindings": [
-            "IDialogService"
-          ]
-        },
-        {
-          "module": "module-0512",
-          "bindings": [
-            "IStorageService"
-          ]
-        },
-        {
           "module": "module-1107",
           "bindings": [
             "IAgentHostService"
@@ -220366,7 +219841,7 @@
           "module": "module-2821",
           "bindings": [
             "applyAgentHostCompletionAction",
-            "isPolicyBlockedCompletionAction"
+            "isBlockedCompletionAction"
           ]
         },
         {
@@ -220378,8 +219853,8 @@
         {
           "module": "module-0960",
           "bindings": [
-            "isAgentHostTarget",
-            "IChatSessionsService"
+            "IChatSessionsService",
+            "isAgentHostTarget"
           ]
         },
         {
@@ -220428,8 +219903,8 @@
         {
           "module": "module-0979",
           "bindings": [
-            "toAgentHostCompletionVariableEntry",
             "chatReferenceVariableEntryId",
+            "toAgentHostCompletionVariableEntry",
             "toChatReferenceDynamicVariableValue"
           ]
         },
@@ -220446,7 +219921,7 @@
           ]
         }
       ],
-      "sha256": "803e8b085653691bcc75c658b9a6611c8e9cb0cad834913aeeae6a18ad5c4422"
+      "sha256": "da9d56725be5a2107b2507fef183a91ea301db1e4914daa18dd76f072b01f7b9"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/widget/input/editor/chatInputPlaceholderDecoration.ts",
@@ -224603,12 +224078,11 @@
         {
           "module": "module-2102",
           "bindings": [
-            "AgentHostMigrateLegacyCopilotCliEnabledConfigKey",
-            "AgentHostShowExternalSessionsConfigKey",
             "AgentHostAutoReplyEnabledConfigKey",
-            "AgentHostGlobalAutoApproveEnabledConfigKey",
+            "AgentHostEditAutoApprovePatternsConfigKey",
+            "AgentHostMigrateLegacyCopilotCliEnabledConfigKey",
             "AgentHostSessionSyncEnabledConfigKey",
-            "AgentHostEditAutoApprovePatternsConfigKey"
+            "AgentHostShowExternalSessionsConfigKey"
           ]
         },
         {
@@ -224620,38 +224094,36 @@
         {
           "module": "module-0955",
           "bindings": [
-            "managedModelValue",
-            "COPILOT_MODEL_KEY",
-            "COPILOT_TOP_LEVEL_MODEL_KEY",
-            "COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY",
-            "managedSettingValue",
             "COPILOT_ALLOWED_MCP_SERVERS_KEY",
-            "COPILOT_DENIED_MCP_SERVERS_KEY",
+            "COPILOT_ALLOW_MANAGED_HOOKS_ONLY_CONFIG",
+            "COPILOT_ALLOW_MANAGED_HOOKS_ONLY_KEY",
             "COPILOT_ALLOW_MANAGED_MCP_SERVERS_ONLY_CONFIG",
             "COPILOT_ALLOW_MANAGED_MCP_SERVERS_ONLY_KEY",
+            "COPILOT_DENIED_MCP_SERVERS_KEY",
             "COPILOT_ENABLED_PLUGINS_KEY",
             "COPILOT_EXTRA_MARKETPLACES_KEY",
+            "COPILOT_MODEL_KEY",
             "COPILOT_STRICT_MARKETPLACES_KEY",
             "COPILOT_STRICT_PLUGIN_ONLY_CUSTOMIZATION_CONFIG",
             "COPILOT_STRICT_PLUGIN_ONLY_CUSTOMIZATION_KEY",
-            "COPILOT_ALLOW_MANAGED_HOOKS_ONLY_CONFIG",
-            "COPILOT_ALLOW_MANAGED_HOOKS_ONLY_KEY"
+            "COPILOT_TOP_LEVEL_MODEL_KEY",
+            "managedModelValue",
+            "managedSettingValue"
           ]
         },
         {
           "module": "module-2812",
           "bindings": [
-            "globalAutoApproveDescription",
             "LanguageModelToolsService"
           ]
         },
         {
           "module": "module-0950",
           "bindings": [
-            "DEFAULT_EDIT_AUTO_APPROVE_PATTERNS",
-            "mergeChatEditAutoApprovePatterns",
+            "ChatAIDisabledSettingId",
             "ChatMicrosoftAuthenticationEnabledSettingId",
-            "ChatAIDisabledSettingId"
+            "DEFAULT_EDIT_AUTO_APPROVE_PATTERNS",
+            "mergeChatEditAutoApprovePatterns"
           ]
         },
         {
@@ -224663,11 +224135,11 @@
         {
           "module": "module-1107",
           "bindings": [
-            "CodexPreferAgentHostEditorSettingId",
             "AgentHostAhpJsonlLoggingSettingId",
             "AgentHostAllowSignedOutWhenUsableSettingId",
             "AgentHostSdkSandboxEnabledSettingId",
-            "AgentHostSdkSandboxWindowsEnabledSettingId"
+            "AgentHostSdkSandboxWindowsEnabledSettingId",
+            "CodexPreferAgentHostEditorSettingId"
           ]
         },
         {
@@ -224675,9 +224147,9 @@
           "bindings": [
             "mcpAccessConfig",
             "mcpAllowedServersConfig",
-            "mcpDeniedServersConfig",
-            "mcpAutoStartConfig",
             "mcpAppsEnabledConfig",
+            "mcpAutoStartConfig",
+            "mcpDeniedServersConfig",
             "mcpGalleryServiceEnablementConfig",
             "mcpGalleryServiceUrlConfig"
           ]
@@ -224685,12 +224157,12 @@
         {
           "module": "module-1421",
           "bindings": [
+            "allDiscoverySources",
+            "discoverySourceSettingsLabel",
+            "mcpDiscoverySection",
             "mcpEnterpriseManagedAuthIdpSection",
             "mcpServerCollisionBehaviorSection",
-            "mcpServerSamplingSection",
-            "mcpDiscoverySection",
-            "allDiscoverySources",
-            "discoverySourceSettingsLabel"
+            "mcpServerSamplingSection"
           ]
         },
         {
@@ -224702,29 +224174,29 @@
         {
           "module": "module-0985",
           "bindings": [
+            "AGENT_DOCUMENTATION_URL",
             "AgentHostAgentDebugLogEnabledSettingId",
             "AgentHostAgentDebugLogMaxEventsSettingId",
+            "HOOK_DOCUMENTATION_URL",
             "INSTRUCTIONS_DOCUMENTATION_URL",
             "PROMPT_DOCUMENTATION_URL",
-            "AGENT_DOCUMENTATION_URL",
-            "SKILL_DOCUMENTATION_URL",
-            "HOOK_DOCUMENTATION_URL"
+            "SKILL_DOCUMENTATION_URL"
           ]
         },
         {
           "module": "module-2104",
           "bindings": [
-            "AgentHostCustomTerminalToolEnabledSettingId",
+            "AgentHostCopilotModelCapabilityOverridesSettingId",
             "AgentHostCopilotSdkLogLevelSettingId",
-            "copilotSdkLogLevelSettingValues",
+            "AgentHostCustomTerminalToolEnabledSettingId",
+            "AgentHostMultiTurnContextRoutingEnabledSettingId",
             "AgentHostOpus48PromptEnabledSettingId",
-            "AgentHostToolSearchEnabledSettingId",
-            "AgentHostToolSearchDeferThresholdSettingId",
             "AgentHostReasoningEffortOverrideSettingId",
             "AgentHostReasoningSummaryEnabledSettingId",
-            "AgentHostMultiTurnContextRoutingEnabledSettingId",
+            "AgentHostToolSearchDeferThresholdSettingId",
+            "AgentHostToolSearchEnabledSettingId",
             "CopilotSubagentModelGuidanceEnabledSettingId",
-            "AgentHostCopilotModelCapabilityOverridesSettingId"
+            "copilotSdkLogLevelSettingValues"
           ]
         },
         {
@@ -224774,20 +224246,20 @@
         {
           "module": "module-0996",
           "bindings": [
-            "INSTRUCTION_FILE_EXTENSION",
-            "DEFAULT_INSTRUCTIONS_SOURCE_FOLDERS",
-            "INSTRUCTIONS_DEFAULT_SOURCE_FOLDER",
-            "PROMPT_FILE_EXTENSION",
-            "PROMPT_DEFAULT_SOURCE_FOLDER",
-            "LEGACY_MODE_FILE_EXTENSION",
-            "LEGACY_MODE_DEFAULT_SOURCE_FOLDER",
-            "AGENT_FILE_EXTENSION",
             "AGENTS_SOURCE_FOLDER",
+            "AGENT_FILE_EXTENSION",
             "CLAUDE_AGENTS_SOURCE_FOLDER",
             "COPILOT_USER_AGENTS_SOURCE_FOLDER",
-            "SKILL_FILENAME",
+            "DEFAULT_HOOK_FILE_PATHS",
+            "DEFAULT_INSTRUCTIONS_SOURCE_FOLDERS",
             "DEFAULT_SKILL_SOURCE_FOLDERS",
-            "DEFAULT_HOOK_FILE_PATHS"
+            "INSTRUCTIONS_DEFAULT_SOURCE_FOLDER",
+            "INSTRUCTION_FILE_EXTENSION",
+            "LEGACY_MODE_DEFAULT_SOURCE_FOLDER",
+            "LEGACY_MODE_FILE_EXTENSION",
+            "PROMPT_DEFAULT_SOURCE_FOLDER",
+            "PROMPT_FILE_EXTENSION",
+            "SKILL_FILENAME"
           ]
         },
         {
@@ -224943,13 +224415,13 @@
           "module": "module-0981",
           "bindings": [
             "ChatViewId",
-            "isIChatViewViewContext",
-            "isIChatResourceViewContext",
-            "IChatWidgetService",
-            "IChatPasteTargetService",
-            "IQuickChatService",
             "IChatAccessibilityService",
-            "IChatCodeBlockContextProviderService"
+            "IChatCodeBlockContextProviderService",
+            "IChatPasteTargetService",
+            "IChatWidgetService",
+            "IQuickChatService",
+            "isIChatResourceViewContext",
+            "isIChatViewViewContext"
           ]
         },
         {
@@ -224986,8 +224458,8 @@
         {
           "module": "module-1470",
           "bindings": [
-            "IChatModeService",
-            "ChatModeService"
+            "ChatModeService",
+            "IChatModeService"
           ]
         },
         {
@@ -225011,8 +224483,8 @@
         {
           "module": "module-1348",
           "bindings": [
-            "IChatSpeechToTextService",
-            "ChatSpeechToTextService"
+            "ChatSpeechToTextService",
+            "IChatSpeechToTextService"
           ]
         },
         {
@@ -225042,10 +224514,10 @@
         {
           "module": "module-2532",
           "bindings": [
-            "PanelChatAccessibilityHelp",
-            "QuickChatAccessibilityHelp",
+            "AgentChatAccessibilityHelp",
             "EditsChatAccessibilityHelp",
-            "AgentChatAccessibilityHelp"
+            "PanelChatAccessibilityHelp",
+            "QuickChatAccessibilityHelp"
           ]
         },
         {
@@ -225078,8 +224550,8 @@
         {
           "module": "module-0870",
           "bindings": [
-            "registerWorkbenchContribution2",
-            "WorkbenchPhase"
+            "WorkbenchPhase",
+            "registerWorkbenchContribution2"
           ]
         },
         {
@@ -225104,8 +224576,8 @@
         {
           "module": "module-2784",
           "bindings": [
-            "ChatSlashCommandsContribution",
-            "ChatSessionOptionSlashCommandsContribution"
+            "ChatSessionOptionSlashCommandsContribution",
+            "ChatSlashCommandsContribution"
           ]
         },
         {
@@ -225117,8 +224589,8 @@
         {
           "module": "module-2766",
           "bindings": [
-            "ChatExtensionPointHandler",
-            "ChatCompatibilityNotifier"
+            "ChatCompatibilityNotifier",
+            "ChatExtensionPointHandler"
           ]
         },
         {
@@ -225211,12 +224683,6 @@
           ]
         },
         {
-          "module": "module-2788",
-          "bindings": [
-            "ChatStatusBarEntry"
-          ]
-        },
-        {
           "module": "module-2519",
           "bindings": [
             "BuiltinToolsContribution"
@@ -225303,16 +224769,16 @@
         {
           "module": "module-2030",
           "bindings": [
+            "ChatResponseResourceFileSystemProvider",
             "ChatResponseResourceWorkbenchContribution",
-            "IChatResponseResourceFileSystemProvider",
-            "ChatResponseResourceFileSystemProvider"
+            "IChatResponseResourceFileSystemProvider"
           ]
         },
         {
           "module": "module-2201",
           "bindings": [
-            "UserToolSetsContributions",
-            "ConfigureToolSets"
+            "ConfigureToolSets",
+            "UserToolSetsContributions"
           ]
         },
         {
@@ -225506,18 +224972,18 @@
         {
           "module": "module-1016",
           "bindings": [
-            "agentPluginDiscoveryRegistry",
-            "IAgentPluginService"
+            "IAgentPluginService",
+            "agentPluginDiscoveryRegistry"
           ]
         },
         {
           "module": "module-2740",
           "bindings": [
+            "AgentPluginService",
             "ConfiguredAgentPluginDiscovery",
-            "MarketplaceAgentPluginDiscovery",
-            "ExtensionAgentPluginDiscovery",
             "CopilotCliAgentPluginDiscovery",
-            "AgentPluginService"
+            "ExtensionAgentPluginDiscovery",
+            "MarketplaceAgentPluginDiscovery"
           ]
         },
         {
@@ -225529,8 +224995,8 @@
         {
           "module": "module-2504",
           "bindings": [
-            "IChatTransferService",
-            "ChatTransferService"
+            "ChatTransferService",
+            "IChatTransferService"
           ]
         },
         {
@@ -225554,43 +225020,43 @@
         {
           "module": "module-2015",
           "bindings": [
-            "IChatBranchService",
-            "ChatBranchService"
+            "ChatBranchService",
+            "IChatBranchService"
           ]
         },
         {
           "module": "module-2317",
           "bindings": [
-            "IChatSideChatService",
-            "ChatSideChatService"
+            "ChatSideChatService",
+            "IChatSideChatService"
           ]
         },
         {
           "module": "module-1189",
           "bindings": [
-            "IChatRequestOriginService",
-            "ChatRequestOriginService"
+            "ChatRequestOriginService",
+            "IChatRequestOriginService"
           ]
         },
         {
           "module": "module-2217",
           "bindings": [
-            "IChatModelFeedbackSurveyService",
-            "ChatModelFeedbackSurveyService"
+            "ChatModelFeedbackSurveyService",
+            "IChatModelFeedbackSurveyService"
           ]
         },
         {
           "module": "module-2139",
           "bindings": [
-            "IChatPetService",
-            "ChatPetService"
+            "ChatPetService",
+            "IChatPetService"
           ]
         },
         {
           "module": "module-2393",
           "bindings": [
-            "IChatPetWidgetService",
-            "ChatPetWidgetService"
+            "ChatPetWidgetService",
+            "IChatPetWidgetService"
           ]
         },
         {
@@ -225608,8 +225074,8 @@
         {
           "module": "module-1471",
           "bindings": [
-            "IChatWidgetHistoryService",
-            "ChatWidgetHistoryService"
+            "ChatWidgetHistoryService",
+            "IChatWidgetHistoryService"
           ]
         },
         {
@@ -225635,17 +225101,17 @@
         {
           "module": "module-0988",
           "bindings": [
-            "IChatSlashCommandService",
-            "ChatSlashCommandService"
+            "ChatSlashCommandService",
+            "IChatSlashCommandService"
           ]
         },
         {
           "module": "module-0974",
           "bindings": [
-            "IChatAgentService",
+            "ChatAgentNameService",
             "ChatAgentService",
             "IChatAgentNameService",
-            "ChatAgentNameService"
+            "IChatAgentService"
           ]
         },
         {
@@ -225737,22 +225203,15 @@
         {
           "module": "module-2304",
           "bindings": [
-            "IChatToolRiskAssessmentService",
-            "ChatToolRiskAssessmentService"
-          ]
-        },
-        {
-          "module": "module-2014",
-          "bindings": [
-            "IChatGoalSummaryService",
-            "ChatGoalSummaryService"
+            "ChatToolRiskAssessmentService",
+            "IChatToolRiskAssessmentService"
           ]
         },
         {
           "module": "module-2392",
           "bindings": [
-            "IChatSubmitRequestHandlerService",
-            "ChatSubmitRequestHandlerService"
+            "ChatSubmitRequestHandlerService",
+            "IChatSubmitRequestHandlerService"
           ]
         },
         {
@@ -225771,8 +225230,8 @@
         {
           "module": "module-1033",
           "bindings": [
-            "ICodeMapperService",
-            "CodeMapperService"
+            "CodeMapperService",
+            "ICodeMapperService"
           ]
         },
         {
@@ -225790,15 +225249,15 @@
         {
           "module": "module-2140",
           "bindings": [
-            "IChatMarkdownAnchorService",
-            "ChatMarkdownAnchorService"
+            "ChatMarkdownAnchorService",
+            "IChatMarkdownAnchorService"
           ]
         },
         {
           "module": "module-1241",
           "bindings": [
-            "IAgentNetworkFilterService",
-            "AgentNetworkFilterService"
+            "AgentNetworkFilterService",
+            "IAgentNetworkFilterService"
           ]
         },
         {
@@ -225829,43 +225288,43 @@
         {
           "module": "module-1453",
           "bindings": [
-            "IChatContextPickService",
-            "ChatContextPickService"
+            "ChatContextPickService",
+            "IChatContextPickService"
           ]
         },
         {
           "module": "module-2092",
           "bindings": [
-            "IChatAttachmentResolveService",
-            "ChatAttachmentResolveService"
+            "ChatAttachmentResolveService",
+            "IChatAttachmentResolveService"
           ]
         },
         {
           "module": "module-2033",
           "bindings": [
-            "IChatAttachmentWidgetRegistry",
-            "ChatAttachmentWidgetRegistry"
+            "ChatAttachmentWidgetRegistry",
+            "IChatAttachmentWidgetRegistry"
           ]
         },
         {
           "module": "module-1481",
           "bindings": [
-            "IChatTodoListService",
-            "ChatTodoListService"
+            "ChatTodoListService",
+            "IChatTodoListService"
           ]
         },
         {
           "module": "module-1480",
           "bindings": [
-            "IChatArtifactsService",
-            "ChatArtifactsService"
+            "ChatArtifactsService",
+            "IChatArtifactsService"
           ]
         },
         {
           "module": "module-1309",
           "bindings": [
-            "IChatOutputRendererService",
-            "ChatOutputRendererService"
+            "ChatOutputRendererService",
+            "IChatOutputRendererService"
           ]
         },
         {
@@ -225890,8 +225349,8 @@
         {
           "module": "module-2388",
           "bindings": [
-            "IChatTipService",
-            "ChatTipService"
+            "ChatTipService",
+            "IChatTipService"
           ]
         },
         {
@@ -225909,15 +225368,15 @@
         {
           "module": "module-2031",
           "bindings": [
-            "IChatImageCarouselService",
-            "ChatImageCarouselService"
+            "ChatImageCarouselService",
+            "IChatImageCarouselService"
           ]
         },
         {
           "module": "module-1477",
           "bindings": [
-            "IAgentHostImportConversationStore",
-            "AgentHostImportConversationStore"
+            "AgentHostImportConversationStore",
+            "IAgentHostImportConversationStore"
           ]
         },
         {
@@ -225940,7 +225399,7 @@
           ]
         }
       ],
-      "sha256": "ad310446a501416dd08ae78d248f08bbaec4f0e489cdb96bbf0bc4c004c62a46"
+      "sha256": "b8f21964431282b4f4286f9485c4f812796d9f629dece55b333c1758190adc23"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/actions/exportAgentHostDebugLogsAction.ts",
@@ -229331,7 +228790,7 @@
           ]
         }
       ],
-      "sha256": "9cf063dbbb0c3802e3a40cbef2ef5bedd4603cae493ec4440bbafcd279a8a032"
+      "sha256": "67505c98f6957154cb89affb53dc0b57c5de9f431733e3be88967077be142167"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/agentSessions/agentHost/applyAgentHostSubmitConfig.ts",
@@ -229740,15 +229199,8 @@
           "module": "module-2910",
           "bindings": [
             "AbstractAgentHostConfigFileSystemProvider",
-            "serializeAgentHostConfigDocument",
-            "AbstractAgentHostConfigSchemaRegistrar"
-          ]
-        },
-        {
-          "module": "module-2047",
-          "bindings": [
-            "isAutoApprovePolicyRestricted",
-            "normalizeSessionConfigValue"
+            "AbstractAgentHostConfigSchemaRegistrar",
+            "serializeAgentHostConfigDocument"
           ]
         },
         {
@@ -229783,7 +229235,7 @@
           ]
         }
       ],
-      "sha256": "c8c5bc7f94096658eb9ffd9bfba3b0688315b0a5e37868b7c7d6d7aac20875df"
+      "sha256": "c0b0081d8cf2fa4cc228888f6cfefb111dcd74a9bf027de55b6151baa47e2ddf"
     },
     {
       "modulePath": "src/vs/workbench/contrib/chat/browser/agentSessions/agentHost/agentSessionSettings.contribution.ts",
@@ -237211,8 +236663,8 @@
         {
           "module": "module-0336",
           "bindings": [
-            "Severity2",
-            "INotificationService"
+            "INotificationService",
+            "Severity2"
           ]
         },
         {
@@ -237236,8 +236688,8 @@
         {
           "module": "module-0132",
           "bindings": [
-            "getConfigValueInTarget",
-            "IConfigurationService"
+            "IConfigurationService",
+            "getConfigValueInTarget"
           ]
         },
         {
@@ -237270,9 +236722,15 @@
           "bindings": [
             "IInstantiationService"
           ]
+        },
+        {
+          "module": "module-0964",
+          "bindings": [
+            "isOpenCodeAutoApproveMode"
+          ]
         }
       ],
-      "sha256": "66a0b82875ce93b691751a566ee6bc3282d3fd9d6d545d8ff682dad086bce42b"
+      "sha256": "4543363cae85bc30b006b67083c2ebbde3c95fa96f3979ad2fbc00f8e628246a"
     },
     {
       "modulePath": "src/vs/workbench/contrib/mcp/common/mcpService.ts",
@@ -276539,8 +275997,8 @@
         {
           "module": "module-0026",
           "bindings": [
-            "win32",
-            "posix"
+            "posix",
+            "win32"
           ]
         },
         {
@@ -276624,7 +276082,7 @@
           ]
         }
       ],
-      "sha256": "5c37c6a69a249376c84af60167985ab7a195c4b7d13913b619cd45af389e9a3c"
+      "sha256": "e80377b8b49387f6a66bf0dae9e2d976fc13015163981706f4c119527956e6da"
     },
     {
       "modulePath": "src/vs/workbench/contrib/terminalContrib/chatAgentTools/common/terminalSandboxService.ts",
@@ -276809,7 +276267,7 @@
           ]
         }
       ],
-      "sha256": "849f55ec01b8a74f77733ce222cbe8ebfc6edb70dc18795bd6c6c2ea1211a2bc"
+      "sha256": "692ea60a3220ba647be96af580031cba786b11c2d4c0f49025ad8f95cd5e583a"
     },
     {
       "modulePath": "src/vs/workbench/contrib/terminalContrib/chatAgentTools/browser/tools/commandLinePresenter/sandboxedCommandLinePresenter.ts",
@@ -277254,8 +276712,8 @@
         {
           "module": "module-0462",
           "bindings": [
-            "createCommandUri",
-            "MarkdownString"
+            "MarkdownString",
+            "createCommandUri"
           ]
         },
         {
@@ -277274,9 +276732,9 @@
         {
           "module": "module-3320",
           "bindings": [
-            "isPowerShell",
+            "dedupeRules",
             "generateAutoApproveActions",
-            "dedupeRules"
+            "isPowerShell"
           ]
         },
         {
@@ -277317,7 +276775,7 @@
           ]
         }
       ],
-      "sha256": "66732034ba9160f6297da482f80650147235a805c5ef3161933e34c3d750acc6"
+      "sha256": "ba53fae9971d304cddfc6c0c20c254b75620c540d661436b2b34221a47b9799c"
     },
     {
       "modulePath": "src/vs/platform/terminal/common/autoApprove/cmdDelayedExpansion.ts",
@@ -277682,7 +277140,7 @@
           ]
         }
       ],
-      "sha256": "1b30b0bc8c387fb67458f621af0dd9eb2ec1105f4ff1a00c4f9405c2fed39243"
+      "sha256": "28b10d3880e5f259a0856009375276e1483bd03d46c84688f1e44d6cb9dbf4a3"
     },
     {
       "modulePath": "src/vs/workbench/contrib/terminalContrib/chatAgentTools/browser/tools/terminalCommandArtifactCollector.ts",
@@ -277762,11 +277220,11 @@
         {
           "module": "module-0964",
           "bindings": [
-            "isAutoApproveLevel"
+            "isOpenCodeAutoApproveMode"
           ]
         }
       ],
-      "sha256": "7e98139c0d2a7dc10bdbeb64482f4d8e1015f461b0191d4430d8b220bf280962"
+      "sha256": "4dcba4434d08799294b643281607c7d29171e5d29e55503b09641859984ee9a7"
     },
     {
       "modulePath": "src/vs/workbench/contrib/terminalContrib/chatAgentTools/browser/tools/consoleCompactor/consoleCompactor.ts",
@@ -278190,13 +277648,13 @@
         {
           "module": "module-3320",
           "bindings": [
-            "isWindowsPowerShell",
-            "isPowerShell",
-            "isZsh",
-            "isFish",
-            "normalizeTerminalCommandForDisplay",
             "buildCommandDisplayText",
-            "extractCdPrefix"
+            "extractCdPrefix",
+            "isFish",
+            "isPowerShell",
+            "isWindowsPowerShell",
+            "isZsh",
+            "normalizeTerminalCommandForDisplay"
           ]
         },
         {
@@ -278220,7 +277678,7 @@
         {
           "module": "module-0964",
           "bindings": [
-            "isAutoApproveLevel"
+            "isOpenCodeAutoApproveMode"
           ]
         },
         {
@@ -278232,8 +277690,8 @@
         {
           "module": "module-0990",
           "bindings": [
-            "ToolDataSource",
-            "ILanguageModelToolsService"
+            "ILanguageModelToolsService",
+            "ToolDataSource"
           ]
         },
         {
@@ -278245,18 +277703,18 @@
         {
           "module": "module-3360",
           "bindings": [
+            "SandboxOutputAnalyzer",
             "outputLooksSandboxBlocked",
-            "outputLooksSandboxNetworkBlocked",
-            "SandboxOutputAnalyzer"
+            "outputLooksSandboxNetworkBlocked"
           ]
         },
         {
           "module": "module-0012",
           "bindings": [
             "Disposable",
-            "MutableDisposable",
             "DisposableMap",
             "DisposableStore",
+            "MutableDisposable",
             "toDisposable"
           ]
         },
@@ -278384,8 +277842,8 @@
           "module": "module-0462",
           "bindings": [
             "MarkdownString",
-            "escapeMarkdownSyntaxTokens",
-            "appendEscapedMarkdownInlineCode"
+            "appendEscapedMarkdownInlineCode",
+            "escapeMarkdownSyntaxTokens"
           ]
         },
         {
@@ -278403,29 +277861,23 @@
         {
           "module": "module-3361",
           "bindings": [
-            "isToolEligibleForTerminalAutoApproval",
+            "isSessionAutoApproveLevel",
             "isTerminalAutoApproveAllowed",
-            "isSessionAutoApproveLevel"
+            "isToolEligibleForTerminalAutoApproval"
           ]
         },
         {
           "module": "module-0026",
           "bindings": [
             "basename",
-            "win32",
-            "posix"
+            "posix",
+            "win32"
           ]
         },
         {
           "module": "module-0032",
           "bindings": [
             "URI"
-          ]
-        },
-        {
-          "module": "module-2634",
-          "bindings": [
-            "getSandboxPrecheckInputsForToolInvocation"
           ]
         },
         {
@@ -278461,9 +277913,9 @@
         {
           "module": "module-0036",
           "bindings": [
-            "timeout",
             "DeferredPromise",
-            "RunOnceScheduler"
+            "RunOnceScheduler",
+            "timeout"
           ]
         },
         {
@@ -278645,7 +278097,7 @@
           ]
         }
       ],
-      "sha256": "64991f83bf7d7fd9e7fd71e7fadfd4254377d91993c21136b85008c2884105b8"
+      "sha256": "f64d94377a2d6babfa7623efb43970a24ec220344d71f287b8f31d0629518fe7"
     },
     {
       "modulePath": "src/vs/workbench/contrib/terminalContrib/chatAgentTools/browser/tools/killTerminalTool.ts",
@@ -278792,8 +278244,8 @@
         {
           "module": "module-1149",
           "bindings": [
-            "ITerminalService",
-            "ITerminalChatService"
+            "ITerminalChatService",
+            "ITerminalService"
           ]
         },
         {
@@ -278881,7 +278333,7 @@
           ]
         }
       ],
-      "sha256": "27345f8c3a1fa990a011c30c7cc416272babc7595f68ee25f6a9cac973326916"
+      "sha256": "b7c33b6682ef0582319d20ae6ae3fa40076af881848693a377c4455e92dbf950"
     },
     {
       "modulePath": "src/vs/workbench/contrib/terminalContrib/chatAgentTools/browser/tools/getTerminalSelectionTool.ts",
@@ -280963,8 +280415,8 @@
         {
           "module": "module-0001",
           "bindings": [
-            "localize2",
-            "localize"
+            "localize",
+            "localize2"
           ]
         },
         {
@@ -280988,27 +280440,27 @@
         {
           "module": "module-1153",
           "bindings": [
-            "TerminalChatContextKeys",
-            "MENU_TERMINAL_CHAT_WIDGET_STATUS"
+            "MENU_TERMINAL_CHAT_WIDGET_STATUS",
+            "TerminalChatContextKeys"
           ]
         },
         {
           "module": "module-0092",
           "bindings": [
-            "MenuId",
-            "registerAction2",
             "Action2",
-            "MenuRegistry"
+            "MenuId",
+            "MenuRegistry",
+            "registerAction2"
           ]
         },
         {
           "module": "module-1149",
           "bindings": [
-            "isDetachedTerminalInstance",
-            "ITerminalService",
-            "ITerminalGroupService",
+            "ITerminalChatService",
             "ITerminalEditorService",
-            "ITerminalChatService"
+            "ITerminalGroupService",
+            "ITerminalService",
+            "isDetachedTerminalInstance"
           ]
         },
         {
@@ -281044,8 +280496,8 @@
         {
           "module": "module-0981",
           "bindings": [
-            "IChatWidgetService",
-            "ChatViewId"
+            "ChatViewId",
+            "IChatWidgetService"
           ]
         },
         {
@@ -281097,7 +280549,7 @@
           ]
         }
       ],
-      "sha256": "cff50c3f756c9e3ca7dbea64d6e786cb2ef36a7af9845475e26e84b520c0e2a7"
+      "sha256": "8ea8d6231d493b8240adae0f8f8f8ccd60213f9f3992d5ce38f2ff28c292cc02"
     },
     {
       "modulePath": "src/vs/workbench/contrib/terminalContrib/chat/browser/terminalChatAccessibilityHelp.ts",
@@ -338726,12 +338178,12 @@
         {
           "module": "module-4065",
           "bindings": [
-            "getSessionId",
-            "rewriteRemoteLocalhostUrl",
-            "remoteUrlRewriteNotice",
+            "createBrowserPageLink",
             "findExistingPagesByHost",
             "getExistingPagesResult",
-            "createBrowserPageLink"
+            "getSessionId",
+            "remoteUrlRewriteNotice",
+            "rewriteRemoteLocalhostUrl"
           ]
         },
         {
@@ -338820,13 +338272,19 @@
           ]
         },
         {
+          "module": "module-0964",
+          "bindings": [
+            "isOpenCodeFullAutoMode"
+          ]
+        },
+        {
           "module": "module-0095",
           "bindings": [
             "ILogService"
           ]
         }
       ],
-      "sha256": "542c6eab3f41fc85acefe6e54ed011aef28bec6aa100deb8d028c23ec4de9680"
+      "sha256": "d29501967b4f88afb113b648f78f3141fa91e41717d9a3b2656e8080aec36379"
     },
     {
       "modulePath": "src/vs/workbench/contrib/browserView/electron-browser/tools/clickBrowserTool.ts",
@@ -345891,6 +345349,18 @@
     {
       "file": "builtin-extension-uninstall.mjs",
       "modulePath": "maintained/shared/builtin-extension-uninstall.mjs"
+    },
+    {
+      "file": "task-handoff-prompts.mjs",
+      "modulePath": "maintained/shared/task-handoff-prompts.mjs"
+    },
+    {
+      "file": "opencode-tunnel-proxy-section.mjs",
+      "modulePath": "maintained/opencode/opencode-tunnel-proxy-section.mjs"
+    },
+    {
+      "file": "opencode-chat-taskbar-badge.mjs",
+      "modulePath": "maintained/workbench/opencode-chat-taskbar-badge.mjs"
     }
   ],
   "publicExports": [

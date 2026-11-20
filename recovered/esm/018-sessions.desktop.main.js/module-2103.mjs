@@ -69,28 +69,6 @@ var OpenAgentHostModePickerAction = class _OpenAgentHostModePickerAction extends
   }
 };
 
-var OpenAgentHostAutoApprovePickerAction = class _OpenAgentHostAutoApprovePickerAction extends Action2 {
-  static {
-    this.ID = "workbench.action.chat.openAgentHostAutoApprovePicker";
-  }
-  constructor() {
-    super({
-      id: _OpenAgentHostAutoApprovePickerAction.ID,
-      title: localize2(8953, "Auto-Approve"),
-      f1: false,
-      precondition: ChatContextKeys.enabled,
-      menu: [{
-        id: MenuId.ChatInputSecondary,
-        group: "navigation",
-        order: 0.8,
-        when: ChatContextKeyExprs.isAgentHostSession
-      }]
-    });
-  }
-  async run() {
-  }
-};
-
 var OpenAgentHostPermissionModePickerAction = class _OpenAgentHostPermissionModePickerAction extends Action2 {
   static {
     this.ID = "workbench.action.chat.openAgentHostPermissionModePicker";
@@ -139,8 +117,6 @@ function getAgentHostPickerProperty(actionId) {
   switch (actionId) {
     case OpenAgentHostModePickerAction.ID:
       return "mode" /* Mode */;
-    case OpenAgentHostAutoApprovePickerAction.ID:
-      return "autoApprove" /* AutoApprove */;
     case OpenAgentHostPermissionModePickerAction.ID:
       return "permissionMode" /* PermissionMode */;
     case OpenAgentHostCodexApprovalsPickerAction.ID:
@@ -152,11 +128,9 @@ function getAgentHostPickerProperty(actionId) {
 
 registerAction2(OpenAgentHostModePickerAction);
 
-registerAction2(OpenAgentHostAutoApprovePickerAction);
-
 registerAction2(OpenAgentHostPermissionModePickerAction);
 
 registerAction2(OpenAgentHostCodexApprovalsPickerAction);
 
 registerAction2(OpenAgentHostFolderPickerAction);
-export { getAgentHostPickerProperty, OpenAgentHostFolderPickerAction, OpenAgentHostModePickerAction, OpenAgentHostAutoApprovePickerAction, OpenAgentHostPermissionModePickerAction, OpenAgentHostCodexApprovalsPickerAction };
+export { getAgentHostPickerProperty, OpenAgentHostFolderPickerAction, OpenAgentHostModePickerAction, OpenAgentHostPermissionModePickerAction, OpenAgentHostCodexApprovalsPickerAction };

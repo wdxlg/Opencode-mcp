@@ -206,9 +206,12 @@ MenuRegistry.appendMenuItem(MenuId.CommandCenter, {
     ContextKeyExpr.notEquals(`config.${"chat.agentsControl.enabled" /* AgentStatusEnabled */}`, false),
     InEditorZenModeContext.negate()
   ),
-  order: 10002
+  order: 10002,
   // to the right of the chat button
+  // OpenCode: 从顶部命令中心移除，改为编辑器标题栏（页面栏）最右侧的侧栏切换按钮
+  when: ContextKeyExpr.false()
 });
+// OpenCode: 编辑器标题栏不再放辅助侧栏切换按钮；侧栏隐藏后从停靠区拖出即可。
 
 MenuRegistry.appendMenuItem(MenuId.TitleBar, {
   submenu: MenuId.ChatTitleBarMenu,

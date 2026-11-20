@@ -54,7 +54,7 @@ export const TASK_OPTION_FIELDS = {
   model: MODEL_SCHEMA,
   skills: { type: 'array', items: { type: 'string', minLength: 1, maxLength: 160 }, maxItems: 12, description: '覆盖类别的 Skills；空数组表示本任务不加载。仅可使用实际安装且启用的 Skill。' },
   max_turns: { type: 'integer', minimum: 1, maximum: 12 },
-  isolation: { type: 'string', enum: ['auto', 'worktree', 'single-writer'], description: 'auto 在干净 Git 项目使用 worktree，其余使用协作单写者；不是 OS 沙箱。' },
+  isolation: { type: 'string', enum: ['auto', 'worktree', 'single-writer'], description: 'auto 在 Git 仓库根目录使用 worktree（有未提交改动也一样，副本从 HEAD 开始），非 Git 或非仓库根才用协作单写者；不是 OS 沙箱。' },
   required_artifacts: { type: 'array', maxItems: 30, items: { type: 'string', minLength: 1, maxLength: 4096 }, description: '必须存在的工作副本内文件。不会自动执行测试。' }
 };
 const referenceList = { type: 'array', items: { type: 'string', minLength: 1, maxLength: 100 }, maxItems: 40 };

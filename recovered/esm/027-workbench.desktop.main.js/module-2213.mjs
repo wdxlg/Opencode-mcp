@@ -28,7 +28,8 @@ var MarkHelpfulActionId = "workbench.action.chat.markHelpful";
 
 var MarkUnhelpfulActionId = "workbench.action.chat.markUnhelpful";
 
-var enableFeedbackConfig = "config.telemetry.feedback.enabled";
+// opencode-novote-step01: OpenCode 不处理点赞/点踩反馈，隐藏这两个按钮（指向一个永不设置的键）
+var enableFeedbackConfig = "config.opencode.chat.voteButtons";
 
 function registerChatTitleActions() {
   registerAction2(class MarkHelpfulAction extends Action2 {

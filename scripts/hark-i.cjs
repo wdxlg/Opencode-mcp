@@ -1,0 +1,2 @@
+const fs=require('fs');const R='E:/OpenCode-Source-Recovery-20261013/';
+for(const f of ['recovered/shared/automation-workbench.mjs','recovered/esm/000-extension.js/module-0165.mjs','recovered/esm/000-extension.js/module-0177.

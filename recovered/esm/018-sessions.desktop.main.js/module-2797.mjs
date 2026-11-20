@@ -11,13 +11,8 @@ async function applyAgentHostSessionConfigChange(sessionResource, config, servic
   if (!backendSession) {
     return false;
   }
-  const { agentHostService, provisionalService, workingDirectoryResolver, workspaceContextService, configurationService } = services;
-  const policyRestricted = configurationService.inspect("chat.tools.global.autoApprove" /* GlobalAutoApprove */).policyValue === false;
+  const { agentHostService, provisionalService, workingDirectoryResolver, workspaceContextService } = services;
   const partial = { ...config };
-  const autoApprove = partial["autoApprove" /* AutoApprove */];
-  if (policyRestricted && autoApprove !== void 0 && autoApprove !== "default" /* Default */) {
-    partial["autoApprove" /* AutoApprove */] = "default" /* Default */;
-  }
   const workingDirectory = workingDirectoryResolver.resolve(sessionResource) ?? workspaceContextService.getWorkspace().folders[0]?.uri;
   if (isUntitledChatSession(sessionResource)) {
     await provisionalService.applyConfigChange(sessionResource, backendSession.scheme, workingDirectory, partial);

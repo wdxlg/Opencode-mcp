@@ -57,7 +57,6 @@ var GlobalCompositeBar = class extends Disposable {
     this.storageService = storageService;
     this.extensionService = extensionService;
     this.globalActivityAction = this._register(new Action(GLOBAL_ACTIVITY_ID));
-    this.accountAction = this._register(new Action(ACCOUNTS_ACTIVITY_ID));
     this.element = $("div");
     const contextMenuAlignmentOptions = () => ({
       anchorAlignment: configurationService.getValue("workbench.sideBar.location") === "left" ? 1 /* RIGHT */ : 0 /* LEFT */,
@@ -92,8 +91,9 @@ var GlobalCompositeBar = class extends Disposable {
       ariaLabel: localize(6779, null),
       preventLoopNavigation: true
     }));
+    this.accountsActivityAction = this._register(new Action(ACCOUNTS_ACTIVITY_ID));
     if (this.accountsVisibilityPreference) {
-      this.globalActivityActionBar.push(this.accountAction, { index: GlobalCompositeBar.ACCOUNTS_ACTION_INDEX });
+      this.globalActivityActionBar.push(this.accountsActivityAction);
     }
     this.globalActivityActionBar.push(this.globalActivityAction);
     this.registerListeners();
@@ -118,16 +118,16 @@ var GlobalCompositeBar = class extends Disposable {
     this.globalActivityActionBar.focus(true);
   }
   getContextMenuActions() {
-    return [toAction({ id: "toggleAccountsVisibility", label: localize(6774, null), checked: this.accountsVisibilityPreference, run: () => this.accountsVisibilityPreference = !this.accountsVisibilityPreference })];
+    return [];
   }
   toggleAccountsActivity() {
-    if (this.globalActivityActionBar.length() === 2 && this.accountsVisibilityPreference) {
+    if (this.globalActivityActionBar.length === 2 && this.accountsVisibilityPreference) {
       return;
     }
-    if (this.globalActivityActionBar.length() === 2) {
+    if (this.globalActivityActionBar.length === 2) {
       this.globalActivityActionBar.pull(GlobalCompositeBar.ACCOUNTS_ACTION_INDEX);
-    } else {
-      this.globalActivityActionBar.push(this.accountAction, { index: GlobalCompositeBar.ACCOUNTS_ACTION_INDEX });
+    } else if (this.accountsVisibilityPreference) {
+      this.globalActivityActionBar.push(this.accountsActivityAction, { index: GlobalCompositeBar.ACCOUNTS_ACTION_INDEX });
     }
   }
   get accountsVisibilityPreference() {
@@ -488,6 +488,22 @@ var AccountsActivityActionViewItem = class extends AbstractGlobalActivityActionV
         menus.push(action instanceof Action ? disposables.add(action) : action);
       }
     }
+    // OpenCode accounts-button-step02: 没登录 GitHub 时在账户菜单里直接给「使用 GitHub 登录」。
+    // 权限与内置 Git 的 GitHub 凭据一致（repo/workflow/user:email/read:user），登录后 git push/pull 直接复用。
+    if (!this.groupedAccounts.get("github")?.length) {
+      menus.unshift(toAction({
+        id: "opencode.signInWithGitHub",
+        label: "\u4f7f\u7528 GitHub \u767b\u5f55",
+        enabled: true,
+        run: async () => {
+          try {
+            await this.authenticationService.createSession("github", ["repo", "workflow", "user:email", "read:user"], { activateImmediate: true });
+          } catch (error) {
+            this.logService.error("[OpenCode] GitHub sign-in failed", error);
+          }
+        }
+      }));
+    }
     if (menus.length && otherCommands.length) {
       menus.push(new Separator());
     }
@@ -753,16 +769,7 @@ SimpleGlobalActivityActionViewItem = __decorateClass([
 ], SimpleGlobalActivityActionViewItem);
 
 function simpleActivityContextMenuActions(storageService, isAccount) {
-  const currentElementContextMenuActions = [];
-  if (isAccount) {
-    currentElementContextMenuActions.push(
-      toAction({ id: "hideAccounts", label: localize(6777, null), run: () => setAccountsActionVisible(storageService, false) }),
-      new Separator()
-    );
-  }
   return [
-    ...currentElementContextMenuActions,
-    toAction({ id: "toggle.hideAccounts", label: localize(6774, null), checked: isAccountsActionVisible(storageService), run: () => setAccountsActionVisible(storageService, !isAccountsActionVisible(storageService)) }),
     toAction({ id: "toggle.hideManage", label: localize(6779, null), checked: true, enabled: false, run: () => {
       throw new Error('"Manage" can not be hidden');
     } })
@@ -770,6 +777,7 @@ function simpleActivityContextMenuActions(storageService, isAccount) {
 }
 
 function isAccountsActionVisible(storageService) {
+  // OpenCode accounts-button-step01: 恢复「账户」按钮（GitHub 等登录入口），右键可隐藏。
   return storageService.getBoolean(AccountsActivityActionViewItem.ACCOUNTS_VISIBILITY_PREFERENCE_KEY, 0 /* PROFILE */, true);
 }
 

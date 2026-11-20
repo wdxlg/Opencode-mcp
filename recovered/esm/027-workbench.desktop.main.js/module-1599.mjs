@@ -21,6 +21,19 @@ import { defaultProgressBarStyles } from "./module-0513.mjs";
 
 
 // src/vs/workbench/browser/parts/compositePart.ts
+// OpenCode titlebar-step01: 拆分按钮（如「+∨」）收进菜单后执行默认动作，和直接点按钮一样
+function ocTitleSplitPrimary(action) {
+  const split = action?.item?.isSplitButton;
+  if (!split || !Array.isArray(action.actions)) return void 0;
+  const ids = typeof split === "object" ? split.primaryActionIds : void 0;
+  return action.actions.find((a) => a && a.id !== "vs.actions.separator" && a.enabled !== false && (!ids || ids.includes(a.id)));
+}
+function ocTitleOverflowAction(action) {
+  return ocTitleSplitPrimary(action) ?? action;
+}
+function ocTitleActionWidth(action) {
+  return ocTitleSplitPrimary(action) ? 34 : 22;
+}
 var CompositePart = class extends Part {
   constructor(notificationService, storageService, contextMenuService, layoutService, keybindingService, hoverService, instantiationService, themeService, registry4, activeCompositeSettingsKey, defaultCompositeId, nameForTelemetry, compositeCSSClass, titleForegroundColor, titleBorderColor, id2, options3) {
     super(id2, options3, themeService, storageService, layoutService);
@@ -245,10 +258,27 @@ var CompositePart = class extends Part {
       toggleMenuTitle: localize(6265, null),
       telemetrySource: this.nameForTelemetry,
       hoverDelegate: this.toolbarHoverDelegate,
-      trailingSeparator: this.trailingSeparator
+      trailingSeparator: this.trailingSeparator,
+      // OpenCode titlebar-step01: 宽度不够时把靠后的按钮收进「…」，菜单里的项与直接点按钮效果一致
+      responsiveBehavior: {
+        enabled: true,
+        observedElement: titleArea,
+        getAvailableWidth: () => this.ocTitleActionsAvailableWidth(titleArea, titleActionsContainer),
+        getActionMinWidth: (action) => ocTitleActionWidth(action),
+        getOverflowAction: (action) => ocTitleOverflowAction(action)
+      }
     }));
     this.collectCompositeActions()();
     return titleArea;
+  }
+  ocTitleActionsAvailableWidth(titleArea, actionsContainer) {
+    const width2 = titleArea.clientWidth;
+    if (!width2) return Number.MAX_SAFE_INTEGER;
+    let used = 0;
+    for (const child of titleArea.children) {
+      if (child !== actionsContainer) used += child.getBoundingClientRect().width;
+    }
+    return Math.max(24, width2 - used - 12);
   }
   createTitleLabel(parent) {
     const titleContainer = append(parent, $(".title-label"));

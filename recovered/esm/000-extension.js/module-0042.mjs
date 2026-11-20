@@ -96,7 +96,7 @@ var IDE_TOOL_DEFINITIONS = [
         command: { type: "string", minLength: 1, description: BASH_COMMAND_INPUT_DESCRIPTION },
         cwd: { type: "string", description: "Optional working directory on the same local Windows host running OpenCode. A relative path resolves under the first open workspace folder; an absolute existing directory may be used outside it when the user explicitly names that local folder (including another opened workspace folder). For a user-named folder, supply its absolute cwd rather than relying on the terminal's previous working directory. Workspace file tools remain limited to open folders. When omitted, reuse the most recently used idle terminal; a new terminal starts at the first workspace root." },
         background: { type: "boolean", default: false, description: "Whether this is expected to keep running. Defaults to false; set true only for a long-running server or watcher." },
-        timeout_ms: { type: "integer", minimum: 1e3, maximum: 12e4, default: 12e4, description: "For foreground commands, maximum time to wait before returning status=running. The command is not killed on timeout." }
+        timeout_ms: { type: "integer", minimum: 1e3, maximum: 12e4, default: 5e4, description: "For foreground commands, maximum time to wait before returning status=running (default 50000 so the reply arrives before typical MCP client deadlines). The command is not killed on timeout; continue with get_command_output." }
       },
       additionalProperties: false
     },
@@ -114,12 +114,13 @@ var IDE_TOOL_DEFINITIONS = [
     title: "Get Command Output",
     vscodeToolName: "opencode_get_command_output",
     capability: "execute",
-    description: "Read new output, status and exit_code from a previously started run_command using its command_id in the same command-owner scope (native Chat context, 2025 MCP session, or stable credential/client/workspace identity for stateless 2026 requests). Pass only the opaque cmd_... token, never the terminal_id line or the surrounding transcript. Use next_offset on subsequent reads to avoid repeating old output. When the opencode.terminal.pipelineExitCodes setting is enabled (default), POSIX pipelines additionally report pipeline_exit_codes.",
+    description: "Read new output, status and exit_code from a previously started run_command using its command_id in the same command-owner scope (native Chat context, 2025 MCP session, or stable credential/client/workspace identity for stateless 2026 requests). Pass only the opaque cmd_... token, never the terminal_id line or the surrounding transcript. Use next_offset on subsequent reads to avoid repeating old output. When the opencode.terminal.pipelineExitCodes setting is enabled (default), POSIX pipelines additionally report pipeline_exit_codes. Omit command_id (or pass list=true) to list this owner's retained commands (background jobs included) with id, status, exit_code, start time, duration and a short command summary; stop one with cancel_command.",
     inputSchema: {
       type: "object",
-      required: ["command_id"],
       properties: {
-        command_id: { type: "string", minLength: 1, description: "Exact opaque cmd_... token returned by run_command; do not include terminal_id or adjacent output lines." },
+        list: { type: "boolean", default: false, description: "List this owner's retained managed commands instead of reading one command's output." },
+        status: { type: "string", enum: ["any", "running", "completed", "failed", "cancelled", "killed"], default: "any", description: "With list: only commands in this state." },
+        command_id: { type: "string", minLength: 1, description: "Exact opaque cmd_... token returned by run_command; do not include terminal_id or adjacent output lines. Omit to list commands." },
         offset: { type: "integer", minimum: 0, default: 0, description: "Absolute UTF-8 byte offset into captured output." },
         max_bytes: { type: "integer", minimum: 1, maximum: 131072, default: 32768, description: "Maximum number of captured UTF-8 bytes to return in this read." }
       },

@@ -110,6 +110,8 @@ var SCMActiveRepositoryController = class extends Disposable {
     store.add(this.activityService.showViewActivity(VIEW_PANE_ID, { badge }));
   }
   _updateStatusBar(activeRepository, commands, store) {
+    // 状态栏不再显示仓库名/分支（用户要求）：分支信息只在源代码管理面板查看。
+    return;
     if (!activeRepository) {
       return;
     }
@@ -120,7 +122,7 @@ var SCMActiveRepositoryController = class extends Disposable {
       const genericCommandName = getStatusBarCommandGenericName(command4);
       const statusbarEntry = {
         name: localize(18719, null) + (genericCommandName ? ` ${genericCommandName}` : ""),
-        text: command4.title,
+        text: index2 === 0 ? `$(${getSCMRepositoryIcon(activeRepository, activeRepository.repository).id}) ${activeRepository.repository.provider.name} · ${command4.title}` : command4.title,
         ariaLabel: tooltip,
         tooltip,
         command: command4.id ? command4 : void 0
@@ -129,7 +131,7 @@ var SCMActiveRepositoryController = class extends Disposable {
         index2 === 0 ? this.statusbarService.addEntry(statusbarEntry, `status.scm.${index2}`, 0 /* LEFT */, 1e4) : this.statusbarService.addEntry(statusbarEntry, `status.scm.${index2}`, 0 /* LEFT */, { location: { id: `status.scm.${index2 - 1}`, priority: 1e4 }, alignment: 1 /* RIGHT */, compact: true })
       );
     }
-    if (this.scmViewService.repositories.length > 1) {
+    if (commands.length === 0 && this.scmViewService.repositories.length > 1) {
       const icon2 = getSCMRepositoryIcon(activeRepository, activeRepository.repository);
       const repositoryStatusbarEntry = {
         name: localize(18720, null),

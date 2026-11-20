@@ -1,0 +1,20 @@
+import os from "node:os"; import path from "node:path"; import fs from "node:fs";
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), "oc-persona-"));
+const { AutomationService } = await import(new URL("../../recovered/shared/automation-store.mjs", import.meta.url));
+const svc = new AutomationService({ directory: dir, leaseSweep: false, snapshot: path.join(dir, "snap.json"), workspaces: () => [], currentRoot: () => undefined, trusted: () => true, log: () => {} });
+await svc.initialize();
+const st = svc.read();
+const g = st.presets.find((p) => p.id === st.globalPresetId);
+console.log("before persona:", JSON.stringify(g.persona), "| effective persona:", JSON.stringify(svc.effective("global").persona));
+const h0 = svc.effective("global").rules_hash;
+const saved = await svc.savePreset({ id: g.id, expected_version: g.version, name: g.name, rules: g.rules, readOnly: g.policies.readOnly, allowCommands: g.policies.allowCommands, persona: "  你叫砚台，是一名严谨的中文代码审阅者。\r\n每次回答第一行写“砚台：”。  " });
+console.log("saved persona:", JSON.stringify(saved.persona));
+const eff = svc.effective("global");
+console.log("effective persona:", JSON.stringify(eff.persona), "from:", eff.persona_from, "| hash changed:", eff.rules_hash !== h0);
+const again = await svc.savePreset({ id: g.id, expected_version: saved.version, name: g.name, rules: g.rules, readOnly: false, allowCommands: true });
+console.log("save without persona keeps it:", again.persona === saved.persona);
+const nat = await svc.prepareNative("native-chat:test", undefined, "code");
+console.log("prepareNative persona:", JSON.stringify(nat.persona), "| persona in instructions text:", (nat.instructions || "").includes("砚台"));
+try { await svc.savePreset({ id: g.id, expected_version: again.version, name: g.name, rules: g.rules, persona: "x".repeat(32001) }); console.log("too long: accepted (BAD)"); } catch (e) { console.log("too long rejected:", e.message); }
+console.log("reload validates:", !!svc.read());
+svc.stopLeaseSweeper?.(); process.exit(0);

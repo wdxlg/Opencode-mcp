@@ -62,11 +62,11 @@ var TerminalSandboxEngine = class extends Disposable {
   static {
     this._hostRegex = /(?:^|[\s'"`(=])([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?::\d+)?(?=(?:\/[^\s'"`|&;<>]*)?(?:$|[\s'"`)\]|,;|&<>]))/gi;
   }
-  async isEnabled(precheckInputs) {
-    return this._isSandboxConfiguredEnabled(precheckInputs);
+  async isEnabled() {
+    return this._isSandboxConfiguredEnabled();
   }
-  async isSandboxAllowNetworkEnabled(precheckInputs) {
-    if (!await this._isSandboxConfiguredEnabled(precheckInputs)) {
+  async isSandboxAllowNetworkEnabled() {
+    if (!await this._isSandboxConfiguredEnabled()) {
       return false;
     }
     return this._isSandboxAllowNetworkConfigured();
@@ -175,15 +175,15 @@ var TerminalSandboxEngine = class extends Disposable {
       ...allowNetworkConfirmationMetadata
     };
   }
-  async checkForSandboxingPrereqs(forceRefresh = false, precheckInputs) {
-    if (!await this._isSandboxConfiguredEnabled(precheckInputs)) {
+  async checkForSandboxingPrereqs(forceRefresh = false) {
+    if (!await this._isSandboxConfiguredEnabled()) {
       return {
         enabled: false,
         sandboxConfigPath: void 0,
         failedCheck: void 0
       };
     }
-    const sandboxConfigPath = await this.getSandboxConfigPath(forceRefresh, precheckInputs);
+    const sandboxConfigPath = await this.getSandboxConfigPath(forceRefresh);
     if (!sandboxConfigPath) {
       return {
         enabled: true,
@@ -197,7 +197,7 @@ var TerminalSandboxEngine = class extends Disposable {
         if (this._sandboxDependencyStatus.apparmorRestrictsUnprivilegedUserNamespaces !== true || forceRefresh && this._apparmorRemediationRequested) {
           if (!this._enableWeakerNestedSandbox) {
             this._enableWeakerNestedSandbox = true;
-            await this.getSandboxConfigPath(true, precheckInputs);
+            await this.getSandboxConfigPath(true);
           }
           return {
             enabled: true,
@@ -228,8 +228,8 @@ var TerminalSandboxEngine = class extends Disposable {
       failedCheck: void 0
     };
   }
-  async checkFileAccess(permission, paths, precheckInputs) {
-    if (!await this._isSandboxConfiguredEnabled(precheckInputs)) {
+  async checkFileAccess(permission, paths) {
+    if (!await this._isSandboxConfiguredEnabled()) {
       return { allowed: true, denied: [] };
     }
     await this._resolveRuntimeInfo();
@@ -246,8 +246,8 @@ var TerminalSandboxEngine = class extends Disposable {
     }
     return { allowed: denied.length === 0, denied };
   }
-  async getSandboxConfigPath(forceRefresh = false, precheckInputs) {
-    if (!await this._isSandboxConfiguredEnabled(precheckInputs)) {
+  async getSandboxConfigPath(forceRefresh = false) {
+    if (!await this._isSandboxConfiguredEnabled()) {
       return void 0;
     }
     await this._resolveRuntimeInfo();
@@ -422,13 +422,7 @@ var TerminalSandboxEngine = class extends Disposable {
   _areObjectsEqual(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
   }
-  _isSandboxAllowedByPrecheckInputs(precheckInputs) {
-    return precheckInputs?.isDefaultApprovalPermissionEnabled !== false;
-  }
-  async _isSandboxConfiguredEnabled(precheckInputs) {
-    if (!this._isSandboxAllowedByPrecheckInputs(precheckInputs)) {
-      return false;
-    }
+  async _isSandboxConfiguredEnabled() {
     await this.getOS();
     if (this._os === 1 /* Windows */) {
       const value3 = this._getSandboxConfiguredWindowsEnabledValue();

@@ -35,11 +35,6 @@ function createReviewPlanToolData() {
       default: {
         type: "boolean",
         description: "Whether this action should be selected by default."
-      },
-      permissionLevel: {
-        type: "string",
-        enum: ["autopilot"],
-        description: 'When set to "autopilot", a confirmation dialog is shown before proceeding.'
       }
     },
     required: ["label"]

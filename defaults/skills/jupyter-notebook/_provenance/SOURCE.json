@@ -1,0 +1,70 @@
+{
+  "id": "jupyter-notebook",
+  "sourceName": "jupyter-notebook",
+  "title": "Jupyter笔记本",
+  "category": "数据分析",
+  "repo": "openai/skills",
+  "commit": "49f948faa9258a0c61caceaf225e179651397431",
+  "sourcePath": "skills/.curated/jupyter-notebook/",
+  "sourceUrl": "https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/jupyter-notebook",
+  "license": "Apache-2.0",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "脚手架使用Python标准库，执行单元格需相应内核/库和授权。脚本必须显式给--out到用户项目，避免默认写到Skill目录；引用脚本以当前Skill绝对路径为准。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "LICENSE.txt",
+      "upstreamSha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"
+    },
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "62f102e8554b25716dccef0ffab4572d4e3eaf05ccc76562d33a065bc9c521fb"
+    },
+    {
+      "path": "agents/openai.yaml",
+      "upstreamSha256": "3a2d6a8f9ed10e18f6caa66aeb26a02305bc61f36fc4b333c904e02f9988fb9c"
+    },
+    {
+      "path": "assets/experiment-template.ipynb",
+      "upstreamSha256": "25f85914103cd84244e20ef378f59097479c72481cd18d3a931354d107c3f300"
+    },
+    {
+      "path": "assets/jupyter-small.svg",
+      "upstreamSha256": "a36bd27bef3775f111309241754b386db81e7d356f07672190e2fcb24478a250"
+    },
+    {
+      "path": "assets/jupyter.png",
+      "upstreamSha256": "852fd5468885bb176d266d547e61684792332e44a88cfbc8cd07323937040ccb"
+    },
+    {
+      "path": "assets/tutorial-template.ipynb",
+      "upstreamSha256": "704a809c09c7c9e6e5c437860df95524412b50c58571a14204610d73e0744765"
+    },
+    {
+      "path": "references/experiment-patterns.md",
+      "upstreamSha256": "1ff9c04281c01e8e2209bde9f1fd910b8e4b620dd1f1f040e2101f1d88513a91"
+    },
+    {
+      "path": "references/notebook-structure.md",
+      "upstreamSha256": "a85051a2e88fd3424bbed2636e952ec5f858e7efa4e076c28d62a8cc2cc9dc06"
+    },
+    {
+      "path": "references/quality-checklist.md",
+      "upstreamSha256": "ed01afe6ff47714d85935d11053b64c414772f02250fdc604e3fca65e5139136"
+    },
+    {
+      "path": "references/tutorial-patterns.md",
+      "upstreamSha256": "8c194bb640de2fb7747e3db87006ecec5219252d301f53670975dbb5310ff659"
+    },
+    {
+      "path": "scripts/new_notebook.py",
+      "upstreamSha256": "a004e2ea3115edb24313928be0be6d1dc07e571d7ca6c1b24375f0569c616d2f"
+    }
+  ]
+}

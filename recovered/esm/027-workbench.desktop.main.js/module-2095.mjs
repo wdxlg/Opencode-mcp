@@ -74,7 +74,12 @@ var ImplicitContextAttachmentWidget = class extends Disposable {
   render() {
     this.renderDisposables.clear();
     this.renderedCount = 0;
+    // OpenCode p22: 自动附带的“当前文件”可以真正关掉：关掉后这个文件不再显示，切到别的文件后才重新出现
+    const ocKeys = this.attachment.values.map(ocImplicitKey);
+    const ocDis = globalThis.__ocImplicitDismissed ??= /* @__PURE__ */ new Set();
+    for (const k of [...ocDis]) if (!ocKeys.includes(k)) ocDis.delete(k);
     for (const context2 of this.attachment.values) {
+      if (ocDis.has(ocImplicitKey(context2))) continue;
       const targetUri = context2.uri;
       const targetRange = isLocation(context2.value) ? context2.value.range : void 0;
       const targetHandle = isStringImplicitContextValue(context2.value) ? context2.value.handle : void 0;
@@ -102,14 +107,32 @@ var ImplicitContextAttachmentWidget = class extends Disposable {
         const buttonMsg = context2.enabled ? localize(9922, null, attachmentTypeName, contextLabel) : localize(9915, null, contextLabel);
         const toggleButton = this.renderDisposables.add(new Button(contextNode, { supportIcons: true, title: buttonMsg }));
         toggleButton.icon = context2.enabled ? Codicon.closeCompact : Codicon.addCompact;
+        const ocWasEnabled = context2.enabled;
         this.renderDisposables.add(toggleButton.onDidClick(async (e) => {
           e.stopPropagation();
           e.preventDefault();
+          // OpenCode p22: 点叉=移除，不再变成加号
+          if (ocWasEnabled) {
+            (globalThis.__ocImplicitDismissed ??= /* @__PURE__ */ new Set()).add(ocImplicitKey(context2));
+            contextNode.remove();
+          }
           if (!context2.enabled) {
             await this.convertToRegularAttachment(context2);
           }
           context2.enabled = false;
         }));
+        if (!context2.enabled) {
+          const ocDismissBtn = this.renderDisposables.add(new Button(contextNode, { supportIcons: true, title: "\u79FB\u9664" }));
+          ocDismissBtn.icon = Codicon.closeCompact;
+          ocDismissBtn.element.classList.add("oc-implicit-dismiss");
+          queueMicrotask(() => contextNode.appendChild(ocDismissBtn.element));
+          this.renderDisposables.add(ocDismissBtn.onDidClick((e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            (globalThis.__ocImplicitDismissed ??= /* @__PURE__ */ new Set()).add(ocImplicitKey(context2));
+            contextNode.remove();
+          }));
+        }
       } else {
         const pinButtonMsg = localize(9929, null);
         const pinButton = this.renderDisposables.add(new Button(contextNode, { supportIcons: true, title: pinButtonMsg }));
@@ -292,3 +315,12 @@ ImplicitContextAttachmentWidget = __decorateClass([
   __decorateParam(17, IThemeService)
 ], ImplicitContextAttachmentWidget);
 export { ImplicitContextAttachmentWidget };
+
+// OpenCode p22
+function ocImplicitKey(c) {
+  try {
+    return String(c?.uri?.toString?.() ?? c?.name ?? "");
+  } catch {
+    return "";
+  }
+}

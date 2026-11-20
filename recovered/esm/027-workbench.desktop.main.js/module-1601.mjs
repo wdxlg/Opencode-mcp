@@ -46,6 +46,9 @@ var PaneCompositeBar = class extends Disposable {
     this.viewContainerDisposables = this._register(new DisposableMap());
     this.compositeActions = this._register(new DisposableMap());
     this.hasExtensionsRegistered = false;
+    // OpenCode ae-dock-step15: 视图变成页面后，活动栏/面板标签里的原按钮隐藏；页面关掉或停回去再出现
+    (globalThis.__ocPaneCompositeBars ??= /* @__PURE__ */ new Set()).add(this);
+    this._register({ dispose: () => globalThis.__ocPaneCompositeBars?.delete(this) });
     this._cachedViewContainers = void 0;
     this.dndHandler = new CompositeDragAndDrop(
       this.viewDescriptorService,
@@ -318,6 +321,13 @@ var PaneCompositeBar = class extends Disposable {
     }
   }
   shouldBeHidden(viewContainerOrId, cachedViewContainer) {
+    if (globalThis.__ocPagedContainers?.has(isString(viewContainerOrId) ? viewContainerOrId : viewContainerOrId?.id)) {
+      return true;
+    }
+    // OpenCode market-ext-step01: 活动栏不再显示自带的「扩展」按钮，编辑器扩展统一在「市场」窗口里管理
+    if ((isString(viewContainerOrId) ? viewContainerOrId : viewContainerOrId?.id) === "workbench.view.extensions") {
+      return true;
+    }
     const viewContainer5 = isString(viewContainerOrId) ? this.getViewContainer(viewContainerOrId) : viewContainerOrId;
     const viewContainerId = isString(viewContainerOrId) ? viewContainerOrId : viewContainerOrId.id;
     if (viewContainer5) {

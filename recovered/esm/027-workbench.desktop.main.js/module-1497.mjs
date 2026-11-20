@@ -308,6 +308,7 @@ var CompositeOverflowActivityActionViewItem = class extends CompositeBarActionVi
     this.getBadge = getBadge;
     this.getCompositeOpenAction = getCompositeOpenAction;
     this.contextMenuService = contextMenuService;
+    this.ocCommandService = arguments[12];
   }
   showMenu() {
     this.contextMenuService.showContextMenu({
@@ -317,8 +318,9 @@ var CompositeOverflowActivityActionViewItem = class extends CompositeBarActionVi
     });
   }
   getActions() {
-    return this.getOverflowingComposites().map((composite) => {
+    return this.getOverflowingComposites().flatMap((composite) => {
       const action = this.getCompositeOpenAction(composite.id);
+      if (composite.id === "workbench.panel.chat") return this.ocChatBridgeOverflow(action, composite);
       action.checked = this.getActiveCompositeId() === action.id;
       const badge = this.getBadge(composite.id);
       let suffix;
@@ -333,9 +335,29 @@ var CompositeOverflowActivityActionViewItem = class extends CompositeBarActionVi
       return action;
     });
   }
+  // OpenCode titlebar-step01: 左侧 Chat/Bridge 标签被挤进「…」时，菜单里直接给出 Chat 与 Bridge 两个选项
+  ocChatBridgeOverflow(openAction, composite) {
+    const chatTitle = localize(12705, null);
+    const bridgeTitle = localize(12704, null);
+    const active = this.getActiveCompositeId() === openAction.id;
+    const inBridge = (composite.name || "").trim() === bridgeTitle;
+    const make = (id2, label, command, checked) => {
+      const a = new Action(id2, label, void 0, true, async () => {
+        if (!active) await openAction.run();
+        await this.ocCommandService.executeCommand(command);
+      });
+      a.checked = checked;
+      return a;
+    };
+    return [
+      make("opencode.overflow.chat", chatTitle, "_opencode.bridge.showChat", active && !inBridge),
+      make("opencode.overflow.bridge", bridgeTitle, "opencode.bridge.openSession", active && inBridge)
+    ];
+  }
 };
 
 CompositeOverflowActivityActionViewItem = __decorateClass([
+  __decorateParam(12, ICommandService),
   __decorateParam(7, IContextMenuService),
   __decorateParam(8, IThemeService),
   __decorateParam(9, IHoverService),

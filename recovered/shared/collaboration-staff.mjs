@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { acquireResources } from './concurrency-runtime.mjs';
 import { now, digest, publicAgentId, fail, requiredText, cleanText } from './collaboration-contracts.mjs';
+import { cachedJson, waitForChange } from './collaboration-policy.mjs';
 import { canonicalPath, withinRoot } from './collaboration-workspaces.mjs';
 import { StaffStore, createStaffFacade } from './collaboration-staff-store.mjs';
 import { STAFF_TOOL_NAMES, STAFF_READ_TOOLS, STAFF_MANAGER_TOOLS, STAFF_RECEIPT_TOOLS, STAFF_NATIVE_HIDDEN, MANAGER_INSTRUCTIONS, employeeInput, integer, isStaffTask, publicEmployee } from './collaboration-staff-contracts.mjs';
@@ -12,7 +13,7 @@ import { integrateTask, publishTeam, reconcileIntegration, captureDelivery, fina
 
 const finished = task => ['completed', 'review', 'blocked', 'cancelled'].includes(task.status);
 const attemptOf = task => task.attempts?.find(item => item.id === task.activeAttemptId);
-const controllerTools = new Set(['set_todos', 'update_plan', 'report_progress', 'list_skills', 'bridge_get_effective_rules', 'bridge_acknowledge_rules', 'bridge_join_employee', 'bridge_get_collaboration', 'get_command_output', 'cancel_command']);
+const controllerTools = new Set(['set_todos', 'update_plan', 'report_progress', 'list_skills', 'start', 'bridge_get_effective_rules', 'bridge_acknowledge_rules', 'bridge_join_employee', 'bridge_get_collaboration', 'get_command_output', 'cancel_command']);
 const baseReadTools = ['read_files', 'read_image', 'find_files', 'search_files', 'list_directory', 'get_diagnostics', 'get_command_output', 'list_skills', 'bridge_get_collaboration', 'bridge_get_execution'];
 const baseTaskTools = ['bridge_claim_task', 'bridge_update_task', 'bridge_send_message', 'bridge_list_messages', 'bridge_ack_message', 'bridge_checkpoint_task', 'bridge_resume_task'];
 function result(value) { return { content: [{ type: 'text', text: JSON.stringify(value, null, 2) }], structuredContent: value }; }
@@ -36,6 +37,7 @@ export class StaffService {
   isReadTool(name) { return STAFF_READ_TOOLS.has(name); }
   async saveEmployee(input) {
     this.parent.requireCollaboration(); const value = employeeInput(input), role = this.parent.read().roles.find(item => item.id === value.roleId);
+    if (/^(chat|team)$/i.test(String(value.name || input.name || '').trim())) fail('STAFF_NAME_RESERVED', '成员不能叫 chat 或 team：这两个名字留给 Chat 和团队互通用。');
     if (!role || role.id === 'observer') fail('STAFF_ROLE_REQUIRED', '请选择明确分配的职位；未分配只读不是员工的隐式提权入口。');
     if (value.canManage && !this.parent.allows(role, 'bridge_delegate_task')) fail('STAFF_MANAGER_ROLE', '该职位未授权派工；请显式创建经理职位模板或调整职位白名单。');
     if (value.allowShell && !value.allowedPaths.includes('.')) fail('STAFF_SHELL_SCOPE', '子目录责任范围不启用通用Shell；cwd不是目录沙箱。');
@@ -180,7 +182,8 @@ export class StaffService {
   beforeModelRequest(task, owner, state) {
     const data = { employees: state.staffEmployees, runs: state.staffRuns, tasks: state.tasks }, run = this.requireGrant(this.run(data, task.staff.runId), data);
     if (state.tasks.some(item => item.staff.runId === run.id && unresolved(item))) fail('STAFF_OUTCOME_UNKNOWN', '团队存在未知结果，不追加模型请求。');
-    if (run.nativeRequests >= run.maxNativeRequests) fail('STAFF_MODEL_BUDGET', '团队达到原生模型请求总上限，恢复不重置。');
+    const extension = this.parent.policy?.extraRequests('runs', run.id) || 0, cap = run.maxNativeRequests + extension;
+    if (run.nativeRequests >= cap) fail('STAFF_MODEL_BUDGET', '团队达到原生模型请求总上限（' + run.nativeRequests + '/' + cap + '），恢复不重置。本地用户可在团队页面直接扩展 N 次后恢复任务，无需重新授权整个团队。', { block_reason: this.parent.policy?.blockReason('team-model-requests', { run_id: run.id, task_id: task.id, used: run.nativeRequests, cap, base_cap: run.maxNativeRequests, extension }) });
     run.nativeRequests++; run.version++;
   }
   assertPaths(task, name, args, readOnly) {
@@ -206,7 +209,7 @@ export class StaffService {
     if(args.task_id&&isStaffTask(args.task_id))this.allowedRun(owner,this.task(data,args.task_id).staff.runId,data);
     const run = this.requireGrant(this.run(data, task.staff.runId), data);
     if((task.staff.manager||task.staff.publication)&&['apply_patch','run_command','send_command_input'].includes(name)&&this.internalContext.getStore()?.owner!==owner)fail('STAFF_MANAGER_TYPED_WRITES','经理只使用已授权的审查、整合与回写接口，不直接修改文件或启动Shell。');
-    if (!this.facade.readOnlyOperation(name, args) && !name.startsWith('bridge_') && data.tasks.some(item => item.staff.runId === run.id && unresolved(item))) fail('STAFF_OUTCOME_UNKNOWN', '团队有未知副作用，禁止追加变更。');
+    if (!this.facade.readOnlyOperation(name, args) && !name.startsWith('bridge_') && name !== 'start' && data.tasks.some(item => item.staff.runId === run.id && unresolved(item))) fail('STAFF_OUTCOME_UNKNOWN', '团队有未知副作用，禁止追加变更。');
   }
   manager(owner, taskId, lease, state = this.facade.read()) {
     const task = this.facade.task(state, taskId); this.facade.collaboration.assertLease(task, owner, lease);
@@ -294,9 +297,21 @@ export class StaffService {
     const offset = input.offset || 0, limit = input.limit || 32000, content = text.slice(offset, offset + limit);
     return { task_id: task.id, artifact: item, content, offset, total_chars: text.length, next_offset: offset + content.length, has_more: offset + content.length < text.length, complete_file_text: offset === 0 && offset + content.length === text.length, truncated: false, scope: '完整文件SHA-256核对及所请求文本片段，不代表整份文件已审查' };
   }
-  async waitForTeam(task, owner, lease, signal) {
-    this.manager(owner, task.id, lease);
-    for (;;) { if (signal.aborted) throw Error('经理等待已取消，不代表外部命令已停止。'); const data = this.store.read(), run = this.allowedRun(owner, task.staff.runId, data); this.requireGrant(run, data); const children = data.tasks.filter(item => item.staff.runId === run.id && !item.staff.manager && !item.staff.publication); if (!children.length || children.every(finished) || children.some(item => item.status==='completed'&&!item.staff.review || ['blocked', 'cancelled', 'review'].includes(item.status)&&!item.staff.supersededBy)) return this.teamFor(owner, run.id); await new Promise(resolve => { const timer = setTimeout(done, 1000); const unsubscribe = this.parent.onDidChange(done); function done() { clearTimeout(timer); unsubscribe(); resolve(); } }); }
+  teamReady(data, run) { const children = data.tasks.filter(item => item.staff?.runId === run.id && !item.staff.manager && !item.staff.publication); return !children.length || children.every(finished) || children.some(item => item.status==='completed'&&!item.staff.review || ['blocked', 'cancelled', 'review'].includes(item.status)&&!item.staff.supersededBy); }
+  /** Parsed staff ledger cached by file mtime/size; read-only use (wait loops). Falls back to a validated read. */
+  cachedData() { try { const entry = cachedJson(this.store.file); if (entry.exists && entry.value && Array.isArray(entry.value.tasks) && Array.isArray(entry.value.runs) && Array.isArray(entry.value.employees)) return entry.value; } catch {} return this.store.read(); }
+  // Event-driven: wakes on staff/rules change events or a ledger file change (other windows), 5 s fallback timer.
+  async waitForTeam(task, owner, lease, signal, timeoutMs = Infinity) {
+    this.manager(owner, task.id, lease); const started = Date.now(); let wakeups = 0;
+    for (;;) {
+      if (signal?.aborted) throw Error('经理等待已取消，不代表外部命令已停止。');
+      const data = this.cachedData(), run = this.allowedRun(owner, task.staff.runId, data); this.requireGrant(run, data);
+      if (this.teamReady(data, run)) return { ...this.teamFor(owner, run.id), wakeups, waited_ms: Date.now() - started };
+      const remaining = timeoutMs - (Date.now() - started);
+      if (remaining <= 0) return { ...this.teamFor(owner, run.id), timed_out: true, wakeups, waited_ms: Date.now() - started };
+      wakeups++;
+      await waitForChange({ subscribe: listener => this.parent.onDidChange(listener), files: [this.store.file], timeoutMs: Math.min(remaining, 2147483647), fallbackMs: 5000, signal });
+    }
   }
   teamFor(owner, id, offset = 0, limit = 30) {
     const data = this.store.read(), employee = this.bound(owner, data); if (!employee) fail('STAFF_EMPLOYEE_REQUIRED', '连接尚未绑定员工。');
@@ -304,10 +319,26 @@ export class StaffService {
     const tasks = data.tasks.filter(task => task.staff.runId === run.id), page = tasks.slice(offset, offset + limit);
     return { run: this.publicRun(run, data), employees: [run.managerId, ...run.memberIds].map(employeeId => publicEmployee(this.employee(data, employeeId), this.connection(this.employee(data, employeeId)))), tasks: page.map(task => this.facade.publicTask(task)), total_count: tasks.length, next_offset: offset + page.length, has_more: offset + page.length < tasks.length, manager_task_id: owned?.staff.manager ? owned.id : null };
   }
-  async handleTool(name, args, owner) {
+  async handleTool(name, args, owner, extra = {}) {
     this.parent.requireCollaboration();
     if (name === 'bridge_join_employee') return result(await this.join(owner, args));
     const data = this.store.read(), employee = this.bound(owner, data); if (!employee) fail('STAFF_EMPLOYEE_REQUIRED', '先通过本地绑定或一次性配对加入员工。');
+    const normalized = [];
+    if ((STAFF_MANAGER_TOOLS.has(name) || name === 'bridge_wait_team') && (args.manager_task_id === undefined || args.lease === undefined)) {
+      // The server knows the real connection; fill the manager handle only when it is unambiguous.
+      const held = data.tasks.filter(task => task.owner === publicAgentId(owner) && task.staff?.manager && (args.manager_task_id === undefined || task.id === args.manager_task_id));
+      if (held.length !== 1) fail(held.length ? 'TASK_AMBIGUOUS' : 'STAFF_MANAGER_REQUIRED', held.length ? '当前连接持有多个经理任务，请显式传 manager_task_id 与 lease。' : '省略了 manager_task_id/lease，但当前连接没有持有对应的经理任务。', { candidates: data.tasks.filter(task => task.owner === publicAgentId(owner)).map(task => ({ task_id: task.id, title: task.title, status: task.status, manager: task.staff?.manager === true, handle_kind: 'staff-job' })) });
+      args = { ...args, manager_task_id: held[0].id, lease: args.lease ?? held[0].lease };
+      normalized.push('manager_task_id/lease 省略：已按当前连接持有的经理任务 ' + held[0].id + ' 自动填充。');
+    }
+    if (['bridge_read_task_result', 'bridge_read_artifact'].includes(name) && args.task_id && !isStaffTask(args.task_id)) {
+      // Accept either handle kind: an ordinary collaboration task ID resolves to its public record.
+      const state = this.parent.read(), plain = state.tasks.find(item => item.id === args.task_id);
+      if (!plain) fail('TASK_UNKNOWN', '该 ID 既不是团队任务（staffjob_*），也不是协作任务；若是 set_todos 返回的普通任务卡 ID，请用 set_todos/update_plan。', { handle_kind: 'unknown' });
+      if (name === 'bridge_read_artifact') fail('TASK_HANDLE_KIND_MISMATCH', '普通协作任务的产物不能通过团队产物接口读取；请用 bridge_get_execution / read_files。', { handle_kind: 'collaboration-task' });
+      await this.parent.guard('bridge_get_execution', { workspace_id: plain.workspaceId }, owner);
+      return result({ handle_kind: 'collaboration-task', task: this.parent.publicTask(plain), note: '这是普通协作任务（不是团队 staffjob_*）的公开记录；不生成团队读取回执，不能用于 bridge_review_task。' });
+    }
     let workspaceId;
     if (args.task_id) workspaceId = this.task(data, args.task_id).workspaceId;
     else if (args.manager_task_id) workspaceId = this.task(data, args.manager_task_id).workspaceId;
@@ -318,12 +349,18 @@ export class StaffService {
     else if (name === 'bridge_get_team') value = this.teamFor(owner, args.run_id, args.offset || 0, args.limit || 30);
     else if (name === 'bridge_delegate_task') value = await this.delegate(owner, args);
     else if (name === 'bridge_review_task') value = await this.review(owner, args);
-    else if (name === 'bridge_read_task_result') value = await this.readResult(owner, args);
-    else if (name === 'bridge_read_artifact') value = await this.readResult(owner, args, true);
+    else if (name === 'bridge_read_task_result') value = { handle_kind: 'staff-job', ...(await this.readResult(owner, args)) };
+    else if (name === 'bridge_read_artifact') value = { handle_kind: 'staff-job', ...(await this.readResult(owner, args, true)) };
     else if (name === 'bridge_integrate_task') value = await integrateTask(this, owner, args);
     else if (name === 'bridge_publish_team') value = await publishTeam(this, owner, args);
-    else if (name === 'bridge_wait_team') { this.manager(owner, args.manager_task_id, args.lease); value = { ...this.teamFor(owner, undefined), external_client_polling_required: true, native_host_wait_available: true }; }
+    else if (name === 'bridge_wait_team') {
+      const managed = this.manager(owner, args.manager_task_id, args.lease);
+      // Native managers are suspended by the worker via waitForTeam; return the snapshot immediately here.
+      if (owner.startsWith('native-chat:automation:')) value = { ...this.teamFor(owner, undefined), native_host_wait_available: true };
+      else { const timeout = Math.min(Math.max(Number.isSafeInteger(args.timeout_ms) ? args.timeout_ms : 25000, 0), 55000); value = { ...(await this.waitForTeam(managed.task, owner, args.lease, extra?.signal, timeout)), event_driven_wait: true, max_wait_ms: timeout, external_client_polling_required: false }; }
+    }
     else fail('TOOL_UNKNOWN', '员工工具不存在。');
+    if (normalized.length && value && typeof value === 'object') value = { ...value, normalized };
     return result(value);
   }
   async internalTool(owner, lease, name, args, callId) { return this.internalContext.run({owner,callId},()=>this.bridge.dispatcher.handleExecutionToolCall(name, args, { commandOwnerId: owner, taskOwnerId: owner, executionLease: lease, workerCallId: callId })); }

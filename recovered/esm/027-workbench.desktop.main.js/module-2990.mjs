@@ -81,17 +81,15 @@ var ListMcpServerCommand = class extends Action2 {
     super({
       id: "workbench.mcp.listServer" /* ListServer */,
       title: localize2(16824, "List Servers"),
+      toggled: ContextKeyExpr.notEquals(`config.${mcpAutoStartConfig}`, "never" /* Never */),
       icon: Codicon.server,
       category: category3,
       f1: true,
       precondition: ContextKeyExpr.and(ChatContextKeys.Setup.hidden.negate(), ChatContextKeys.Setup.disabledInWorkspace.negate()),
       menu: [{
         when: ContextKeyExpr.and(
-          ContextKeyExpr.or(
-            ContextKeyExpr.and(ContextKeyExpr.equals(`config.${mcpAutoStartConfig}`, "never" /* Never */), McpContextKeys.hasUnknownTools),
-            McpContextKeys.hasServersWithErrors
-          ),
-          ChatContextKeys.chatModeKind.isEqualTo("agent" /* Agent */),
+          // OpenCode: 「自动连接 MCP」按钮常驻：以前只在 autostart=never 且有未知工具（或出错）时显示，
+          // 一开启自动连接就满足不了条件，按钮直接消失。现在始终显示，开/关由 toggled 与蓝色样式表示。
           ChatContextKeys.lockedToCodingAgent.negate(),
           ContextKeyExpr.and(ChatContextKeys.Setup.hidden.negate(), ChatContextKeys.Setup.disabledInWorkspace.negate())
         ),
@@ -776,6 +774,35 @@ var MCPServerActionRendering = class extends Disposable {
           super.render(container3);
           container3.classList.add("chat-mcp");
           container3.style.position = "relative";
+          // OpenCode: 自动连接 MCP 开关样式——开启为蓝色（主题 inputOption 激活色，带实色回退），关闭为普通按钮
+          this._register(autorun((r2) => {
+            const on = config.read(r2) !== "never" /* Never */;
+            const label = container3.querySelector(".action-label") || this.label;
+            container3.classList.toggle("oc-mcp-autostart-on", on);
+            if (label) {
+              label.setAttribute("aria-pressed", on ? "true" : "false");
+              label.style.backgroundColor = on ? "var(--vscode-inputOption-activeBackground, rgba(0, 120, 212, 0.35))" : "";
+              label.style.color = on ? "var(--vscode-inputOption-activeForeground, #ffffff)" : "";
+              label.style.outline = on ? "1px solid var(--vscode-inputOption-activeBorder, #007acc)" : "";
+              label.style.outlineOffset = on ? "-1px" : "";
+              label.style.borderRadius = on ? "4px" : "";
+            }
+            this.updateTooltip();
+          }));
+          // OpenCode: 守护状态点——绿：全部就绪；黄：启动中/重连中/需授权；红：有服务器失败（仅自动连接开启时显示）
+          const guardDot = container3.appendChild($("span.oc-mcp-guard-dot"));
+          guardDot.style.cssText = "position:absolute;right:1px;bottom:1px;width:7px;height:7px;border-radius:50%;pointer-events:none;box-shadow:0 0 0 1px var(--vscode-editor-background, #1e1e1e);display:none";
+          this._register(autorun((r2) => {
+            const g = mcpService.guardianStatus?.read(r2);
+            const on = config.read(r2) !== "never" /* Never */;
+            if (!g || !on || g.state === "off" || g.state === "empty") {
+              guardDot.style.display = "none";
+            } else {
+              guardDot.style.display = "block";
+              guardDot.style.backgroundColor = g.state === "ready" ? "#3fb950" : g.state === "error" ? "#f85149" : "#d29922";
+            }
+            this.updateTooltip();
+          }));
           const stateIndicator = container3.appendChild($(".chat-mcp-state-indicator"));
           stateIndicator.style.display = "none";
           this._register(autorun((r2) => {
@@ -799,6 +826,20 @@ var MCPServerActionRendering = class extends Disposable {
           }));
         }
         async onClick(e) {
+          // OpenCode: 按钮就是「自动连接 MCP」开关：点一下开启（并立即启动未连接的服务器），再点关闭。
+          e.preventDefault();
+          e.stopPropagation();
+          const wasOn = config.get() !== "never" /* Never */;
+          await configurationService.updateValue(mcpAutoStartConfig, wasOn ? "never" /* Never */ : "newAndOutdated" /* NewAndOutdated */);
+          if (!wasOn) {
+            try {
+              mcpService.autostart();
+            } catch {
+            }
+          }
+        }
+        // 原 VS Code 点击行为（新工具/出错/刷新状态），保留供悬停链接等参考，不再绑定到点击
+        async ocLegacyOnClick(e) {
           e.preventDefault();
           e.stopPropagation();
           const { state, servers } = displayedStateCurrent.get();
@@ -819,7 +860,12 @@ var MCPServerActionRendering = class extends Disposable {
           }
         }
         getTooltip() {
-          return this.getLabelForState() || super.getTooltip();
+          const toggle = config.get() !== "never" /* Never */ ? "自动连接 MCP：已开启（发送消息时自动启动 MCP 服务器，点击关闭）" : "自动连接 MCP：已关闭（点击开启）";
+          const status = this.getLabelForState();
+          const g = mcpService.guardianStatus?.get();
+          const names = { running: "已连接", starting: "启动中", retrying: "重连中", auth: "需要授权", failed: "失败（每 5 分钟重试）", error: "出错", stopped: "未启动" };
+          const lines = g?.enabled ? g.servers.map((s) => `${s.label}：${names[s.state] || s.state}，工具 ${s.tools} 个${s.lastError && s.state !== "running" ? "\n  最后错误：" + String(s.lastError).split("\n").filter(Boolean).pop() : ""}`) : [];
+          return [toggle, status, ...lines].filter(Boolean).join("\n");
         }
         getHoverContents({ state, servers } = displayedStateCurrent.get()) {
           const link2 = (s) => createMarkdownCommandLink({
@@ -839,8 +885,17 @@ var MCPServerActionRendering = class extends Disposable {
             markdown = new MarkdownString(
               single ? localize(16821, null, names) : localize(16820, null, names)
             );
+          } else if (mcpService.guardianStatus?.get()?.enabled && mcpService.guardianStatus.get().servers.length) {
+            // OpenCode: 自动连接开启时，悬停列出每个服务器的状态、工具数和最后错误；点名字打开该服务器的操作（重启、查看输出等）
+            const names2 = { running: "🟢 已连接", starting: "🟡 启动中", retrying: "🟡 重连中", auth: "🟡 需要授权", failed: "🔴 失败（每 5 分钟重试）", error: "🔴 出错", stopped: "⚪ 未启动" };
+            const rows = mcpService.guardianStatus.get().servers.map((s) => {
+              const lk = createMarkdownCommandLink({ text: s.label, id: "workbench.mcp.serverOptions" /* ServerOptions */, arguments: [s.id], tooltip: "重启、停止或查看输出" });
+              const err = s.lastError && s.state !== "running" ? `<br>最后错误：\`${String(s.lastError).split("\n").filter(Boolean).pop().replace(/`/g, "'").slice(0, 200)}\`` : "";
+              return `- ${lk}：${names2[s.state] || s.state}，工具 ${s.tools} 个${err}`;
+            }).join("\n");
+            markdown = new MarkdownString(`**自动连接 MCP：已开启**（点按钮关闭）\n\n${rows}`, { supportHtml: true });
           } else {
-            return this.getLabelForState() || void 0;
+            return this.getTooltip();
           }
           return {
             element: (token) => {

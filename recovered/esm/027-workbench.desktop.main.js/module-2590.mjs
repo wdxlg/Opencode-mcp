@@ -17,6 +17,7 @@ import { LocalAgentsSessionsController } from "./module-2586.mjs";
 import { AgentHostPermissionUiContribution } from "./module-2587.mjs";
 import { registerSingleton } from "./module-0135.mjs";
 import { AgentSessionsService, IAgentSessionsService } from "./module-1464.mjs";
+import "./opencode-chat-taskbar-badge.mjs";
 
 
 // src/vs/workbench/contrib/chat/browser/agentSessions/agentSessions.contribution.ts

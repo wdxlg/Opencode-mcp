@@ -1,0 +1,18 @@
+{
+  "task": "bridge-ui-cleanup-20261024-step01",
+  "sourceFiles": [
+    "recovered/esm/027-workbench.desktop.main.js/module-2692.mjs",
+    "recovered/esm/018-sessions.desktop.main.js/module-2667.mjs",
+    "assets/resources/app/out/vs/workbench/workbench.desktop.main.css",
+    "assets/resources/app/out/vs/sessions/sessions.desktop.main.css"
+  ],
+  "records": [
+    "tasks/bridge-ui-cleanup-20261024-step01/task.md",
+    "tasks/bridge-ui-cleanup-20261024-step01/progress.md"
+  ],
+  "reports": [
+    "reports/build-verification.json",
+    "reports/runtime-update.json"
+  ],
+  "sourceCommit": "bcbbd14f1fd79c230581b2a147e5624cb3e234f5"
+}

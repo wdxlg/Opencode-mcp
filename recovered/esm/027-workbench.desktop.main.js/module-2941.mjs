@@ -58,6 +58,7 @@ import { IUpdateService } from "./module-1181.mjs";
 import { IUriIdentityService } from "./module-0510.mjs";
 import { IWorkspaceContextService } from "./module-0509.mjs";
 import { IViewsService } from "./module-1246.mjs";
+import { ICommandService as OcMarketCommandService } from "./module-0087.mjs";
 import { IQuickInputService } from "./module-0536.mjs";
 import { IMeteredConnectionService } from "./module-1021.mjs";
 
@@ -1431,6 +1432,13 @@ var ExtensionsWorkbenchService = class extends Disposable {
     await this.editorService.openEditor(this.instantiationService.createInstance(ExtensionsInput, extension), options3, options3?.sideByside ? SIDE_GROUP : useModal ? MODAL_GROUP : ACTIVE_GROUP);
   }
   async openSearch(searchValue, preserveFocus) {
+    // OpenCode market-ext-step01: 扩展视图已从侧边栏去掉，搜索/筛选（@installed、@updates、@recommended…）改到「市场」窗口
+    try {
+      await this.instantiationService.invokeFunction((accessor) => accessor.get(OcMarketCommandService)).executeCommand("opencode.openMarket", "ext", { q: String(searchValue ?? "") });
+      return;
+    } catch (e) {
+      this.logService.trace("ExtensionsWorkbenchService#openSearch: opencode.openMarket failed", e);
+    }
     const viewPaneContainer = (await this.viewsService.openViewContainer(VIEWLET_ID2, true))?.getViewPaneContainer();
     if (!viewPaneContainer) {
       this.logService.trace("ExtensionsWorkbenchService#openSearch: extension view pane container was not available");

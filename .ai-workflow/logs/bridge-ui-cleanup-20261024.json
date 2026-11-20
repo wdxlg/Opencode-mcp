@@ -1,0 +1,13 @@
+{
+  "task": "bridge-ui-cleanup-20261024-step01",
+  "sourceCommit": "bcbbd14f1fd79c230581b2a147e5624cb3e234f5",
+  "delivery": "completed",
+  "runtimeValidation": "not_run",
+  "userAcceptance": "not_performed",
+  "buildExitCode": 0,
+  "changedRuntimeFiles": 7,
+  "userDataPreserved": true,
+  "retrospectiveRecord": true,
+  "correction": "restore-original-appearance-and-delete-quick-open",
+  "previousDesignRejected": true
+}

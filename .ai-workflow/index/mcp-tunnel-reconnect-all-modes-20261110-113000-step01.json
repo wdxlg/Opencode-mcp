@@ -1,0 +1,54 @@
+{
+  "task": "mcp-tunnel-reconnect-all-modes-20261110-113000-step01",
+  "files": [
+    {
+      "path": "recovered/esm/000-extension.js/module-0114.mjs",
+      "status": "modified",
+      "task": "mcp-tunnel-reconnect-all-modes-20261110-113000-step01",
+      "mtime": "2026-11-10T03:24:57.772Z",
+      "sha256": "14b98b0d33cdc09574efd4d3fb35909d62899ffc15e931e31aa2983b8ee3f147"
+    },
+    {
+      "path": "scripts/test-tunnel-reconnect.mjs",
+      "status": "added",
+      "task": "mcp-tunnel-reconnect-all-modes-20261110-113000-step01",
+      "mtime": "2026-11-10T03:24:57.780Z",
+      "sha256": "1752abf3fb32eb8fdaf2f6270e825cee3d9a60e1eb089505fb0f6aff88bd199d"
+    },
+    {
+      "path": "scripts/test-cloudflare-reconnect.mjs",
+      "status": "modified",
+      "task": "mcp-tunnel-reconnect-all-modes-20261110-113000-step01",
+      "mtime": "2026-11-10T03:24:57.777Z",
+      "sha256": "a26cc22fa44c875a789bb8ab71def1c916046c3f5ad31ab6a5efb2ee667a9da9"
+    },
+    {
+      "path": "tasks/mcp-tunnel-reconnect-all-modes-20261110-113000-step01/task.md",
+      "status": "added",
+      "task": "mcp-tunnel-reconnect-all-modes-20261110-113000-step01",
+      "mtime": "2026-11-10T03:24:57.783Z",
+      "sha256": "8fa770ebbfee03ea47922fc50a21bbe420fa562683be98f1db63f74891487706"
+    },
+    {
+      "path": "tasks/mcp-tunnel-reconnect-all-modes-20261110-113000-step01/progress.md",
+      "status": "added",
+      "task": "mcp-tunnel-reconnect-all-modes-20261110-113000-step01",
+      "mtime": "2026-11-10T03:24:57.787Z",
+      "sha256": "b13244538f0ba99f07e0bf08274e0fb4571bed7a4fe26379decb6e654500f792"
+    },
+    {
+      "path": "tasks/mcp-tunnel-reconnect-all-modes-20261110-113000-step01/stage.cjs",
+      "status": "added",
+      "task": "mcp-tunnel-reconnect-all-modes-20261110-113000-step01",
+      "mtime": "2026-11-10T03:24:57.792Z",
+      "sha256": "204211fa6fdd58e4daf884a51034285f83d1701dcd40a8f4ef3b7f06fb59b1f8"
+    },
+    {
+      "path": "tasks/mcp-tunnel-reconnect-all-modes-20261110-113000-step01/stage-pairs.json",
+      "status": "added",
+      "task": "mcp-tunnel-reconnect-all-modes-20261110-113000-step01",
+      "mtime": "2026-11-10T03:24:57.795Z",
+      "sha256": "2b4290aa8cb5bdb8084927b2825c21746266245dfe5126b5ab1610cb67f1f04d"
+    }
+  ]
+}

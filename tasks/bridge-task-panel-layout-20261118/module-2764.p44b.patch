@@ -1,0 +1,71 @@
+--- a/recovered/esm/027-workbench.desktop.main.js/module-2764.mjs	2026-11-18 06:46:39.321980554 +0000
++++ b/recovered/esm/027-workbench.desktop.main.js/module-2764.mjs	2026-11-18 06:53:36.441468071 +0000
+@@ -568,6 +568,29 @@
+ .oc-p39 .oc-p41-actionbar .monaco-button.opencode-bridge-session-start-stop-button,.oc-p39 .oc-p41-actionbar .monaco-button.opencode-bridge-session-start-stop-button .codicon{color:var(--vscode-errorForeground,#f14c4c)!important}
+ .oc-p39 .oc-p41-actionbar .monaco-button.opencode-bridge-session-start-stop-button:hover:not(.disabled){background:color-mix(in srgb,var(--vscode-errorForeground,#f14c4c) 18%,transparent)!important}
+ .oc-p39 .oc-p41-actionbar .monaco-button,.oc-p39 .oc-p41-actionbar .monaco-button *{transition:none!important}
++/* p44b: 任务架适配任意宿主（侧栏 / 面板 / 编辑区页面 / 浮窗）。宽度按任务区自身计算，不依赖侧栏容器 */
++.opencode-bridge-task-shelf.oc-p39 .opencode-bridge-session-todos-region{container-type:inline-size;container-name:ocp44tasks}
++.oc-p39 .oc-p44-seg{max-width:420px;box-sizing:border-box}
++.oc-p39 .oc-p44-seg .oc-p44-seg-label{min-width:0;overflow:hidden;text-overflow:ellipsis}
++@container ocp44tasks (max-width:340px){.oc-p39 .oc-p44-seg .oc-p44-seg-calls{display:none}}
++@container ocp44tasks (max-width:230px){.oc-p39 .oc-p44-seg .oc-p44-seg-label,.oc-p39 .oc-p44-seg .oc-p44-seg-calls{display:none}}
++@container ocp44tasks (min-width:480px){.oc-p39 .oc-p44-seg{height:26px}.oc-p39 .oc-p44-seg button{font-size:var(--vscode-font-size,13px);gap:6px;padding:0 10px}.oc-p39 .oc-p44-seg button .codicon{font-size:14px}}
++.oc-p39 .oc-p44-shelf-empty{display:flex;align-items:center;gap:6px;height:22px;line-height:22px;padding:0 8px 0 12px;color:var(--vscode-descriptionForeground);overflow:hidden;white-space:nowrap}
++.oc-p39 .oc-p44-shelf-empty>.codicon{flex:none;font-size:14px;opacity:.8}
++.oc-p39 .oc-p44-shelf-empty .oc-p44-empty-title{flex:none}
++.oc-p39 .oc-p44-shelf-empty .oc-p44-empty-hint,.oc-p39 .oc-p44-shelf-empty .oc-p44-empty-more{display:none}
++.oc-p39 .oc-p44-shelf-empty .oc-p40-link{padding:0;border:0;background:transparent;color:var(--vscode-textLink-foreground);font:inherit;cursor:pointer}
++.oc-p39 .oc-p44-shelf-empty .oc-p40-link:hover{text-decoration:underline}
++/* 停靠出去（data-oc-docked）：只有任务区搬走，标题由页签/视图标题显示，这里补足内边距与空状态说明 */
++.opencode-bridge-task-shelf.oc-p39[data-oc-docked="1"] .opencode-bridge-task-shelf-body{container-type:inline-size;container-name:ocp44dock;box-sizing:border-box}
++.opencode-bridge-task-shelf.oc-p39[data-oc-docked="1"] .opencode-bridge-session-todos-region{padding:4px 0 8px!important;box-sizing:border-box}
++.opencode-bridge-task-shelf.oc-p39[data-oc-docked="1"] .oc-p44-seg{margin:4px 12px 6px 12px}
++.opencode-bridge-task-shelf.oc-p39[data-oc-docked="1"] .oc-p44-shelf-empty{display:block;height:auto;line-height:1.5;white-space:normal;padding:16px 12px 8px 12px;max-width:560px}
++.opencode-bridge-task-shelf.oc-p39[data-oc-docked="1"] .oc-p44-shelf-empty>.codicon{display:block;width:auto;text-align:left;font-size:24px;margin:0 0 8px 0}
++.opencode-bridge-task-shelf.oc-p39[data-oc-docked="1"] .oc-p44-shelf-empty .oc-p44-empty-title{display:block;color:var(--vscode-foreground);font-weight:600}
++.opencode-bridge-task-shelf.oc-p39[data-oc-docked="1"] .oc-p44-shelf-empty .oc-p44-empty-hint,.opencode-bridge-task-shelf.oc-p39[data-oc-docked="1"] .oc-p44-shelf-empty .oc-p44-empty-more{display:block;margin-top:4px}
++@container ocp44dock (min-width:560px){.opencode-bridge-task-shelf.oc-p39[data-oc-docked="1"] .opencode-bridge-session-todos-region{padding:8px 12px 16px!important;max-width:1040px}}
++@container ocp44dock (min-width:900px){.opencode-bridge-task-shelf.oc-p39[data-oc-docked="1"] .opencode-bridge-session-todos-region{padding:12px 20px 20px!important}}
+ `;
+ // OpenCode p40: 活动行的人话标签：动词 + 主要对象（命令/路径），其余进描述与悬停提示。
+ function ocP40Describe(activity) {
+@@ -1635,7 +1658,7 @@
+       btn.setAttribute("aria-checked", String(sel === key));
+       const ic = append(btn, $("span", { "aria-hidden": "true" }));
+       ic.classList.add(...ThemeIcon.asClassNameArray(iconOf(n || key === "running" && runningCalls)));
+-      append(btn, $("span", void 0, label));
++      append(btn, $("span.oc-p44-seg-label", void 0, label));
+       append(btn, $("span.oc-p44-seg-n", void 0, String(n)));
+       let tip = `${label}：${n} 个任务`;
+       if (key === "running" && runningCalls) {
+@@ -1660,6 +1683,29 @@
+       if (visible && !group.open) group.open = true;
+       if (visible && !lists[key]?.length && sel && !group.querySelector(".oc-p39-group-empty")) append(group, $(".oc-p39-group-empty", void 0, "没有任务"));
+     }
++    this.ocP44RenderShelfEmpty(lists, sel, bar);
++  }
++  // OpenCode p44b: 任务区空状态。侧栏里一行；停靠到页面/面板/浮窗时多一句说明：
++  //   停靠的只是任务区，工具调用列表、筛选、统计与停止按钮仍在 Chat 视图的 Bridge 模式里。
++  ocP44RenderShelfEmpty(lists, sel, bar) {
++    for (const old of this.todosRegion.querySelectorAll(":scope > .oc-p44-shelf-empty")) old.remove();
++    if (sel) return; // 选中某段时由该段的「没有任务」提示
++    const total = lists.running.length + lists.unfinished.length + lists.completed.length;
++    if (lists.running.length + lists.unfinished.length) return;
++    const empty = $(".oc-p44-shelf-empty", { role: "status" });
++    bar.after(empty);
++    const icon2 = append(empty, $("span", { "aria-hidden": "true" }));
++    icon2.classList.add(...ThemeIcon.asClassNameArray(total ? Codicon.pass : Codicon.checklist));
++    append(empty, $("span.oc-p44-empty-title", void 0, total ? "没有进行中或未完成的任务" : "暂无任务"));
++    append(empty, $("span.oc-p44-empty-hint", void 0, total ? `已完成 ${lists.completed.length} 个任务，点上方「已完成」查看。` : "AI 通过 Bridge 建立任务卡（set_todos）后，会在这里显示进度。"));
++    const more = append(empty, $("span.oc-p44-empty-more", void 0, "工具调用列表、筛选、统计和停止按钮在 Chat 视图的 Bridge 模式里。"));
++    const link = append(more, $("button.oc-p40-link", { type: "button" }, "打开 Bridge"));
++    link.style.marginLeft = ".5em";
++    link.addEventListener("click", (event) => {
++      event.preventDefault();
++      event.stopPropagation();
++      void Promise.resolve(this.commandService.executeCommand("opencode.bridge.openSession")).catch(() => void 0);
++    });
+   }
+   // ---- OpenCode p40: VS Code 原生树视图样式的活动区 ----
+   ocP40EnsureFilter() {

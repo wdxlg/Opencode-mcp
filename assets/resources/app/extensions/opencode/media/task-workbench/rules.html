@@ -6,30 +6,93 @@
 <title>规则中心</title>
 <link rel="stylesheet" href="automation.css">
 </head>
-<body>
-<header class="topbar"><h1>规则中心</h1><label class="workspace-label" for="workspace">工作区</label><select id="workspace" aria-label="规则工作区"></select><button id="add-workspace" class="secondary">指定文件夹</button><button id="refresh" class="secondary">刷新</button></header>
-<div id="feedback" class="feedback" role="status" aria-live="polite"></div>
-<main>
-<div class="scope-settings">
-  <div><label for="global-group">通用规则组</label><div class="control-row"><select id="global-group"></select><button id="set-global">设为通用规则组</button></div></div>
-  <div><label for="binding-mode">当前工作区规则</label><div class="control-row"><select id="binding-mode"><option value="global">使用通用规则组</option><option value="preset">使用指定规则组</option></select><select id="binding-group" aria-label="工作区指定规则组"></select><button id="save-binding">保存绑定</button></div></div>
-</div>
-<div class="editor-layout">
-  <aside><div class="section-heading"><h2>已保存规则组</h2><button id="new-group" class="secondary">新建组</button></div><div id="group-list" class="item-list"></div></aside>
-  <div class="editor">
-    <label for="group-name">规则组名称</label><input id="group-name" maxlength="200">
-    <div class="section-heading"><h2>组内规则</h2></div>
-    <p class="hint">名称框可搜索并选择规则库预设；精确匹配库名时引用库正文，改成库中不存在的名字时保留正文并独立。可同时启用多条规则，保存后按列表顺序一起生效。</p>
-    <div id="rule-list" class="rule-list"></div>
-    <div class="rule-add-row"><button id="add-rule" class="secondary">添加规则</button></div>
-    <div class="checks"><label><input id="group-readonly" type="checkbox">只读工作区</label><label><input id="group-commands" type="checkbox">允许命令执行</label></div>
-    <p class="hint">操作策略作用于整组。命令执行不是操作系统沙箱，规则文本不扩大当前任务授权。</p>
-    <div class="actions"><button id="save-group">保存规则组</button><button id="copy-group" class="secondary">复制规则组</button><button id="discard-group" class="secondary">放弃修改</button><button id="delete-group" class="secondary">删除未引用组</button></div>
-  </div>
-  <aside class="preview"><h2>保存后的实际生效规则</h2><div id="effective-source" class="hint"></div><div id="effective-rules" class="effective-rules"></div><details><summary>合并正文与版本</summary><pre id="effective-text"></pre><code id="effective-hash"></code><p class="hint">MCP 和原生 Chat 获取全部已启用规则。修改内容、启用状态或顺序后，旧确认失效。</p></details></aside>
-</div>
-<div class="storage"><span>跨版本持久数据位置</span><code id="storage-file"></code><button id="export-rules" class="secondary">导出规则组与绑定</button><p class="hint">已有单文本规则自动转换为组内一条规则。迁移前备份，保留内容、通用选中项和工作区绑定，不重置规则库。</p></div>
+<body class="rules-page rv">
+<header class="rv-bar">
+  <span class="rv-title">规则中心</span>
+  <nav class="rv-tabs" role="tablist" aria-label="规则中心视图">
+    <button role="tab" data-view="groups" aria-selected="true">规则组</button>
+    <button role="tab" data-view="scope" aria-selected="false">生效范围</button>
+    <button role="tab" data-view="preview" aria-selected="false">实际生效</button>
+  </nav>
+  <span class="rv-grow"></span>
+  <select id="workspace" class="rv-ws" aria-label="工作区" title="工作区"></select>
+  <button id="add-workspace" class="rv-icon" data-icon="folder" title="指定文件夹为工作区" aria-label="指定文件夹为工作区"></button>
+  <button id="refresh" class="rv-icon" data-icon="refresh" title="刷新" aria-label="刷新"></button>
+  <button id="export-rules" class="rv-icon" data-icon="export" title="导出规则组与绑定" aria-label="导出规则组与绑定"></button>
+</header>
+<main class="rv-main">
+  <section class="rv-view" data-view="groups">
+    <aside class="rv-side" aria-label="规则组">
+      <div class="rv-side-head"><span>规则组</span><button id="new-group" class="rv-icon" data-icon="add" title="新建规则组" aria-label="新建规则组"></button></div>
+      <div id="group-list" class="rv-list"></div>
+    </aside>
+    <div class="rv-editor">
+      <div class="rv-editor-head">
+        <input id="group-name" class="rv-name" maxlength="200" placeholder="规则组名称" aria-label="规则组名称">
+        <span id="group-badges" class="rv-badges"></span>
+        <span class="rv-grow"></span>
+        <button id="make-global" class="rv-ghost" data-icon="star" title="设为通用规则组：没有单独绑定的工作区都用它">设为通用</button>
+        <button id="copy-group" class="rv-icon" data-icon="copy" title="复制为新规则组" aria-label="复制为新规则组"></button>
+        <button id="delete-group" class="rv-icon" data-icon="trash" title="删除规则组（只能删没有被引用的）" aria-label="删除规则组"></button>
+      </div>
+      <nav class="rv-subtabs" role="tablist" aria-label="规则组内容">
+        <button role="tab" data-sub="rules" aria-selected="true">规则<span id="rule-count" class="rv-count"></span></button>
+        <button role="tab" data-sub="persona" aria-selected="false">人设<span id="persona-tag" class="rv-count"></span></button>
+        <button role="tab" data-sub="policy" aria-selected="false">策略</button>
+      </nav>
+      <div class="rv-sub" data-sub="rules">
+        <div id="rule-list" class="rule-list"></div>
+        <button id="add-rule" class="rv-ghost rv-add" data-icon="add">添加规则</button>
+        <p class="hint">名称框可以搜索规则库；名称和库里一致时引用库正文。勾选即启用，拖动左侧手柄调整顺序。</p>
+      </div>
+      <div class="rv-sub" data-sub="persona" hidden>
+        <div class="rv-row">
+          <select id="persona-preset" aria-label="人设来源" title="人设来源"></select>
+          <input id="persona-preset-name" class="rv-preset-name" placeholder="预设名称" maxlength="80" aria-label="人设预设名称">
+          <button id="save-persona-preset" class="rv-ghost" data-icon="save" title="按名称保存到人设库；同名则更新">保存到人设库</button>
+          <button id="delete-persona-preset" class="rv-icon" data-icon="trash" title="从人设库移除" aria-label="从人设库移除"></button>
+        </div>
+        <textarea id="group-persona" class="rv-code" rows="22" maxlength="32000" spellcheck="false" aria-label="人设（系统提示词）" placeholder="留空则使用 OpenCode 自带系统提示词"></textarea>
+        <p id="persona-state" class="hint rv-warn"></p>
+        <p class="hint">这就是完整的系统提示词；工具说明（apply_patch、run_command 等）会自动接在后面。叠加时，后面层级的非空人设覆盖前面的。</p>
+      </div>
+      <div class="rv-sub" data-sub="policy" hidden>
+        <label class="rv-check"><input id="group-readonly" type="checkbox">只读工作区</label>
+        <label class="rv-check"><input id="group-commands" type="checkbox">允许命令执行</label>
+        <p class="hint">策略作用于整组。命令执行不是操作系统沙箱，规则文本不会扩大当前任务的授权。</p>
+      </div>
+    </div>
+  </section>
+  <section class="rv-view rv-page" data-view="scope" hidden>
+    <div class="rv-setting">
+      <div class="rv-setting-label"><b>通用规则组</b><span class="hint">没有单独绑定的工作区使用它，改了立即生效。</span></div>
+      <select id="global-group" aria-label="通用规则组"></select>
+    </div>
+    <div class="rv-setting">
+      <div class="rv-setting-label"><b>当前工作区</b><span id="binding-hint" class="hint">在顶部选择工作区，改了立即生效。</span></div>
+      <div class="rv-row rv-nowrap"><select id="binding-mode" aria-label="当前工作区规则"><option value="global">使用通用规则组</option><option value="preset">替换为指定规则组</option></select><select id="binding-group" aria-label="工作区指定规则组"></select></div>
+    </div>
+    <div class="rv-section-head"><span>特殊规则</span></div>
+    <p class="hint">在某个工作区或某类模型下，在上面的规则组之外再加一组规则。同名规则以更具体的为准：工作区 → 模型分类 → 模型分组 → 模型。改了立即生效。</p>
+    <div class="rv-layer-add"><span class="hint">当</span><select id="layer-kind" aria-label="类型"></select><span id="layer-target-slot"></span><span class="hint">时，加上</span><select id="layer-group" aria-label="规则组"></select><button id="add-layer" data-icon="add">添加</button></div>
+    <div id="layer-list" class="layer-list"></div>
+  </section>
+  <section class="rv-view rv-page" data-view="preview" hidden>
+    <div class="rv-row"><span class="hint">预览条件</span><input id="preview-model" placeholder="模型 ID（可选）" aria-label="预览模型"><select id="preview-group" aria-label="预览模型分组"></select></div>
+    <div id="effective-source" class="rv-source"></div>
+    <div id="effective-rules" class="effective-rules"></div>
+    <details class="rv-details"><summary>合并正文与版本</summary><pre id="effective-text"></pre><code id="effective-hash"></code><p class="hint">外部 MCP 只叠加通用与工作区规则；模型相关的特殊规则作用于 OpenCode 自带对话。修改后旧确认失效。</p></details>
+    <p class="hint rv-storage">数据位置：<code id="storage-file"></code></p>
+  </section>
 </main>
+<footer class="rv-foot">
+  <span id="feedback" class="rv-status" role="status" aria-live="polite"></span>
+  <button id="discard-layers" class="rv-ghost" hidden>放弃</button>
+  <button id="save-layers" class="rv-primary" hidden title="Ctrl+S">保存叠加规则</button>
+  <button id="discard-group" class="rv-ghost" hidden>放弃</button>
+  <button id="save-group" class="rv-primary" hidden title="Ctrl+S">保存</button>
+</footer>
+<button id="set-global" hidden></button><button id="save-binding" hidden></button>
 <script src="rules.js"></script>
 </body>
 </html>

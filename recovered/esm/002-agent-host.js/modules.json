@@ -3202,6 +3202,10 @@
         }
       ],
       "sha256": "17716c9c360ed3578aca9b635c48db9fd3a796734b02859bbbdab459f3348529"
+    },
+    {
+      "file": "default-system-prompt.mjs",
+      "modulePath": "maintained/shared/default-system-prompt.mjs"
     }
   ],
   "publicExports": [],

@@ -3,7 +3,6 @@
 // Original module marker: src/vs/workbench/contrib/chat/browser/tools/toolHelpers.ts
 import { URI } from "./module-0032.mjs";
 import { WorkingDirectory } from "./module-2633.mjs";
-import { isAutoApproveLevel } from "./module-0964.mjs";
 import { escapeRegExpCharacters } from "./module-0030.mjs";
 import { createToolSimpleTextResult } from "./module-2514.mjs";
 import { MarkdownString } from "./module-0462.mjs";
@@ -27,27 +26,6 @@ function resolveSymbolToolFileUri(input, workspaceContextService, uriIdentitySer
     return uri5 && isSymbolToolResourceInScope(uri5, workspaceContextService, uriIdentityService, workingDirectory) ? uri5 : void 0;
   }
   return void 0;
-}
-
-function getChatPermissionLevelForToolInvocation(chatSessionResource, chatRequestId, chatWidgetService, chatService) {
-  if (!chatSessionResource) {
-    return void 0;
-  }
-  const model = chatService.getSession(chatSessionResource);
-  const request2 = chatRequestId ? model?.getRequests().find((request3) => request3.id === chatRequestId) : void 0;
-  if (request2) {
-    return request2.modeInfo?.permissionLevel ?? "default" /* Default */;
-  }
-  const widget = chatWidgetService.getWidgetBySessionResource(chatSessionResource);
-  if (widget) {
-    return widget.input.currentModeInfo.permissionLevel ?? "default" /* Default */;
-  }
-  return model?.getRequests().at(-1)?.modeInfo?.permissionLevel ?? "default" /* Default */;
-}
-
-function getSandboxPrecheckInputsForToolInvocation(chatSessionResource, chatRequestId, chatWidgetService, chatService) {
-  const chatPermissionLevel = getChatPermissionLevelForToolInvocation(chatSessionResource, chatRequestId, chatWidgetService, chatService);
-  return chatPermissionLevel === void 0 ? void 0 : { isDefaultApprovalPermissionEnabled: !isAutoApproveLevel(chatPermissionLevel) };
 }
 
 function findLineNumber(model, lineContent) {
@@ -74,4 +52,4 @@ function errorResult(message) {
   result.toolResultMessage = new MarkdownString(message);
   return result;
 }
-export { isSymbolToolResourceInScope, resolveSymbolToolFileUri, getChatPermissionLevelForToolInvocation, getSandboxPrecheckInputsForToolInvocation, findLineNumber, findSymbolColumn, errorResult };
+export { isSymbolToolResourceInScope, resolveSymbolToolFileUri, findLineNumber, findSymbolColumn, errorResult };

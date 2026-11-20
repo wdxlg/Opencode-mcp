@@ -1,0 +1,42 @@
+{
+  "id": "security-threat-model",
+  "sourceName": "security-threat-model",
+  "title": "威胁建模",
+  "category": "安全",
+  "repo": "openai/skills",
+  "commit": "49f948faa9258a0c61caceaf225e179651397431",
+  "sourcePath": "skills/.curated/security-threat-model/",
+  "sourceUrl": "https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/security-threat-model",
+  "license": "Apache-2.0",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "仅在明确请求安全威胁分析时使用；基于代码证据和边界，不需要扫描生产环境。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "LICENSE.txt",
+      "upstreamSha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"
+    },
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "1283c0dd62a8104d9edda4583569b5d8510b4ddaa45120687c999250fd96bad2"
+    },
+    {
+      "path": "agents/openai.yaml",
+      "upstreamSha256": "3319b59736312abceca614e341c0e59cae47263e3b58a22b2b5ddf1e5fc8c227"
+    },
+    {
+      "path": "references/prompt-template.md",
+      "upstreamSha256": "81a59aa3fb3ac3a739d6a26ab38e4015965f215581ee54becef21a2b121ec29b"
+    },
+    {
+      "path": "references/security-controls-and-assets.md",
+      "upstreamSha256": "d536cfa9acad2523dc39134bcf33b9566c29dd9a57b407cbc9901637230c6b98"
+    }
+  ]
+}

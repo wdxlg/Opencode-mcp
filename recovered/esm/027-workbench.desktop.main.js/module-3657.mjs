@@ -71,9 +71,6 @@ var ShowSignalSoundHelp = class _ShowSignalSoundHelp extends Action2 {
     disposables.add(qp.onDidTriggerItemButton((e) => {
       preferencesService.openUserSettings({ jsonEditor: true, revealSetting: { key: e.item.signal.settingsKey, edit: true } });
     }));
-    disposables.add(qp.onDidChangeActive(() => {
-      accessibilitySignalService.playSound(qp.activeItems[0].signal.sound.getSound(true), true, AcknowledgeDocCommentsToken);
-    }));
     disposables.add(qp.onDidHide(() => disposables.dispose()));
     qp.placeholder = localize(7806, null);
     qp.canSelectMany = true;

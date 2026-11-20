@@ -199,7 +199,11 @@ var AuxiliaryEditorPart = class {
       }
     }));
     updateStatusbarVisibility(false);
-    const editorCloseListener = disposables.add(Event2.once(editorPart.onWillClose)(() => auxiliaryWindow.window.close()));
+    const editorCloseListener = disposables.add(Event2.once(editorPart.onWillClose)(() => {
+      // OpenCode: editors were moved back into the main window (floating -> normal); close without the close-window confirm
+      auxiliaryWindow.closingFromWorkbench = true;
+      auxiliaryWindow.window.close();
+    }));
     disposables.add(Event2.once(auxiliaryWindow.onUnload)(() => {
       if (disposables.isDisposed) {
         return;

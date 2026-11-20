@@ -149,7 +149,6 @@ function getAccessibilityHelpText2(type, keybindingService, supportsFileReferenc
     if (type === "agentView") {
       content2.push(localize(8469, null));
       content2.push(localize(8468, null, "<keybinding:workbench.action.chat.acceptTool>"));
-      content2.push(localize(8464, null, "chat.tools.global.autoApprove" /* GlobalAutoApprove */, "true"));
       content2.push(localize(8463, null, "<keybinding:workbench.action.chat.acceptTool>"));
       content2.push(localize(8466, null));
       content2.push(localize(8465, null, "<keybinding:workbench.action.chat.focusTodosView>"));

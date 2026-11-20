@@ -4,7 +4,6 @@
 import { URI } from "./module-0032.mjs";
 import { localize } from "./module-0001.mjs";
 import { AbstractAgentHostConfigFileSystemProvider, AbstractAgentHostConfigSchemaRegistrar, serializeAgentHostConfigDocument } from "./module-2910.mjs";
-import { isAutoApprovePolicyRestricted, normalizeSessionConfigValue } from "./module-2047.mjs";
 import { equals4 } from "./module-0098.mjs";
 import { __decorateClass, __decorateParam } from "./module-0000.mjs";
 import { IAgentHostService } from "./module-1107.mjs";
@@ -103,22 +102,17 @@ var AgentSessionSettingsFileSystemProvider = class extends AbstractAgentHostConf
   // The input is the user's full view of editable values. Dispatch as a
   // replace: every non-editable property is forced through unchanged from
   // the current values, and an editable property the user omitted is left
-  // out of the replacement payload entirely, clearing it. Editable values
-  // the user *did* supply are still clamped by
-  // normalizeSessionConfigValue - otherwise an org auto-approve policy
-  // enforced everywhere else (chip picker, sessions-window replace) could
-  // be bypassed simply by editing this JSONC document directly.
+  // out of the replacement payload entirely, clearing it.
   async _replaceConfig(target, ctx, values) {
     const current = readSessionConfig(target.ref.object.value);
     if (!current) {
       return;
     }
-    const policyRestricted = isAutoApprovePolicyRestricted(this._configurationService);
     const nextValues = {};
     for (const [key3, schema10] of Object.entries(current.schema.properties)) {
       if (sessionSettingsPropertyFilter(key3, schema10)) {
         if (Object.hasOwn(values, key3)) {
-          nextValues[key3] = normalizeSessionConfigValue(key3, values[key3], policyRestricted);
+          nextValues[key3] = values[key3];
         }
       } else if (Object.hasOwn(current.values, key3)) {
         nextValues[key3] = current.values[key3];

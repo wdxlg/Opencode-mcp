@@ -1,14 +1,16 @@
 {
   "name": "opencode-source-recovery",
-  "version": "1.0.0-recovered.25",
+  "version": "1.0.0-recovered.33",
   "private": true,
   "description": "Buildable recovered JavaScript application sources; original TypeScript types are not restored",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
+    "prepare:rea": "node scripts/prepare-rea.cjs",
     "build": "node scripts/update.cjs",
     "build:clean": "node scripts/clean-build.cjs",
+    "rollback": "node scripts/rollback-runtime.cjs",
     "verify": "node scripts/verify-build.cjs",
     "test:isolated": "node scripts/test-isolated.cjs",
     "recovery:status": "node scripts/status.cjs",
@@ -22,6 +24,15 @@
     "verify:runtime": "node scripts/verify-runtime.cjs",
     "test:portable-move": "node scripts/test-portable-relocation.cjs",
     "test:task-autonomy": "node --test scripts/test-task-autonomy.mjs",
-    "test:version-isolation": "node scripts/test-version-isolation.mjs"
+    "test:version-isolation": "node scripts/test-version-isolation.mjs",
+    "test:leanrea": "node --test scripts/test-leanrea.mjs",
+    "test:task-continuity": "node --test scripts/test-task-continuity.mjs",
+    "test:collab-lease": "node --test scripts/test-collab-lease.mjs",
+    "test:memory-v2": "node --test scripts/test-memory-v2.mjs",
+    "test:cursor-parity": "node --test scripts/test-cursor-parity.mjs",
+    "test:collab-v2": "node --test scripts/test-collab-v2.mjs",
+    "test:e2e-bridge": "node scripts/test-e2e-bridge-handoff.cjs",
+    "test:work-automation": "node --test scripts/test-work-automation.mjs",
+    "test:ui-regress": "node scripts/test-ui-regress.cjs"
   }
 }

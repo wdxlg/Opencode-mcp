@@ -1,0 +1,1062 @@
+diff --git a/recovered/esm/000-extension.js/agent-extras.mjs b/recovered/esm/000-extension.js/agent-extras.mjs
+index c49e689a..0f22d44d 100644
+--- a/recovered/esm/000-extension.js/agent-extras.mjs
++++ b/recovered/esm/000-extension.js/agent-extras.mjs
+@@ -159,6 +159,91 @@ export function buildAgentsInstructions(workspaceRoot, candidatePaths, options =
+   return parts.join("\n\n");
+ }
+ 
++/**
++ * dsh-context-align item3：与 dsh-agent-instructions 对齐的工作区指令。
++ * - 全局：~/.opencode/AGENTS.md、~/.agents/AGENTS.md（dsh 的 harness home 与共享 agents home）
++ * - 项目：从工作区向上找到含 .git 的目录作为项目根，从项目根到工作区逐级读取 AGENTS.md、CLAUDE.md，再读 AGENTS.local.md、CLAUDE.local.md
++ * - 总上限 64KB（超出时先省略/截断较浅的文件，保留更具体的）；内容相同的文件、已在规则中心正文里的文件去重
++ * 返回 { text, files（已发出的绝对路径，agent-host 用来避免重复补发）, projectRoot }；没有任何文件时 text 为空但仍返回 projectRoot，供子目录补发使用。
++ */
++const DSH_INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"];
++const DSH_LOCAL_INSTRUCTION_FILES = ["AGENTS.local.md", "CLAUDE.local.md"];
++export function findDshProjectRoot(workspaceRoot) {
++  const start = pathX.resolve(workspaceRoot);
++  let current = start;
++  for (let depth = 0; depth < 64; depth += 1) {
++    try {
++      if (fsX.existsSync(pathX.join(current, ".git"))) return current;
++    } catch { }
++    const parent = pathX.dirname(current);
++    if (parent === current) break;
++    current = parent;
++  }
++  return start;
++}
++export function buildDshAgentsInstructions(workspaceRoot, options = {}) {
++  if (!workspaceRoot) return void 0;
++  const osX = require("node:os");
++  const root = pathX.resolve(workspaceRoot);
++  const projectRoot = findDshProjectRoot(root);
++  const budget = Math.max(4096, Math.min(262144, Number.isFinite(options.budgetBytes) ? Math.floor(options.budgetBytes) : 65536));
++  const norm = (value) => String(value ?? "").replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "").trim();
++  const dedupeAgainst = norm(options.dedupeAgainst);
++  const candidates = [];
++  const home = osX.homedir();
++  for (const [dir, label] of [[pathX.join(home, ".opencode"), "~/.opencode/AGENTS.md"], [pathX.join(home, ".agents"), "~/.agents/AGENTS.md"]]) {
++    candidates.push({ file: pathX.join(dir, "AGENTS.md"), display: label, depth: -1 });
++  }
++  const chain = [];
++  for (let current = root; ; current = pathX.dirname(current)) {
++    chain.unshift(current);
++    if (current.toLowerCase() === projectRoot.toLowerCase() || pathX.dirname(current) === current || chain.length > 64) break;
++  }
++  chain.forEach((dir, depth) => {
++    for (const name of [...DSH_INSTRUCTION_FILES, ...DSH_LOCAL_INSTRUCTION_FILES]) {
++      const file = pathX.join(dir, name);
++      candidates.push({ file, display: pathX.relative(projectRoot, file).replace(/\\/g, "/") || name, depth });
++    }
++  });
++  const files = [];
++  const sent = [];
++  const seenBodies = new Set();
++  for (const item of candidates) {
++    let body;
++    try {
++      const stat = fsX.statSync(item.file);
++      if (!stat.isFile() || stat.size > 1024 * 1024) continue;
++      body = norm(fsX.readFileSync(item.file, "utf8").replace(/^\uFEFF/, ""));
++    } catch { continue; }
++    sent.push(item.file);
++    if (!body || seenBodies.has(body)) continue;
++    if (dedupeAgainst && dedupeAgainst.includes(body)) continue;
++    seenBodies.add(body);
++    files.push({ ...item, body });
++  }
++  if (!files.length) return { text: "", files: sent, projectRoot };
++  let remaining = budget - 600;
++  const kept = new Array(files.length);
++  for (let index = files.length - 1; index >= 0; index -= 1) {
++    const item = files[index];
++    const bytes = Buffer.byteLength(item.body, "utf8") + Buffer.byteLength(item.display, "utf8") + 8;
++    if (bytes <= remaining) { kept[index] = item.body; remaining -= bytes; continue; }
++    if (remaining >= 1024) {
++      let cut = item.body.slice(0, remaining);
++      while (Buffer.byteLength(cut, "utf8") > remaining - 200 && cut.length > 0) cut = cut.slice(0, Math.floor(cut.length * 0.9));
++      kept[index] = `${cut}\n…[truncated by the ${budget}-byte workspace instruction budget: the file has ${Buffer.byteLength(item.body, "utf8")} bytes; read ${item.file} for the rest]`;
++      remaining = 0;
++      continue;
++    }
++    kept[index] = void 0;
++  }
++  const omitted = files.filter((_, index) => kept[index] === void 0).map((item) => item.file);
++  const parts = ["Workspace instruction files (user-global AGENTS.md, then AGENTS.md / CLAUDE.md and their .local overlays from the project root down to the workspace). Follow them; when they conflict, the more specific (later) file wins. Explicit user instructions still take precedence. Instruction files in subdirectories are added when you work in those directories."];
++  files.forEach((item, index) => { if (kept[index] !== void 0) parts.push(`### ${item.display}\n${kept[index]}`); });
++  if (omitted.length) parts.push(`(Omitted for the instruction budget; read them if relevant: ${omitted.join(", ")})`);
++  return { text: parts.join("\n\n"), files: sent, projectRoot };
++}
++
+ /**
+  * Hooks：<root>/.opencode/hooks.json
+  * { "hooks": { "beforeSubmitPrompt": [{ "command": "..." }], "beforeToolUse": [{ "matcher": "run_command|apply_patch", "command": "..." }],
+diff --git a/recovered/esm/000-extension.js/module-0177.mjs b/recovered/esm/000-extension.js/module-0177.mjs
+index b69a709b..b2df7636 100644
+--- a/recovered/esm/000-extension.js/module-0177.mjs
++++ b/recovered/esm/000-extension.js/module-0177.mjs
+@@ -14,7 +14,7 @@ import { CHAT_ACTIVE_FOLDER_METADATA_KEY, chatWorkspaceScope, explicitFolderTarg
+ import { MEMORY_TOOL_NAMES, READ_ONLY_MEMORY_TOOL_NAMES } from "./project-memory.mjs";
+ import { WorkspaceActivityLedger } from "./workspace-activity.mjs";
+ import { WAIT_FOR_EVENT_DEFINITION, WAIT_FOR_EVENT_TOOL_NAME, registerWaitForEventCommand, runWaitForEvent } from "./wait-for-event.mjs";
+-import { AgentsViewProvider, buildAgentsInstructions, buildRulesInstructions, loadHooks, runHooks, runWorktreeSetup } from "./agent-extras.mjs";
++import { AgentsViewProvider, buildAgentsInstructions, buildDshAgentsInstructions, buildRulesInstructions, loadHooks, runHooks, runWorktreeSetup } from "./agent-extras.mjs";
+ import { enabledAiPluginDirs, prepareSkillTool } from "./ai-plugins.mjs";
+ import { expandChatMentions } from "./chat-mentions.mjs";
+ import { GOAL_USAGE, goalMaxRounds, goalRoundPrompt, goalSelfVerdict, parseGoalRequest, runGoalCheck } from "./goal-loop.mjs";
+@@ -295,6 +295,21 @@ function promptWithReferences(prompt, references) {
+   ].join("\n");
+ }
+ 
++// dsh-context-align item1: 把上一轮保存的真实消息（metadata.opencodeReplay）挂到历史条目上，agent-host 按它原样重放；
++// 同时把对应用户条目换成当时实际发出的提示词（含附加的规则、记忆增量等）。没有记录的旧轮次照旧用文字历史。
++function ocPushAssistantHistory(result, turn) {
++  const content = assistantHistoryContent(turn);
++  const replay = turn?.result?.metadata?.opencodeReplay;
++  const usable = replay && typeof replay === "object" && replay.version === 1 && Array.isArray(replay.messages) && replay.messages.length > 0;
++  if (!content && !usable) return;
++  if (usable) {
++    const previous = result[result.length - 1];
++    if (previous?.role === "user" && typeof replay.user === "string" && replay.user) previous.replayUser = replay.user;
++    result.push({ role: "assistant", content: content || "(empty answer)", replay: replay.messages, replayModel: typeof replay.model === "string" ? replay.model : void 0 });
++    return;
++  }
++  result.push({ role: "assistant", content });
++}
+ async function toAgentHistory(context) {
+   const result = [];
+   for (const turn of Array.isArray(context?.history) ? context.history : []) {
+@@ -306,8 +321,7 @@ async function toAgentHistory(context) {
+     }
+     if (Array.isArray(turn?.response)) {
+       if (turn?.result?.metadata?.opencodeCompactTurn) continue;
+-      const content = assistantHistoryContent(turn);
+-      if (content) result.push({ role: "assistant", content });
++      ocPushAssistantHistory(result, turn);
+     }
+   }
+   return result;
+@@ -495,13 +509,11 @@ async function buildCanonicalAgentHistory(context, branchStore) {
+     const group = responseGroup[index];
+     if (group) {
+       if (group.variantId !== canonical2.get(group.groupId)) continue;
+-      const content = assistantHistoryContent(turn);
+-      if (content) result.push({ role: "assistant", content });
++      ocPushAssistantHistory(result, turn);
+       continue;
+     }
+     if (Array.isArray(turn?.response)) {
+-      const content = assistantHistoryContent(turn);
+-      if (content) result.push({ role: "assistant", content });
++      ocPushAssistantHistory(result, turn);
+     }
+   }
+   return result;
+@@ -2284,7 +2296,8 @@ function ocLiveTurnSnapshot(live) {
+   return usage;
+ }
+ // OpenCode: 每步模型调用结束后，把本步提示词 token 上报给输入框旁的「上下文用量」圆环；分项按 agent-host 的估算比例拆分
+-const OC_CONTEXT_USAGE_PARTS = [["system", "\u7CFB\u7EDF\u63D0\u793A\u8BCD"], ["tools", "\u5DE5\u5177\u53CA\u5B50\u667A\u80FD\u4F53"], ["messages", "\u5BF9\u8BDD\u6D88\u606F"], ["mcp", "\u8FDE\u63A5\u5668\u53CAMCP"], ["skills", "\u6280\u80FD"]];
++// dsh-context-align item6: 技能并入「连接器、MCP 及技能」一类
++const OC_CONTEXT_USAGE_PARTS = [["system", "\u7CFB\u7EDF\u63D0\u793A\u8BCD"], ["tools", "\u5DE5\u5177\u53CA\u5B50\u667A\u80FD\u4F53"], ["messages", "\u5BF9\u8BDD\u6D88\u606F"], ["mcp", "\u8FDE\u63A5\u5668\u3001MCP\u53CA\u6280\u80FD"]];
+ // OpenCode context-fixes step01/05: 按「提供商地址 + 模型」记住从溢出报错学到的真实窗口和 token 估算校准系数，
+ // 存在扩展全局存储 learned-model-context.json（不含密钥），下次运行通过 contextCompaction 传回 agent-host。
+ const OC_LEARNED_CONTEXT_FILE = "learned-model-context.json";
+@@ -2364,15 +2377,17 @@ function ocReportContextUsage(stream, item) {
+     const data = item && typeof item.data === "object" && item.data !== null ? item.data : void 0;
+     if (!data || data.subagent || typeof stream?.usage !== "function") return;
+     const usage = data.usage && typeof data.usage === "object" ? data.usage : {};
+-    const breakdown = data.contextBreakdown && typeof data.contextBreakdown === "object" ? data.contextBreakdown : {};
++    const rawBreakdown = data.contextBreakdown && typeof data.contextBreakdown === "object" ? data.contextBreakdown : {};
++    const breakdown = { ...rawBreakdown, mcp: usageCount(rawBreakdown.mcp) + usageCount(rawBreakdown.skills) };
+     const estimated = OC_CONTEXT_USAGE_PARTS.reduce((sum, [key]) => sum + usageCount(breakdown[key]), 0);
+     const reported = usageCount(usage.input) + usageCount(usage.cacheRead) + usageCount(usage.cacheWrite);
+     const ratio = typeof data.tokenRatio === "number" && Number.isFinite(data.tokenRatio) && data.tokenRatio >= 0.3 && data.tokenRatio <= 3 ? data.tokenRatio : 1;
+     // OpenCode dsh-metrics: ring uses provider-reported prompt tokens only; no usage -> no ring update (dsh hides it)
+-    const promptTokens = reported;
++    // dsh-context-align item6: context_live（工具结果进来后）用 实测基线 + 新增消息估算，圆环在步骤之间实时上涨
++    const promptTokens = item.type === "context_live" ? usageCount(data.promptTokens) : reported;
+     if (!promptTokens) return;
+     // OpenCode context-fixes step05: 提供商没返回 usage 时圆环里的数字是本地估算，分项标签加「≈估算」区分实测。
+-    const estimateMark = reported ? "" : " \u2248\u4F30\u7B97";
++    const estimateMark = "";
+     const promptTokenDetails = estimated > 0 ? OC_CONTEXT_USAGE_PARTS.map(([key, label]) => ({ category: key, label: `${label}${estimateMark}`, percentageOfPrompt: usageCount(breakdown[key]) / estimated * 100 })) : [];
+     stream.usage({ promptTokens, completionTokens: usageCount(usage.output), promptTokenDetails });
+   } catch {
+@@ -2819,6 +2834,7 @@ ${message2}`);
+       // agent-extras-step01: 按文件匹配的项目规则（.opencode/rules/*.md）与 hooks（.opencode/hooks.json）。
+       // 规则和 hook 附加内容放进本轮用户消息，不改系统提示，前缀缓存不受影响。
+       let ocExtraPromptContext = "";
++      let ocAgentsInstructions;
+       // OpenCode context-fixes step02: 记忆增量（简报缓存之后新增的条目）与任务卡句柄（每轮变化的 revision）放本轮用户消息，不改 system。
+       if (!textMerge && chatTask) ocExtraPromptContext += `\n\n<task_card>\nA local Chat task card already exists (task_id=${chatTask.id}, expected_revision=${chatTask.revision}). Update this job using that handle; do not create another new_task for the same request. Use acknowledged revisions for later updates.\n</task_card>`;
+       if (typeof nativeAutomationContext?.memoryDelta === "string" && nativeAutomationContext.memoryDelta.trim()) ocExtraPromptContext += `\n\n<memory_delta>\n${nativeAutomationContext.memoryDelta.trim()}\n</memory_delta>`;
+@@ -2828,11 +2844,11 @@ ${message2}`);
+           ...(Array.isArray(request?.references) ? request.references : []).map((ref) => ref?.value?.fsPath ?? ref?.value?.uri?.fsPath),
+           ...vscode19.window.visibleTextEditors.map((editor) => editor.document.uri.scheme === "file" ? editor.document.uri.fsPath : void 0)
+         ].filter((value) => typeof value === "string");
+-        // OpenCode context-fixes step03: 工作区根到当前/提及文件所在目录的 AGENTS.md、CLAUDE.md（越具体越靠后、优先保留，32KB 预算），与规则中心正文去重。
++        // dsh-context-align item3: AGENTS.md / CLAUDE.md 不再每轮拼进用户消息；改为全局 + 从 .git 根到工作区的文件（含 .local），
++        // 上限 64KB，交给 agent-host 作为常驻用户消息（紧跟系统提示，只要文件不变前缀就不变）；访问到子目录时由 agent-host 补发。
+         if (!textMerge && workspaceRoot3 && vscode19.workspace.isTrusted !== false && ocContextConfig.get("readAgentsMd", true) !== false) {
+           try {
+-            const ocAgentsText = buildAgentsInstructions(workspaceRoot3, ocRuleCandidates, { budgetBytes: Number(ocContextConfig.get("agentsMdBudgetBytes", 32768)) || 32768, dedupeAgainst: typeof nativeAutomationContext?.text === "string" ? nativeAutomationContext.text : "" });
+-            if (ocAgentsText) ocExtraPromptContext += `\n\n<agents_md>\n${ocAgentsText}\n</agents_md>`;
++            ocAgentsInstructions = buildDshAgentsInstructions(workspaceRoot3, { budgetBytes: Number(ocExplicitContextSetting(ocContextConfig, "agentsMdBudgetBytes") ?? 65536) || 65536, dedupeAgainst: typeof nativeAutomationContext?.text === "string" ? nativeAutomationContext.text : "" });
+           } catch (error2) {
+             output2.appendLine(`[agents-md] failed: ${error2 instanceof Error ? error2.message : String(error2)}`);
+           }
+@@ -2903,7 +2919,8 @@ ${message2}`);
+         serviceTier: effectiveRuntimeModel.codex ? effectiveRuntimeModel.serviceTier : void 0,
+         contextWindow: effectiveRuntimeModel.contextWindow,
+         maxOutputTokens: effectiveRuntimeModel.maxOutputTokens,
+-        prompt: (ocRoundPrompt ?? (branchPlan ? branchPlan.prompt : promptWithReferences(prompt, request.references))) + ocExtraPromptContext,
++        // dsh-context-align item4: 会变的权限说明、「MCP 工具已变」提示放到本轮用户消息末尾，系统提示保持不变
++        prompt: (ocRoundPrompt ?? (branchPlan ? branchPlan.prompt : promptWithReferences(prompt, request.references))) + ocExtraPromptContext + (ocToolsChangedNote ? `\n\n<tools_changed>\n${ocToolsChangedNote}\n</tools_changed>` : "") + (ocPermissionNote.trim() ? `\n\n<permission_mode>\n${ocPermissionNote.trim()}\n</permission_mode>` : ""),
+         ...pastedImages.length ? { images: pastedImages } : {},
+         workspaceRoot: workspaceRoot3,
+         workspaceRoots,
+@@ -2919,16 +2936,22 @@ ${message2}`);
+         },
+         ...ocContextCheckpoint ? { contextCheckpoint: ocContextCheckpoint } : {},
+         ...ocCompactOnly ? { compactOnly: true } : {},
++        ...ocAgentsInstructions ? { agentsInstructions: ocAgentsInstructions } : {},
+         allowedTools,
+         // tool-defer-step01: 工具按需加载（设置 opencode.tools.deferLoading）
+-        deferTools: vscode19.workspace.getConfiguration("opencode.tools").get("deferLoading", true) !== false,
++        // dsh-context-align item4: DeepSeek 默认关闭延迟加载（中途追加工具定义会让整段前缀缓存失效）；用户明确设置时以设置为准
++        deferTools: (() => {
++          const explicit = ocExplicitContextSetting(vscode19.workspace.getConfiguration("opencode.tools"), "deferLoading");
++          if (explicit !== void 0) return explicit !== false;
++          return !(effectiveRuntimeModel.deepSeek === true || /(^|\/\/)api\.deepseek\.com/i.test(String(effectiveRuntimeModel.baseUrl ?? "")));
++        })(),
+         // OpenCode: 「权限」中需询问的 agent-host 内工具（apply_patch 等）执行前先请求用户确认
+         ...ocApproveTools.length ? { approveTools: ocApproveTools } : {},
+         hookEvents: ocHookConfig.events.filter((event) => event === "beforeToolUse" || event === "afterToolUse"),
+         externalTools: [...requestTools.tools.map((tool) => ({ ...tool, contextCategory: "mcp" })), ...chatControlTools, ...ocCustomTools.definitions],
+         modeInstructions: (textMerge ? "Selected mode: Merge (multi-model). You are merging and verifying independent branch plans for one user question. Use read-only tools only to verify disputed facts. Never modify files or run terminal commands." : `${chatTask ? TASK_PLANNING_PRIORITY + "\n\n" : ""}${selectedModeInstructions(request?.modeInstructions2?.content)}${folderInstructions ? `
+ 
+-${folderInstructions}` : ""}`) + (nativeAutomationContext?.instructions ? "\n\n" + nativeAutomationContext.instructions : "") + (ocToolsChangedNote ? "\n\n" + ocToolsChangedNote : "") + ocPermissionNote,
++${folderInstructions}` : ""}`) + (nativeAutomationContext?.instructions ? "\n\n" + nativeAutomationContext.instructions : ""),
+         checkpoint: ocRoundHistory ? void 0 : resumedCheckpoint?.checkpoint
+       }, (item) => {
+         ocLiveTurnTrack(ocLive, item);
+@@ -2945,8 +2968,8 @@ ${folderInstructions}` : ""}`) + (nativeAutomationContext?.instructions ? "\n\n"
+           if (typeof reasoning === "string" && reasoning) stream.push(new vscode19.ChatResponseThinkingProgressPart(reasoning));
+           return;
+         }
+-        if (item.type === "usage") {
+-          ocReportContextUsage(stream, item);
++        if (item.type === "usage" || item.type === "context_live") {
++          if (item.type === "usage" || !token.isCancellationRequested) ocReportContextUsage(stream, item);
+           return;
+         }
+         if (item.type === "context_learned") {
+@@ -3162,6 +3185,7 @@ ${folderInstructions}` : ""}`) + (nativeAutomationContext?.instructions ? "\n\n"
+           ...turnUsageMeta ? { [OPENCODE_TURN_USAGE_METADATA_KEY]: turnUsageMeta } : {},
+           ...result?.contextCheckpoint ? { opencodeContextCheckpoint: result.contextCheckpoint } : {},
+           ...result?.compactTurn ? { opencodeCompactTurn: true } : {},
++          ...result?.replay && typeof result.replay === "object" ? { opencodeReplay: result.replay } : {},
+           ...serializedToolHistory()
+         }
+       };
+diff --git a/recovered/esm/002-agent-host.js/agent-compaction.mjs b/recovered/esm/002-agent-host.js/agent-compaction.mjs
+index 6bb34387..e65131d1 100644
+--- a/recovered/esm/002-agent-host.js/agent-compaction.mjs
++++ b/recovered/esm/002-agent-host.js/agent-compaction.mjs
+@@ -2,7 +2,7 @@
+ // 主函数通过 compactor.state 读写；会变的 messages / endpoint / responses / managedContextWindow 由 env 的 getter 实时提供。
+ // 请求函数等仍住在 module-0029，经 deps 传入，避免循环依赖。
+ import { buildAgentRequestHeaders } from "./agent-request.mjs";
+-import { contextClip, contextTextOf, contextMessagesTokens, contextMessageTokens, estimatedTokens, serializeForCompaction, CONTEXT_COMPACTION_SYSTEM, contextCompactionPrompt, trimContextToolResultsForCompaction } from "./agent-context.mjs";
++import { contextClip, contextTextOf, contextMessagesTokens, contextMessageTokens, estimatedTokens, serializeForCompaction, CONTEXT_COMPACTION_SYSTEM, contextCompactionPrompt, trimContextToolResultsForCompaction, DSH_COMPACTION_INSTRUCTION, dshFrameSummary, dshUnframeSummary, isCheckpointSummaryMessage, permanentPrefixEnd } from "./agent-context.mjs";
+ import { parseAnthropicResponse, parseCodexResponse } from "./agent-stream-parsers.mjs";
+ import { anthropicSystemPrompt, toAnthropicMessages, codexInstructions, toCodexResponsesInput } from "./agent-message-formats.mjs";
+ 
+@@ -10,15 +10,23 @@ function createContextCompactor(env, deps) {
+   const { input2, fetchImpl, emitTrace, availableToolNames, toolDefinitionTokens, codex, anthropic, deepSeek, anthropicMaxOutputTokens, responsesReasoningEffort, codexServiceTier, maxOutputTokens, calibrated, usableContextWindow, keepRecentContextTokens } = env;
+   const { requestModelStream, requestChatCompletion, contextHistoryHash, summarizeEvictedHistory } = deps;
+   const cs = { contextHistoryIndex: /* @__PURE__ */ new WeakMap(), pendingEvictedHistory: [], fullHistoryForContext: void 0, turnUserMessage: void 0, baseSystemContent: void 0, compactionSummary: "", compactionCount: 0, coveredHistory: 0, measuredContext: void 0 };
++  // dsh-context-align item2: 系统提示保持不变（前缀缓存）；压缩摘要作为一条用户消息，放在系统提示和常驻工作区指令之后（dsh frameSummary）。
+   const applyContextCheckpoint = () => {
+     if (typeof cs.baseSystemContent !== "string" || env.messages[0]?.role !== "system") return;
++    env.messages[0].content = cs.baseSystemContent;
++    const existing = env.messages.findIndex((message, index) => index > 0 && isCheckpointSummaryMessage(message));
+     if (!cs.compactionSummary) {
+-      env.messages[0].content = cs.baseSystemContent;
++      if (existing > 0) env.messages.splice(existing, 1);
+       return;
+     }
+-    const recallHint = availableToolNames.has("bridge_memory_recall") ? " Exact earlier details may also be recoverable with bridge_memory_recall / bridge_memory_search." : "";
+-    const pinned = cs.turnUserMessage && !env.messages.includes(cs.turnUserMessage) && !input2.compactOnly ? `\n\nCurrent user request (verbatim, it was folded into the checkpoint):\n${contextClip(contextTextOf(cs.turnUserMessage.content), 12e3)}` : "";
+-    env.messages[0].content = `${cs.baseSystemContent}\n\n[Context checkpoint: the earlier conversation was compacted ${cs.compactionCount} time(s) to fit the model context window. Treat it as your memory of what happened; the original messages are no longer visible. Re-read files before relying on exact contents.${recallHint}]\n${cs.compactionSummary}${pinned}`;
++    const recallHint = availableToolNames.has("bridge_memory_recall") ? "\n\n(Exact earlier details may also be recoverable with bridge_memory_recall / bridge_memory_search.)" : "";
++    const pinned = cs.turnUserMessage && !env.messages.includes(cs.turnUserMessage) && !input2.compactOnly ? `\n\nCurrent user request (verbatim, it was folded into the checkpoint):\n${contextClip(contextTextOf(cs.turnUserMessage.content), 64e3)}` : "";
++    const content = `${dshFrameSummary(cs.compactionSummary)}${recallHint}${pinned}`;
++    if (existing > 0) {
++      env.messages[existing].content = content;
++      return;
++    }
++    env.messages.splice(permanentPrefixEnd(env.messages), 0, { role: "user", content });
+   };
+   const contextCheckpointResult = () => cs.compactionSummary && cs.fullHistoryForContext && cs.coveredHistory > 0 ? {
+     contextCheckpoint: {
+@@ -34,7 +42,8 @@ function createContextCompactor(env, deps) {
+     }
+     return calibrated(contextMessagesTokens(env.messages) + toolDefinitionTokens);
+   };
+-  const requestPlainCompletion = async (plainMessages) => {
++  const requestPlainCompletion = async (plainMessages, options = {}) => {
++    const withTools = options.tools === true;
+     const headers2 = buildAgentRequestHeaders({ input2, codex, anthropic });
+     const noop = () => void 0;
+     let completion2;
+@@ -44,6 +53,7 @@ function createContextCompactor(env, deps) {
+         model: input2.model,
+         messages: toAnthropicMessages(plainMessages),
+         ...system ? { system } : {},
++        ...withTools && env.anthropicTools?.length ? { tools: env.anthropicTools } : {},
+         max_tokens: Math.min(anthropicMaxOutputTokens, 16384),
+         stream: true
+       }), input2, fetchImpl, (response, timers) => parseAnthropicResponse(response, timers, noop, noop), "Anthropic Messages (context compaction)");
+@@ -52,6 +62,7 @@ function createContextCompactor(env, deps) {
+         model: input2.model,
+         instructions: codexInstructions(plainMessages),
+         input: toCodexResponsesInput(plainMessages),
++        ...withTools && env.codexTools?.length ? { tools: env.codexTools } : {},
+         store: false,
+         stream: true,
+         ...responsesReasoningEffort ? { reasoning: { effort: "low" } } : {},
+@@ -61,7 +72,9 @@ function createContextCompactor(env, deps) {
+       completion2 = await requestChatCompletion(env.endpoint, headers2, JSON.stringify({
+         model: input2.model,
+         messages: plainMessages,
+-        ...deepSeek ? { thinking: { type: "disabled" }, max_tokens: Math.min(8192, Math.max(1024, maxOutputTokens)) } : {},
++        // dsh-context-align item2: 走缓存的摘要请求与主请求同样的 thinking 设置和工具定义，保证前缀一致
++        ...deepSeek ? { thinking: { type: withTools && env.deepSeekThinking ? "enabled" : "disabled" }, max_tokens: Math.min(withTools && env.deepSeekThinking ? 32768 : 8192, Math.max(1024, maxOutputTokens)) } : {},
++        ...withTools && env.tools?.length ? { tools: env.tools } : {},
+         stream: true
+       }), input2, fetchImpl, noop, noop);
+     }
+@@ -74,19 +87,21 @@ function createContextCompactor(env, deps) {
+     // OpenCode context-compaction-dsh PART B: 调用方给了 retain（自动压缩 = dsh retain，溢出 = 0）就按它保留尾部
+     const keepBase = Number.isInteger(options.retain) && options.retain >= 0 ? options.retain : keepRecentContextTokens();
+     const keep = aggressiveLevel >= 2 ? Math.floor(keepBase / 4) : aggressiveLevel ? Math.floor(keepBase / 2) : keepBase;
+-    let cut = Number.isInteger(options.cutAt) ? options.cutAt : -1;
++    // dsh-context-align item3: 系统提示和常驻工作区指令（下标 < prefixEnd）不参与压缩
++    const prefixEnd = permanentPrefixEnd(env.messages);
++    let cut = Number.isInteger(options.cutAt) ? Math.max(options.cutAt, prefixEnd) : -1;
+     if (cut < 0) {
+       let tail = 0;
+       let assistantCut = -1;
+-      for (let index = env.messages.length - 1; index >= 1; index -= 1) {
++      for (let index = env.messages.length - 1; index >= prefixEnd; index -= 1) {
+         tail += contextMessageTokens(env.messages[index]);
+         if (tail > keep) break;
+-        if (env.messages[index]?.role === "user") cut = index;
++        if (env.messages[index]?.role === "user" && !isCheckpointSummaryMessage(env.messages[index])) cut = index;
+         else if (env.messages[index]?.role === "assistant") assistantCut = index;
+       }
+       if (cut < 0) cut = assistantCut;
+       if (cut < 0) {
+-        for (let index = env.messages.length - 1; index >= 2; index -= 1) {
++        for (let index = env.messages.length - 1; index >= prefixEnd + 1; index -= 1) {
+           if (env.messages[index]?.role !== "tool") {
+             cut = index;
+             break;
+@@ -94,34 +109,58 @@ function createContextCompactor(env, deps) {
+         }
+       }
+     }
+-    const head = [...cs.pendingEvictedHistory, ...cut > 1 ? env.messages.slice(1, cut) : []];
++    // 旧摘要消息（紧跟常驻前缀）始终并入本次压缩，避免只压缩被驱逐历史时丢掉旧摘要
++    const regionEnd = Math.max(cut > prefixEnd ? cut : prefixEnd, isCheckpointSummaryMessage(env.messages[prefixEnd]) ? prefixEnd + 1 : prefixEnd);
++    const region = env.messages.slice(prefixEnd, regionEnd);
++    const head = [...cs.pendingEvictedHistory, ...region];
+     if (head.length === 0) return void 0;
+-    let lines = serializeForCompaction(head, 2e3, 6e3);
+-    // OpenCode context-fixes step01: 压缩请求预算按「有效窗口」（含学到的真实上限、扣除输出预留）计算。
+-    const promptBudget = Math.max(2048, Math.floor(usableContextWindow() * 0.7) - calibrated(estimatedTokens(cs.compactionSummary)) - 2048);
+-    if (calibrated(estimatedTokens(lines.join("\n\n"))) > promptBudget) lines = serializeForCompaction(head, 500, 2e3);
+-    let omitted = false;
+-    while (lines.length > 1 && calibrated(estimatedTokens(lines.join("\n\n"))) > promptBudget) {
+-      lines.splice(0, Math.max(1, Math.floor(lines.length * 0.15)));
+-      omitted = true;
+-    }
+-    const transcript = `${omitted ? "[The oldest part of the conversation was too long to include and is omitted.]\n\n" : ""}${lines.join("\n\n")}`;
+     emitTrace({ type: "context_compaction", step: options.step ?? 0, data: { phase: "start", reason, before, window: env.managedContextWindow } });
+     let summary = "";
+     let failed = false;
+-    try {
+-      summary = await requestPlainCompletion([
+-        { role: "system", content: CONTEXT_COMPACTION_SYSTEM },
+-        { role: "user", content: contextCompactionPrompt(cs.compactionSummary, transcript, options.focus) }
+-      ]);
+-    } catch (error2) {
+-      input2.signal?.throwIfAborted();
+-      failed = true;
+-      console.error(`[agent-host] context compaction request failed: ${error2 instanceof Error ? error2.message.slice(0, 300) : String(error2)}`);
++    let mode = "replay";
++    // dsh-context-align item2: dsh 做法——原样重放 系统提示 + 常驻前缀 + 要压缩的那段消息（含旧摘要），最后追加 8 段式指令，复用主请求的前缀缓存。
++    const instruction = options.focus ? `${DSH_COMPACTION_INSTRUCTION}\n- Additional focus requested by the user: ${options.focus}` : DSH_COMPACTION_INSTRUCTION;
++    const evictedAsMessages = cs.pendingEvictedHistory.map((item) => ({ role: item.role === "assistant" ? "assistant" : "user", content: typeof item.content === "string" ? item.content : contextTextOf(item.content) }));
++    const priorSummary = region.length && isCheckpointSummaryMessage(region[0]) ? [region[0]] : [];
++    const replayMessages = [...env.messages.slice(0, prefixEnd), ...priorSummary, ...evictedAsMessages, ...region.slice(priorSummary.length), { role: "user", content: instruction }];
++    const replayTokens = calibrated(contextMessagesTokens(replayMessages) + toolDefinitionTokens);
++    const replayBudget = Math.max(2048, usableContextWindow() - 8192);
++    if (replayTokens <= replayBudget) {
++      try {
++        summary = dshUnframeSummary(await requestPlainCompletion(replayMessages, { tools: true }));
++      } catch (error2) {
++        input2.signal?.throwIfAborted();
++        console.error(`[agent-host] context compaction (replay) request failed: ${error2 instanceof Error ? error2.message.slice(0, 300) : String(error2)}`);
++      }
++    }
++    if (!summary) {
++      // 回退：对话太长无法原样重放（或重放请求失败）时，按旧做法把这段对话序列化成文字再摘要
++      mode = "transcript";
++      const previousSummary = region.some(isCheckpointSummaryMessage) ? cs.compactionSummary : "";
++      const transcriptHead = head.filter((item) => !isCheckpointSummaryMessage(item));
++      let lines = serializeForCompaction(transcriptHead, 2e3, 6e3);
++      const promptBudget = Math.max(2048, Math.floor(usableContextWindow() * 0.7) - calibrated(estimatedTokens(previousSummary)) - 2048);
++      if (calibrated(estimatedTokens(lines.join("\n\n"))) > promptBudget) lines = serializeForCompaction(transcriptHead, 500, 2e3);
++      let omitted = false;
++      while (lines.length > 1 && calibrated(estimatedTokens(lines.join("\n\n"))) > promptBudget) {
++        lines.splice(0, Math.max(1, Math.floor(lines.length * 0.15)));
++        omitted = true;
++      }
++      const transcript = `${omitted ? "[The oldest part of the conversation was too long to include and is omitted.]\n\n" : ""}${lines.join("\n\n")}`;
++      try {
++        summary = dshUnframeSummary(await requestPlainCompletion([
++          { role: "system", content: CONTEXT_COMPACTION_SYSTEM },
++          { role: "user", content: contextCompactionPrompt(previousSummary, transcript, options.focus) }
++        ]));
++      } catch (error2) {
++        input2.signal?.throwIfAborted();
++        console.error(`[agent-host] context compaction request failed: ${error2 instanceof Error ? error2.message.slice(0, 300) : String(error2)}`);
++      }
+     }
+     if (!summary) {
+       failed = true;
+-      const digest = summarizeEvictedHistory(head.filter((item) => item.role !== "tool"), availableToolNames, { budgetChars: Math.floor(usableContextWindow() * 0.08 * 3) });
++      mode = "digest";
++      const digest = summarizeEvictedHistory(head.filter((item) => item.role !== "tool" && !isCheckpointSummaryMessage(item)), availableToolNames, { budgetChars: Math.floor(usableContextWindow() * 0.08 * 3) });
+       summary = [cs.compactionSummary, digest].filter(Boolean).join("\n\n") || "(earlier conversation omitted)";
+     }
+     let maxHistoryIndex = -1;
+@@ -129,20 +168,17 @@ function createContextCompactor(env, deps) {
+       const historyIndex = cs.contextHistoryIndex.get(item);
+       if (historyIndex !== void 0 && historyIndex > maxHistoryIndex) maxHistoryIndex = historyIndex;
+     }
+-    if (cs.fullHistoryForContext && (head.includes(cs.turnUserMessage) || cut > 1 && cs.turnUserMessage && env.messages.indexOf(cs.turnUserMessage) > 0 && env.messages.indexOf(cs.turnUserMessage) < cut)) cs.coveredHistory = cs.fullHistoryForContext.length;
++    const turnIndex = cs.turnUserMessage ? env.messages.indexOf(cs.turnUserMessage) : -1;
++    if (cs.fullHistoryForContext && (head.includes(cs.turnUserMessage) || turnIndex >= prefixEnd && turnIndex < regionEnd)) cs.coveredHistory = cs.fullHistoryForContext.length;
+     else if (maxHistoryIndex >= 0) cs.coveredHistory = Math.max(cs.coveredHistory, maxHistoryIndex + 1);
+     cs.pendingEvictedHistory.length = 0;
+-    if (cut > 1) env.messages.splice(1, cut - 1);
+-    // OpenCode context-compaction-dsh PART B: 工具结果裁剪改由调用方在压缩前做（dsh：pruner → 重新估算 → 压缩）；手动 /compact 与历史压缩不裁剪
+-    if (!input2.compactOnly && env.messages.length > 1 && env.messages[1]?.role !== "user") {
+-      env.messages.splice(1, 0, { role: "user", content: "Continue the current task from the context checkpoint in the system message." });
+-    }
++    if (regionEnd > prefixEnd) env.messages.splice(prefixEnd, regionEnd - prefixEnd);
+     cs.compactionSummary = summary;
+     cs.compactionCount += 1;
+     cs.measuredContext = void 0;
+     applyContextCheckpoint();
+     const after = currentContextTokens();
+-    emitTrace({ type: "context_compaction", step: options.step ?? 0, data: { phase: "end", reason, before, after, window: env.managedContextWindow, count: cs.compactionCount, failed, summaryChars: summary.length } });
++    emitTrace({ type: "context_compaction", step: options.step ?? 0, data: { phase: "end", reason, before, after, window: env.managedContextWindow, count: cs.compactionCount, failed, mode, summaryChars: summary.length } });
+     return { before, after, failed };
+   };
+   return { state: cs, applyContextCheckpoint, contextCheckpointResult, currentContextTokens, requestPlainCompletion, compactContext };
+diff --git a/recovered/esm/002-agent-host.js/agent-context.mjs b/recovered/esm/002-agent-host.js/agent-context.mjs
+index 0bd4520c..778085b2 100644
+--- a/recovered/esm/002-agent-host.js/agent-context.mjs
++++ b/recovered/esm/002-agent-host.js/agent-context.mjs
+@@ -104,8 +104,8 @@ function contextBreakdownOf(messages, tools) {
+     const isSkill = (name) => /skill/i.test(String(name ?? ""));
+     for (const tool of Array.isArray(tools) ? tools : []) {
+       const tokens = estimatedTokens([tool?.name, tool?.description ?? "", tool?.inputSchema ?? {}]);
+-      if (isSkill(tool?.name)) out.skills += tokens;
+-      else if (tool?.contextCategory === "mcp" || /^mcp_/i.test(String(tool?.name ?? ""))) out.mcp += tokens;
++      // dsh-context-align item6: 技能与 MCP / 连接器合并为一类
++      if (isSkill(tool?.name) || tool?.contextCategory === "mcp" || /^mcp_/i.test(String(tool?.name ?? ""))) out.mcp += tokens;
+       else out.tools += tokens;
+     }
+     const callNames = new Map();
+@@ -116,7 +116,7 @@ function contextBreakdownOf(messages, tools) {
+     (Array.isArray(messages) ? messages : []).forEach((message, index) => {
+       const tokens = contextMessageTokens(message);
+       if (index === 0 && message?.role === "system") out.system += tokens;
+-      else if (message?.role === "tool" && isSkill(callNames.get(message.tool_call_id))) out.skills += tokens;
++      else if (message?.role === "tool" && isSkill(callNames.get(message.tool_call_id))) out.mcp += tokens;
+       else out.messages += tokens;
+     });
+   } catch {
+@@ -124,7 +124,9 @@ function contextBreakdownOf(messages, tools) {
+   return out;
+ }
+ function contextHistoryItemTokens(item) {
+-  const text = typeof item?.content === "string" ? item.content : item?.content == null ? "" : JSON.stringify(item.content);
++  // dsh-context-align item1: 有真实消息记录（replay）的轮次按要重放的结构化消息计数
++  if (item?.role === "assistant" && Array.isArray(item.replay) && item.replay.length) return contextMessagesTokens(item.replay);
++  const text = item?.role === "user" && typeof item.replayUser === "string" ? item.replayUser : typeof item?.content === "string" ? item.content : item?.content == null ? "" : JSON.stringify(item.content);
+   return 4 + (text.length ? estimatedTokens(text) + OC_BLOCK_OVERHEAD : 0) + (Array.isArray(item?.images) ? item.images.length : 0) * (CONTEXT_IMAGE_TOKENS + OC_BLOCK_OVERHEAD);
+ }
+ function contextClip(text, maxChars) {
+@@ -159,21 +161,85 @@ function serializeForCompaction(list, toolChars, textChars) {
+   }
+   return lines;
+ }
++// dsh-context-align item2: dsh-compaction-basic 的摘要指令原文（lib/index.js COMPACTION_INSTRUCTION）与检查点包装（CHECKPOINT_PREAMBLE + <compacted-summary>）。
++// 指令作为最后一条用户消息追加在已缓存的对话前缀后面；摘要作为用户消息插在系统提示（和常驻的工作区指令）之后。
++var DSH_SUMMARY_OPEN_TAG = "<compacted-summary>";
++var DSH_SUMMARY_CLOSE_TAG = "</compacted-summary>";
++var DSH_COMPACTION_INSTRUCTION = [
++  "You are now acting as a compaction engine for this AI coding assistant. Condense the conversation ABOVE into a structured checkpoint that lets another model resume the work with no loss of essential context.",
++  "",
++  "Output EXACTLY the Markdown structure below: keep every section, in order. Use terse bullets, not prose paragraphs. Write \"(none)\" for an empty section \u2014 never drop a section.",
++  "",
++  "## Primary Request and Intent",
++  "- [the user's original and evolving goals; quote verbatim where the exact wording matters]",
++  "",
++  "## Key Technical Concepts",
++  "- [technologies, frameworks, patterns, and conventions in play]",
++  "",
++  "## Files and Code",
++  "- [exact path: why it matters, key changes or snippets]",
++  "",
++  "## Errors and Fixes",
++  "- [error: how it was resolved, plus any related user feedback]",
++  "",
++  "## Pending Jobs",
++  "- [explicitly requested work not yet completed]",
++  "",
++  "## Current Work",
++  "- [precisely what was in progress at this checkpoint]",
++  "",
++  "## Next Step",
++  "- [the single next action, directly in line with the most recent request, or \"(none)\"]",
++  "",
++  "## Critical Context",
++  "- [decisions and their rationale, constraints, user preferences, open questions, data needed to continue]",
++  "",
++  "Rules:",
++  "- Write concise English engineering prose. Preserve exact file paths, commands, error strings, identifiers, numeric values, function signatures, and syntax fragments.",
++  "- Capture user feedback and explicit instructions faithfully, especially corrections.",
++  "- Do NOT mention this summarization request or that the context was compacted.",
++  "- Output only the checkpoint text: do not call any tool or take any other action.",
++  `- If the conversation already contains a ${DSH_SUMMARY_OPEN_TAG} block, it is a PRIOR checkpoint. Do not copy it forward verbatim: preserve still-true facts, drop stale ones, and merge newer information into a single consolidated summary under the same structure.`
++].join("\n");
++var DSH_CHECKPOINT_PREAMBLE = "This is an automatically generated checkpoint condensing an earlier span of the conversation to free up context. Treat the captured context as established background and build on it without restating it. Continue the task directly from the messages that follow, without acknowledging this checkpoint.";
++function dshFrameSummary(summary) {
++  return `${DSH_CHECKPOINT_PREAMBLE}\n\n${DSH_SUMMARY_OPEN_TAG}\n${String(summary ?? "").trim()}\n${DSH_SUMMARY_CLOSE_TAG}`;
++}
++function dshUnframeSummary(text) {
++  let value = String(text ?? "").trim();
++  const open = value.indexOf(DSH_SUMMARY_OPEN_TAG);
++  const close = value.lastIndexOf(DSH_SUMMARY_CLOSE_TAG);
++  if (open >= 0 && close > open) value = value.slice(open + DSH_SUMMARY_OPEN_TAG.length, close).trim();
++  return value;
++}
++function isCheckpointSummaryMessage(message) {
++  return message?.role === "user" && typeof message.content === "string" && message.content.startsWith(DSH_CHECKPOINT_PREAMBLE);
++}
++// dsh-context-align item3: 工作区指令（AGENTS.md / CLAUDE.md）作为常驻用户消息紧跟系统提示，不参与驱逐和压缩
++var WORKSPACE_INSTRUCTIONS_OPEN = "<workspace_instructions>";
++var WORKSPACE_INSTRUCTIONS_PATH_RE = /<workspace_instructions path="([^"]+)">/g;
++function isPermanentPrefixMessage(message) {
++  return message?.role === "user" && typeof message.content === "string" && message.content.startsWith(WORKSPACE_INSTRUCTIONS_OPEN);
++}
++function permanentPrefixEnd(messages) {
++  let index = 1;
++  while (index < messages.length && isPermanentPrefixMessage(messages[index])) index += 1;
++  return index;
++}
++function isSyntheticUserMessage(message) {
++  if (message?.role !== "user") return false;
++  if (isPermanentPrefixMessage(message) || isCheckpointSummaryMessage(message)) return true;
++  const text = contextTextOf(message.content);
++  return /^Visual content returned by tool/.test(text) || text.startsWith('<workspace_instructions path="');
++}
+ var CONTEXT_COMPACTION_SYSTEM = "You compact the working context of a coding agent so the same agent can continue the same task with far less context. Write a faithful, dense checkpoint. Never invent facts, results, or file contents. Write in the language the user writes in.";
+ function contextCompactionPrompt(previousSummary, transcript, focus) {
+   return [
+     previousSummary ? `Previous checkpoint (update it; keep everything that is still true, drop what was superseded):\n<previous_checkpoint>\n${previousSummary}\n</previous_checkpoint>\n` : "",
+     `Conversation to fold into the checkpoint:\n<transcript>\n${transcript}\n</transcript>\n`,
+-    "Write the checkpoint in Markdown with exactly these sections:",
+-    "## Objective",
+-    "## User requirements and constraints (quote rules, limits and prohibitions in the user's exact words)",
+-    "## Decisions and reasons",
+-    "## Work completed and current state (what was changed, verified, failed; key command results)",
+-    "## Files (read / modified, with paths, symbols, line ranges)",
+-    "## Important details (ids, error messages, values, URLs, commands that worked)",
+-    "## Open issues and next step",
+-    focus ? `Additional focus requested by the user: ${focus}` : "",
+-    "Keep it under about 1500 words. Output only the checkpoint."
++    // dsh-context-align item2: 回退路径（对话太长无法原样重放时）也用 dsh 的 8 段指令
++    DSH_COMPACTION_INSTRUCTION.replace("the conversation ABOVE", "the conversation in the transcript above"),
++    focus ? `Additional focus requested by the user: ${focus}` : ""
+   ].filter(Boolean).join("\n");
+ }
+ // OpenCode context-compaction-dsh PART B: 与 dsh-compaction-tool-result-pruner 一致——超过 8192 个字符（按 Unicode 码点）的工具结果
+@@ -277,4 +343,5 @@ function offloadOldContextImages(messages, maxImages) {
+   return { count, freed };
+ }
+ 
++export { DSH_SUMMARY_OPEN_TAG, DSH_SUMMARY_CLOSE_TAG, DSH_COMPACTION_INSTRUCTION, DSH_CHECKPOINT_PREAMBLE, dshFrameSummary, dshUnframeSummary, isCheckpointSummaryMessage, WORKSPACE_INSTRUCTIONS_OPEN, WORKSPACE_INSTRUCTIONS_PATH_RE, isPermanentPrefixMessage, permanentPrefixEnd, isSyntheticUserMessage };
+ export { ocCharTokenWeight, estimatedTokens, OC_PRIOR_TOOL_CONTEXT_OPEN, OC_PRIOR_TOOL_CONTEXT_CLOSE, OC_PRIOR_TOOL_CONTEXT_TRIMMED, shrinkPriorToolContextBlocks, CONTEXT_IMAGE_TOKENS, CLEARED_TOOL_RESULT_PREFIX, CONTEXT_FALLBACK_WINDOW, contextCompactionSettings, contextTextOf, contextContentTokens, contextMessageTokens, contextMessagesTokens, contextBreakdownOf, contextHistoryItemTokens, contextClip, isContextOverflowError, serializeForCompaction, CONTEXT_COMPACTION_SYSTEM, contextCompactionPrompt, COMPACTION_TOOL_RESULT_MAX_CHARS, COMPACTION_TOOL_RESULT_HEAD_CHARS, COMPACTION_TOOL_RESULT_TAIL_CHARS, trimToolTextForCompaction, trimContextToolResultsForCompaction, clearOldContextToolResults, isContextImagePart, contextMaxImages, offloadOldContextImages };
+diff --git a/recovered/esm/002-agent-host.js/agent-turn.mjs b/recovered/esm/002-agent-host.js/agent-turn.mjs
+index 55b52ee9..5c9bb0e0 100644
+--- a/recovered/esm/002-agent-host.js/agent-turn.mjs
++++ b/recovered/esm/002-agent-host.js/agent-turn.mjs
+@@ -1,7 +1,60 @@
+ // split-0029-step08: 从 runOpenAICompatibleAgent 拆出的「本轮开局」：在调用方给的空 messages 数组里放入系统提示、
+ // 按上下文设置选取或驱逐历史（含已保存的压缩检查点恢复），最后放入当前用户消息；以及用户插话时的让出结果。
+ // 压缩状态写入 env.cs（与 agent-compaction 共享同一对象）；module-0029 的本地常量与函数经 deps 传入，避免循环依赖。
+-import { estimatedTokens, contextMessagesTokens, contextMessageTokens, contextHistoryItemTokens } from "./agent-context.mjs";
++import { estimatedTokens, contextMessagesTokens, contextMessageTokens, contextHistoryItemTokens, contextTextOf, WORKSPACE_INSTRUCTIONS_OPEN } from "./agent-context.mjs";
++
++// dsh-context-align item1: 按存下来的真实消息重放以往轮次（dsh 完整重放结构化消息）。
++// 只保留提供商接受的字段；推理内容只在当前也是 DeepSeek thinking 时保留，Anthropic thinking 只在同一模型时保留；
++// 工具调用与结果必须成对（缺结果补占位，孤立结果丢弃）。
++function sanitizeReplayMessages(replay, options) {
++  const out = [];
++  const pending = new Set();
++  const flushPending = () => {
++    for (const id of pending) out.push({ role: "tool", tool_call_id: id, content: "(no result was recorded for this tool call)" });
++    pending.clear();
++  };
++  for (const raw of Array.isArray(replay) ? replay : []) {
++    if (!raw || typeof raw !== "object") continue;
++    if (raw.role === "tool") {
++      if (typeof raw.tool_call_id !== "string" || !pending.has(raw.tool_call_id)) continue;
++      pending.delete(raw.tool_call_id);
++      out.push({ role: "tool", tool_call_id: raw.tool_call_id, content: typeof raw.content === "string" ? raw.content : contextTextOf(raw.content) });
++      continue;
++    }
++    flushPending();
++    if (raw.role === "user") {
++      const content = typeof raw.content === "string" ? raw.content : contextTextOf(raw.content);
++      if (content) out.push({ role: "user", content });
++      continue;
++    }
++    if (raw.role !== "assistant") continue;
++    const calls = Array.isArray(raw.tool_calls) ? raw.tool_calls.filter((call) => call && typeof call.id === "string" && typeof call.function?.name === "string") : [];
++    const content = typeof raw.content === "string" ? raw.content : raw.content == null ? "" : contextTextOf(raw.content);
++    if (!content && !calls.length) continue;
++    const message = { role: "assistant", content: options.deepSeek ? content : calls.length && !content ? null : content };
++    if (options.keepReasoning && typeof raw.reasoning_content === "string") message.reasoning_content = raw.reasoning_content;
++    if (options.keepAnthropicThinking && Array.isArray(raw.anthropic_thinking)) message.anthropic_thinking = raw.anthropic_thinking;
++    if (calls.length) {
++      message.tool_calls = calls.map((call) => ({ id: call.id, type: "function", function: { name: call.function.name, arguments: typeof call.function.arguments === "string" ? call.function.arguments : JSON.stringify(call.function.arguments ?? {}) } }));
++      for (const call of calls) pending.add(call.id);
++    }
++    out.push(message);
++  }
++  flushPending();
++  return out;
++}
++function historyItemMessages(item, env, userMessageContent) {
++  if (item.role === "user") {
++    const text = typeof item.replayUser === "string" && item.replayUser ? item.replayUser : item.content;
++    return [{ role: "user", content: userMessageContent(text, item.images) }];
++  }
++  if (Array.isArray(item.replay) && item.replay.length) {
++    const sameModel = typeof item.replayModel === "string" && item.replayModel === env.input2.model;
++    const replayed = sanitizeReplayMessages(item.replay, { deepSeek: env.deepSeek, keepReasoning: Boolean(env.deepSeekThinking), keepAnthropicThinking: Boolean(env.anthropic) && sameModel });
++    if (replayed.length) return replayed;
++  }
++  return [{ role: item.role, content: item.content }];
++}
+ 
+ function buildFreshTurnMessages(messages, env, deps) {
+   const { input2, cs, contextSettings, deepSeek, contextWindow, maxOutputTokens, tools, toolDefinitionTokens, availableToolNames, editingInstructions, toolInstructions, calibrated, usableContextWindow, historyBudgetTokens, applyContextCheckpoint } = env;
+@@ -27,6 +80,10 @@ function buildFreshTurnMessages(messages, env, deps) {
+         ].join("\n")
+       }
+   );
++  // dsh-context-align item3: 工作区指令文件作为常驻用户消息紧跟系统提示（内容不变时前缀稳定），不驱逐、不压缩
++  if (typeof input2.agentsInstructions?.text === "string" && input2.agentsInstructions.text.trim()) {
++    messages.push({ role: "user", content: `${WORKSPACE_INSTRUCTIONS_OPEN}\n${input2.agentsInstructions.text.trim()}\n</workspace_instructions>` });
++  }
+   const currentUserMessage = { role: "user", content: userMessageContent(input2.compactOnly ? "(manual context compaction)" : input2.prompt, input2.compactOnly ? void 0 : input2.images) };
+   cs.turnUserMessage = currentUserMessage;
+   const fullHistory = Array.isArray(input2.history) ? input2.history : [];
+@@ -65,13 +122,11 @@ function buildFreshTurnMessages(messages, env, deps) {
+     }
+     for (let index = firstKept; index < fullHistory.length; index += 1) {
+       const item = fullHistory[index];
+-      if (!item?.content?.trim() && !item?.images?.length) continue;
+-      const historyMessage = {
+-        role: item.role,
+-        content: item.role === "user" ? userMessageContent(item.content, item.images) : item.content
+-      };
+-      cs.contextHistoryIndex.set(historyMessage, index);
+-      messages.push(historyMessage);
++      if (!item?.content?.trim() && !item?.images?.length && !(Array.isArray(item?.replay) && item.replay.length)) continue;
++      for (const historyMessage of historyItemMessages(item, env, userMessageContent)) {
++        cs.contextHistoryIndex.set(historyMessage, index);
++        messages.push(historyMessage);
++      }
+     }
+     messages.push(currentUserMessage);
+   } else {
+@@ -81,14 +136,12 @@ function buildFreshTurnMessages(messages, env, deps) {
+   ) : fullHistory.slice(-MAX_GENERIC_HISTORY_ITEMS);
+   if (fullHistory.length > history.length && messages[0]?.role === "system") {
+     const digestBlock = summarizeEvictedHistory(fullHistory.slice(0, fullHistory.length - history.length), availableToolNames);
+-    if (digestBlock) messages[0].content = `${messages[0].content}\n\n${digestBlock}`;
++    // dsh-context-align item4: 摘要不再拼进系统提示（保持系统前缀不变），作为用户消息放在常驻前缀之后
++    if (digestBlock) messages.push({ role: "user", content: digestBlock });
+   }
+   for (const item of history) {
+-    if (!item?.content?.trim() && !item?.images?.length) continue;
+-    messages.push({
+-      role: item.role,
+-      content: item.role === "user" ? userMessageContent(item.content, item.images) : item.content
+-    });
++    if (!item?.content?.trim() && !item?.images?.length && !(Array.isArray(item?.replay) && item.replay.length)) continue;
++    messages.push(...historyItemMessages(item, env, userMessageContent));
+   }
+   messages.push(currentUserMessage);
+   }
+@@ -106,4 +159,4 @@ function steeringYieldResult({ trace, toolNames, contextCheckpointResult }) {
+     };
+ }
+ 
+-export { buildFreshTurnMessages, steeringYieldResult };
++export { buildFreshTurnMessages, steeringYieldResult, sanitizeReplayMessages };
+diff --git a/recovered/esm/002-agent-host.js/module-0014.mjs b/recovered/esm/002-agent-host.js/module-0014.mjs
+index f6f49082..0f72e415 100644
+--- a/recovered/esm/002-agent-host.js/module-0014.mjs
++++ b/recovered/esm/002-agent-host.js/module-0014.mjs
+@@ -69,7 +69,15 @@ function parseHistory(value) {
+     if (typeof row.content !== "string") {
+       throw new Error(`history[${index}].content must be a string`);
+     }
+-    return { role: row.role, content: row.content, images: parseImages(row.images, `history[${index}].images`) };
++    // dsh-context-align item1: 以往轮次实际发出的消息（扩展从会话存储取回），用于原样重放
++    const replay = row.role === "assistant" && Array.isArray(row.replay) ? row.replay.filter((message) => message && typeof message === "object" && !Array.isArray(message) && (message.role === "assistant" || message.role === "tool" || message.role === "user")) : void 0;
++    return {
++      role: row.role,
++      content: row.content,
++      images: parseImages(row.images, `history[${index}].images`),
++      ...replay?.length ? { replay, replayModel: typeof row.replayModel === "string" ? row.replayModel : void 0 } : {},
++      ...row.role === "user" && typeof row.replayUser === "string" && row.replayUser ? { replayUser: row.replayUser } : {}
++    };
+   });
+ }
+ 
+@@ -237,6 +245,12 @@ function parseAgentRunInput(params) {
+     contextCompaction: parseContextCompaction(row.contextCompaction),
+     contextCheckpoint: parseContextCheckpoint(row.contextCheckpoint),
+     compactOnly: row.compactOnly === true,
++    // dsh-context-align item3: 工作区指令（全局 + 项目根到工作区的 AGENTS.md / CLAUDE.md 及 .local）
++    agentsInstructions: row.agentsInstructions && typeof row.agentsInstructions === "object" && typeof row.agentsInstructions.text === "string" ? {
++      text: row.agentsInstructions.text.slice(0, 3e5),
++      files: Array.isArray(row.agentsInstructions.files) ? row.agentsInstructions.files.filter((file) => typeof file === "string").slice(0, 200) : [],
++      projectRoot: typeof row.agentsInstructions.projectRoot === "string" ? row.agentsInstructions.projectRoot : void 0
++    } : void 0,
+     // tool-defer-step01
+     deferTools: typeof row.deferTools === "boolean" ? row.deferTools : void 0,
+     hookEvents: Array.isArray(row.hookEvents) ? row.hookEvents.filter((event) => typeof event === "string") : void 0,
+diff --git a/recovered/esm/002-agent-host.js/module-0029.mjs b/recovered/esm/002-agent-host.js/module-0029.mjs
+index 1e0185da..5f923279 100644
+--- a/recovered/esm/002-agent-host.js/module-0029.mjs
++++ b/recovered/esm/002-agent-host.js/module-0029.mjs
+@@ -14,7 +14,7 @@ import { createContextCompactor } from "./agent-compaction.mjs";
+ import { promptToolsInstruction, toPromptToolMessages, buildAgentRequestHeaders, buildChatRequestBody, buildAnthropicRequestBody, buildResponsesRequestBody } from "./agent-request.mjs";
+ import { MAX_UNAVAILABLE_TOOL_ATTEMPTS, patchTargetPaths, toolFailureText, createToolCallExecutor } from "./agent-tool-exec.mjs";
+ import { TOOL_SEARCH_TOOL_NAME, MAX_API_TOOLS, SUBAGENT_TOOL_NAME, SUBAGENT_READ_TOOLS, SUBAGENT_INSTRUCTIONS, SUBAGENT_TOOL, buildAgentToolCatalog } from "./agent-tool-catalog.mjs";
+-import { ocCharTokenWeight, estimatedTokens, OC_PRIOR_TOOL_CONTEXT_OPEN, OC_PRIOR_TOOL_CONTEXT_CLOSE, OC_PRIOR_TOOL_CONTEXT_TRIMMED, shrinkPriorToolContextBlocks, CONTEXT_IMAGE_TOKENS, CLEARED_TOOL_RESULT_PREFIX, CONTEXT_FALLBACK_WINDOW, contextCompactionSettings, contextTextOf, contextContentTokens, contextMessageTokens, contextMessagesTokens, contextBreakdownOf, contextHistoryItemTokens, contextClip, isContextOverflowError, serializeForCompaction, CONTEXT_COMPACTION_SYSTEM, contextCompactionPrompt, COMPACTION_TOOL_RESULT_MAX_CHARS, COMPACTION_TOOL_RESULT_HEAD_CHARS, COMPACTION_TOOL_RESULT_TAIL_CHARS, trimToolTextForCompaction, trimContextToolResultsForCompaction, clearOldContextToolResults, isContextImagePart, contextMaxImages, offloadOldContextImages } from "./agent-context.mjs";
++import { ocCharTokenWeight, estimatedTokens, OC_PRIOR_TOOL_CONTEXT_OPEN, OC_PRIOR_TOOL_CONTEXT_CLOSE, OC_PRIOR_TOOL_CONTEXT_TRIMMED, shrinkPriorToolContextBlocks, CONTEXT_IMAGE_TOKENS, CLEARED_TOOL_RESULT_PREFIX, CONTEXT_FALLBACK_WINDOW, contextCompactionSettings, contextTextOf, contextContentTokens, contextMessageTokens, contextMessagesTokens, contextBreakdownOf, contextHistoryItemTokens, contextClip, isContextOverflowError, serializeForCompaction, CONTEXT_COMPACTION_SYSTEM, contextCompactionPrompt, COMPACTION_TOOL_RESULT_MAX_CHARS, COMPACTION_TOOL_RESULT_HEAD_CHARS, COMPACTION_TOOL_RESULT_TAIL_CHARS, trimToolTextForCompaction, trimContextToolResultsForCompaction, clearOldContextToolResults, isContextImagePart, contextMaxImages, offloadOldContextImages, isSyntheticUserMessage, permanentPrefixEnd, WORKSPACE_INSTRUCTIONS_PATH_RE } from "./agent-context.mjs";
+ // OpenCode context-compaction-dsh PART B: dsh-compaction-basic 默认值（lib/index.js :15/:17/:63/:82）与「每个模型只警告一次」的配置错误记录（:843-850）
+ var DSH_COMPACTION_THRESHOLD_RATIO = 0.8;
+ var DSH_COMPACTION_RETAIN_RATIO = 0.16;
+@@ -677,6 +677,175 @@ function ocToolHookWrap(input2, dependencies, emitTrace, fn) {
+     return result;
+   };
+ }
++// dsh-context-align item5: 单个工具结果上限 12,500 token（dsh spill-policy maxInlineTokens）。超出部分完整写到临时文件，
++// 消息里保留头尾各一半 + 「[...]」+ 说明（省略字节数、文件位置、怎么读）。
++var OC_TOOL_RESULT_MAX_TOKENS = 12500;
++var OC_SPILL_GAP = "\n\n[...]\n\n";
++var ocSpillRoot;
++function ocSafeHead(text, length) {
++  let cut = Math.max(0, Math.min(text.length, length));
++  const code = text.charCodeAt(cut - 1);
++  if (code >= 55296 && code <= 56319) cut -= 1;
++  return text.slice(0, cut);
++}
++function ocSafeTail(text, length) {
++  let cut = Math.max(0, text.length - Math.max(0, length));
++  const code = text.charCodeAt(cut);
++  if (code >= 56320 && code <= 57343) cut += 1;
++  return text.slice(cut);
++}
++function ocSpillToolText(text, toolName, runCommandAvailable) {
++  const value = typeof text === "string" ? text : String(text ?? "");
++  if (estimatedTokens(value) <= OC_TOOL_RESULT_MAX_TOKENS) return value;
++  let locator;
++  try {
++    const fsX = require("node:fs");
++    const pathX = require("node:path");
++    const osX = require("node:os");
++    ocSpillRoot ??= fsX.mkdtempSync(pathX.join(osX.tmpdir(), "opencode-spill-"));
++    const safeName = String(toolName || "tool").replace(/[^A-Za-z0-9_.-]+/g, "_").slice(0, 60) || "tool";
++    locator = pathX.join(ocSpillRoot, `${(0, import_node_crypto.randomBytes)(6).toString("hex")}-${safeName}.txt`);
++    fsX.writeFileSync(locator, value, { encoding: "utf8", mode: 384 });
++  } catch (error2) {
++    locator = void 0;
++    console.error(`[agent-host] spill: could not store the full ${toolName} result: ${error2 instanceof Error ? error2.message : String(error2)}`);
++  }
++  const hint = runCommandAvailable ? "Use run_command with sed -n 'START,ENDp' or grep on this path to read or search within it." : "Re-run the tool with a narrower scope if you need the omitted part.";
++  const notice = (bytes) => locator ? `(Omitted ${bytes} bytes. Full formatted result stored at: ${locator}. ${hint})` : `(Omitted ${bytes} bytes; the full result could not be stored. Re-run the tool with a narrower scope if you need the omitted part.)`;
++  const totalBytes = Buffer.byteLength(value, "utf8");
++  const budgetChars = Math.max(0, OC_TOOL_RESULT_MAX_TOKENS * 4 - OC_SPILL_GAP.length - 2 - notice(totalBytes).length - 8);
++  const head = ocSafeHead(value, Math.ceil(budgetChars / 2));
++  const tail = ocSafeTail(value, Math.floor(budgetChars / 2));
++  const omitted = totalBytes - Buffer.byteLength(head, "utf8") - Buffer.byteLength(tail, "utf8");
++  return `${head}${OC_SPILL_GAP}${tail}\n\n${notice(omitted)}`;
++}
++// dsh-context-align item3: 工具访问到子目录时，补发该目录（直到项目根）下还没发过的 AGENTS.md / CLAUDE.md 及 .local 文件。
++var OC_INSTRUCTION_FILE_NAMES = ["AGENTS.md", "CLAUDE.md", "AGENTS.local.md", "CLAUDE.local.md"];
++var OC_INSTRUCTION_SKIP_DIR = /^(?:\.git|node_modules|\.opencode|\.opencode-project|\.update-backup|\.update-stage)$/i;
++var OC_INSTRUCTION_PATH_KEYS = /^(?:path|paths|file|files|file_path|filePath|target_path|targetPath|cwd|directory|dir|root)$/;
++function ocCollectToolPaths(value, out, depth = 0, keyed = false) {
++  if (depth > 4 || out.length >= 64 || value == null) return out;
++  if (typeof value === "string") {
++    if (keyed && value.trim() && value.length < 1024) out.push(value.trim());
++    return out;
++  }
++  if (Array.isArray(value)) {
++    for (const item of value) ocCollectToolPaths(item, out, depth + 1, keyed);
++    return out;
++  }
++  if (typeof value === "object") {
++    for (const [key, child] of Object.entries(value)) {
++      if (key === "patch" && typeof child === "string") out.push(...patchTargetPaths(child));
++      else ocCollectToolPaths(child, out, depth + 1, OC_INSTRUCTION_PATH_KEYS.test(key));
++    }
++  }
++  return out;
++}
++function ocInstructionKey(file) {
++  return String(file).replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
++}
++function ocLoadedInstructionKeys(input2, messages) {
++  const loaded = new Set();
++  for (const file of Array.isArray(input2.agentsInstructions?.files) ? input2.agentsInstructions.files : []) loaded.add(ocInstructionKey(file));
++  for (const message of messages) {
++    const text = typeof message?.content === "string" ? message.content : "";
++    if (!text.includes("<workspace_instructions path=")) continue;
++    for (const match of text.matchAll(WORKSPACE_INSTRUCTIONS_PATH_RE)) loaded.add(ocInstructionKey(match[1]));
++  }
++  return loaded;
++}
++function ocSubdirInstructionMessages(input2, completedCalls, loaded) {
++  if (!input2.agentsInstructions || typeof input2.agentsInstructions !== "object") return [];
++  const fsX = require("node:fs");
++  const pathX = require("node:path");
++  const workspaceRoot = pathX.resolve(String(input2.workspaceRoot || "."));
++  const projectRoot = pathX.resolve(typeof input2.agentsInstructions.projectRoot === "string" && input2.agentsInstructions.projectRoot ? input2.agentsInstructions.projectRoot : workspaceRoot);
++  const dirs = [];
++  const seen = new Set();
++  for (const { args } of completedCalls) {
++    for (const raw of ocCollectToolPaths(args, [])) {
++      const abs = pathX.resolve(workspaceRoot, raw);
++      let dir = abs;
++      try {
++        if (!fsX.statSync(abs).isDirectory()) dir = pathX.dirname(abs);
++      } catch {
++        dir = pathX.dirname(abs);
++      }
++      const rel = pathX.relative(projectRoot, dir);
++      if (rel.startsWith("..") || pathX.isAbsolute(rel)) continue;
++      const parts = rel.split(/[\\/]/).filter((part) => part && part !== ".");
++      if (parts.some((part) => OC_INSTRUCTION_SKIP_DIR.test(part))) continue;
++      let current = projectRoot;
++      for (const part of parts.slice(0, 24)) {
++        current = pathX.join(current, part);
++        const key = ocInstructionKey(current);
++        if (!seen.has(key)) {
++          seen.add(key);
++          dirs.push(current);
++        }
++      }
++    }
++  }
++  const out = [];
++  let budget = 65536;
++  const bodies = new Set();
++  for (const dir of dirs) {
++    for (const name of OC_INSTRUCTION_FILE_NAMES) {
++      const file = pathX.join(dir, name);
++      const key = ocInstructionKey(file);
++      if (loaded.has(key)) continue;
++      let body;
++      try {
++        const stat = fsX.statSync(file);
++        if (!stat.isFile() || stat.size > 1048576) continue;
++        body = fsX.readFileSync(file, "utf8").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").trim();
++      } catch {
++        continue;
++      }
++      loaded.add(key);
++      if (!body || bodies.has(body) || budget <= 512) continue;
++      bodies.add(body);
++      if (Buffer.byteLength(body, "utf8") > budget) body = `${ocSafeHead(body, Math.floor(budget / 3))}\n\u2026[truncated by the 64KB instruction budget; read ${file} for the rest]`;
++      budget -= Buffer.byteLength(body, "utf8");
++      const rel = pathX.relative(projectRoot, file).replace(/\\/g, "/");
++      const relDir = pathX.relative(projectRoot, dir).replace(/\\/g, "/") || ".";
++      out.push({ role: "user", content: `<workspace_instructions path="${file.replace(/"/g, "%22")}">\nInstructions from ${rel}. They apply to work under ${relDir}/; when they conflict with instructions closer to the project root, this more specific file wins. Treat them like the other workspace instruction files, not as a new user request.\n\n${body}\n</workspace_instructions>` });
++    }
++  }
++  return out;
++}
++// dsh-context-align item1: 把本轮实际发出的消息（当前用户消息 + 之后的助手/工具/附加消息 + 最终回答）交给扩展保存，下一轮原样重放。
++// 图片不保存（留占位文字）；整体超过约 4MB 时先把工具结果截到 12K，仍超就不保存（回退到文字历史）。
++function ocTurnReplayResult(input2, messages, cs, finalMessage) {
++  try {
++    if (input2.compactOnly || !cs.turnUserMessage) return {};
++    const start = messages.indexOf(cs.turnUserMessage);
++    if (start < 0) return {};
++    const flatten = (content) => typeof content === "string" ? content : Array.isArray(content) ? content.map((part) => isContextImagePart(part) ? "[Image omitted from stored history]" : typeof part?.text === "string" ? part.text : "").filter(Boolean).join("\n") : content == null ? "" : String(content);
++    const assistantOf = (message) => ({
++      role: "assistant",
++      content: typeof message.content === "string" ? message.content : message.content == null ? "" : flatten(message.content),
++      ...typeof message.reasoning_content === "string" && message.reasoning_content ? { reasoning_content: message.reasoning_content } : {},
++      ...Array.isArray(message.anthropic_thinking) ? { anthropic_thinking: JSON.parse(JSON.stringify(message.anthropic_thinking)) } : {},
++      ...Array.isArray(message.tool_calls) && message.tool_calls.length ? { tool_calls: JSON.parse(JSON.stringify(message.tool_calls)) } : {}
++    });
++    const out = [];
++    for (const message of messages.slice(start + 1)) {
++      if (message?.role === "assistant") out.push(assistantOf(message));
++      else if (message?.role === "tool") out.push({ role: "tool", tool_call_id: message.tool_call_id, content: flatten(message.content) });
++      else if (message?.role === "user") out.push({ role: "user", content: flatten(message.content) });
++    }
++    if (finalMessage) out.push(assistantOf(finalMessage));
++    if (JSON.stringify(out).length > 4e6) {
++      for (const message of out) if (message.role === "tool" && message.content.length > 12e3) message.content = contextClip(message.content, 12e3);
++      if (JSON.stringify(out).length > 4e6) return {};
++    }
++    return { replay: { version: 1, model: input2.model, user: flatten(cs.turnUserMessage.content), messages: out } };
++  } catch (error2) {
++    console.error(`[agent-host] turn replay capture failed: ${error2 instanceof Error ? error2.message : String(error2)}`);
++    return {};
++  }
++}
+ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+   const fetchImpl = dependencies.fetch ?? globalThis.fetch;
+   const codex = input2.protocol === "codex-responses";
+@@ -786,7 +955,7 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+     const toolNames = availableTools.map((tool) => tool.name);
+     const restoredCheckpoint = usableCheckpoint(input2.checkpoint, input2, availableToolNames);
+     const toolDefinitionTokens = advertisedTools.length ? estimatedTokens(advertisedTools.map((tool) => [tool.name, tool.description ?? "", tool.inputSchema ?? {}])) + 4 : 0;
+-    const contextCompactor = createContextCompactor({ input2, fetchImpl, emitTrace, availableToolNames, toolDefinitionTokens, codex, anthropic, deepSeek, anthropicMaxOutputTokens, responsesReasoningEffort, codexServiceTier, maxOutputTokens, calibrated, usableContextWindow, keepRecentContextTokens, get messages() { return messages; }, get endpoint() { return endpoint; }, get responses() { return responses; }, get managedContextWindow() { return managedContextWindow; } }, { requestModelStream, requestChatCompletion, contextHistoryHash, summarizeEvictedHistory });
++    const contextCompactor = createContextCompactor({ input2, fetchImpl, emitTrace, availableToolNames, toolDefinitionTokens, codex, anthropic, deepSeek, deepSeekThinking, tools, anthropicTools, codexTools, anthropicMaxOutputTokens, responsesReasoningEffort, codexServiceTier, maxOutputTokens, calibrated, usableContextWindow, keepRecentContextTokens, get messages() { return messages; }, get endpoint() { return endpoint; }, get responses() { return responses; }, get managedContextWindow() { return managedContextWindow; } }, { requestModelStream, requestChatCompletion, contextHistoryHash, summarizeEvictedHistory });
+     const cs = contextCompactor.state;
+     const { applyContextCheckpoint, contextCheckpointResult, currentContextTokens, requestPlainCompletion, compactContext } = contextCompactor;
+     let messages;
+@@ -796,7 +965,7 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+       firstStep = restoredCheckpoint.nextStep;
+     } else {
+       messages = [];
+-      buildFreshTurnMessages(messages, { input2, cs, contextSettings, deepSeek, contextWindow, maxOutputTokens, tools, toolDefinitionTokens, availableToolNames, editingInstructions, toolInstructions, calibrated, usableContextWindow, historyBudgetTokens, applyContextCheckpoint }, { OPENCODE_CHAT_BEHAVIOR_CONTRACT, userMessageContent, selectHistoryWithinTokenBudget, MAX_GENERIC_HISTORY_ITEMS, contextHistoryHash, summarizeEvictedHistory });
++      buildFreshTurnMessages(messages, { input2, cs, contextSettings, deepSeek, deepSeekThinking, anthropic, contextWindow, maxOutputTokens, tools, toolDefinitionTokens, availableToolNames, editingInstructions, toolInstructions, calibrated, usableContextWindow, historyBudgetTokens, applyContextCheckpoint }, { OPENCODE_CHAT_BEHAVIOR_CONTRACT, userMessageContent, selectHistoryWithinTokenBudget, MAX_GENERIC_HISTORY_ITEMS, contextHistoryHash, summarizeEvictedHistory });
+       firstStep = 1;
+     }
+     // tool-defer-step01: 恢复的检查点里已调用过的延迟工具，先加载定义
+@@ -805,7 +974,7 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+     const promptCacheKey = anthropic || deepSeek || input2.promptCacheKey === false ? void 0 : typeof input2.promptCacheKey === "string" && input2.promptCacheKey.trim() ? input2.promptCacheKey.trim().slice(0, 64) : `oc-${(0, import_node_crypto.createHash)("sha256").update(JSON.stringify([input2.baseUrl ?? "", input2.model ?? "", input2.workspaceRoot ?? ""])).digest("hex").slice(0, 32)}`;
+     if (!cs.turnUserMessage) {
+       for (let index = messages.length - 1; index >= 1; index -= 1) {
+-        if (messages[index]?.role === "user" && !/^Visual content returned by tool/.test(contextTextOf(messages[index].content))) {
++        if (messages[index]?.role === "user" && !isSyntheticUserMessage(messages[index])) {
+           cs.turnUserMessage = messages[index];
+           break;
+         }
+@@ -814,7 +983,7 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+     if (cs.baseSystemContent === void 0 && typeof messages[0]?.content === "string") cs.baseSystemContent = messages[0].content;
+     if (input2.compactOnly) {
+       const cutAt = messages.indexOf(cs.turnUserMessage);
+-      if (cutAt <= 1 && cs.pendingEvictedHistory.length === 0) {
++      if (cutAt <= permanentPrefixEnd(messages) && cs.pendingEvictedHistory.length === 0) {
+         return { status: "completed", answer: "\u6CA1\u6709\u53EF\u538B\u7F29\u7684\u5BF9\u8BDD\u5386\u53F2\u3002", trace, toolNames, compactTurn: true };
+       }
+       const focus = String(input2.prompt ?? "").replace(/^\s*\/compact\b/i, "").trim();
+@@ -830,6 +999,7 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+     }
+     let promptToolMode = false;
+     let overflowRetries = 0;
++    let ocLoadedInstructions;
+     for (let step = firstStep; ; step += 1) {
+       input2.signal?.throwIfAborted();
+       try {
+@@ -840,7 +1010,7 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+       // 已执行的工具调用都留在本轮记录里，下一轮能看到。
+       if (step > firstStep && input2.shouldYield?.()) {
+         emitTrace({ type: "yield", step, data: { reason: "steering" } });
+-        return steeringYieldResult({ trace, toolNames, contextCheckpointResult });
++        return { ...steeringYieldResult({ trace, toolNames, contextCheckpointResult }), ...ocTurnReplayResult(input2, messages, cs) };
+       }
+       if (contextSettings.auto && cs.baseSystemContent !== void 0) {
+         if (cs.pendingEvictedHistory.length > 0) {
+@@ -1040,7 +1210,8 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+           model: input2.model,
+           protocol: anthropic ? "anthropic-messages" : responses ? codex ? "codex-responses" : "openai-responses" : "chat-completions",
+           ...completion.usage ? { usage: completion.usage } : {},
+-          contextBreakdown: contextBreakdownOf(messages, availableTools),
++          // dsh-context-align item6: 工具占比只算真正发给模型的工具定义（延迟加载未发出的不算）
++          contextBreakdown: contextBreakdownOf(messages, advertisedTools),
+           ...tokenRatio !== 1 ? { tokenRatio } : {},
+           llmMs: stepEndedAt - stepStartedAt,
+           ...firstDeltaAt !== void 0 ? { ttftMs: firstDeltaAt - stepStartedAt, generationMs: stepEndedAt - firstDeltaAt } : {}
+@@ -1079,7 +1250,8 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+           trace,
+           toolNames,
+           answerStreamed: Boolean(completion.emittedContent && input2.onTrace),
+-          ...contextCheckpointResult()
++          ...contextCheckpointResult(),
++          ...ocTurnReplayResult(input2, messages, cs, { ...message, ...deepSeekThinking ? {} : { reasoning_content: void 0 } })
+         };
+       }
+       messages.push({
+@@ -1143,7 +1315,7 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+         messages.push({
+           role: "tool",
+           tool_call_id: call.id,
+-          content: toolText
++          content: ocSpillToolText(toolText, toolName, availableToolNames.has("run_command"))
+         });
+       }
+       for (const { call, toolName, toolImages } of completedCalls) {
+@@ -1156,6 +1328,24 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+           )
+         });
+       }
++      // dsh-context-align item3: 访问到的子目录里还没发过的工作区指令文件
++      try {
++        ocLoadedInstructions ??= ocLoadedInstructionKeys(input2, messages);
++        for (const instruction of ocSubdirInstructionMessages(input2, completedCalls.map(({ call }) => ({ args: (() => {
++          try {
++            return typeof call?.function?.arguments === "string" ? JSON.parse(call.function.arguments) : call?.function?.arguments ?? {};
++          } catch {
++            return {};
++          }
++        })() })), ocLoadedInstructions)) messages.push(instruction);
++      } catch (error2) {
++        console.error(`[agent-host] subdirectory instructions failed: ${error2 instanceof Error ? error2.message : String(error2)}`);
++      }
++      // dsh-context-align item6: 工具结果进来后立即上报估算的上下文占用（提供商实测基线 + 之后新增消息的估算），圆环随之上涨
++      try {
++        emitTrace({ type: "context_live", step, data: { promptTokens: currentContextTokens(), contextBreakdown: contextBreakdownOf(messages, advertisedTools) } });
++      } catch {
++      }
+     }
+   } finally {
+     await client?.close();

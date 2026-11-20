@@ -2,6 +2,11 @@
 // Artifact: resources/app/out/vs/workbench/workbench.desktop.main.js
 // Original module marker: src/vs/workbench/contrib/chat/browser/widgetHosts/viewPane/chatViewPane.ts
 import { ViewPane } from "./module-1335.mjs";
+import { Separator, SubmenuAction, toAction } from "./module-0082.mjs";
+import { isWindows } from "./module-0014.mjs";
+import { isAgentSandboxEnabledValue } from "./module-1105.mjs";
+import { normalizeOpenCodePermissionMode } from "./module-0964.mjs";
+import { ILanguageModelToolsService } from "./module-0990.mjs";
 import { DisposableStore, MutableDisposable, toDisposable } from "./module-0012.mjs";
 import { LRUCache } from "./module-0008.mjs";
 import { CHAT_WIDGET_VIEW_STATE_CACHE_LIMIT, ChatViewId, IChatWidgetService, setModelPreservingInputTypedWhileLoading } from "./module-0981.mjs";
@@ -62,6 +67,9 @@ import { IOpenerService } from "./module-0272.mjs";
 import { IThemeService } from "./module-0287.mjs";
 import { IHoverService } from "./module-0520.mjs";
 import { IStorageService } from "./module-0512.mjs";
+import { IQuickInputService } from "./module-0536.mjs";
+import { IFileDialogService } from "./module-0267.mjs";
+import { IWorkspacesService } from "./module-1379.mjs";
 import { IChatService } from "./module-0972.mjs";
 import { IChatAgentService } from "./module-0974.mjs";
 import { ILogService } from "./module-0095.mjs";
@@ -85,6 +93,285 @@ import { IAccessibilityService } from "./module-0104.mjs";
 
 
 // src/vs/workbench/contrib/chat/browser/widgetHosts/viewPane/chatViewPane.ts
+// OpenCode: 每个对话的工作区（按 sessionResource 持久化在应用级存储），以及对话列表常驻显示
+const OC_SESSION_WS_KEY = "opencode.chat.sessionWorkspaces";
+const OC_RECENT_WS_KEY = "opencode.chat.recentWorkspaces";
+const OC_SESSIONS_COLLAPSED_KEY = "opencode.chat.sessionsCollapsed";
+const OC_PICK_WS_COMMAND = "opencode.chat.pickSessionWorkspace";
+let ocActiveChatViewPane;
+let ocWsMapCache;
+function ocWsBasename(p) {
+  if (!p) return "";
+  const s = String(p).replace(/[\\/]+$/, "");
+  const i = Math.max(s.lastIndexOf("/"), s.lastIndexOf("\\"));
+  return i >= 0 ? s.slice(i + 1) || s : s;
+}
+function ocReadJson(storage, key, fallback) {
+  try {
+    const raw = storage.get(key, -1 /* APPLICATION */);
+    const value = raw ? JSON.parse(raw) : fallback;
+    return value && typeof value === "object" ? value : fallback;
+  } catch {
+    return fallback;
+  }
+}
+function ocSessionKey(resource) {
+  return resource ? typeof resource === "string" ? resource : resource.toString() : "";
+}
+function ocWsLabel(entry) {
+  if (!entry) return "";
+  if (entry.kind === "home") return "\u7528\u6237\u76ee\u5f55";
+  return entry.name || ocWsBasename(entry.path);
+}
+function ocWsMap(storage) {
+  if (!ocWsMapCache) ocWsMapCache = ocReadJson(storage, OC_SESSION_WS_KEY, {});
+  return ocWsMapCache;
+}
+function ocGetSessionWorkspace(storage, resource) {
+  const key = ocSessionKey(resource);
+  return key ? ocWsMap(storage)[key] : void 0;
+}
+function ocRecentWorkspaces(storage) {
+  const recent = ocReadJson(storage, OC_RECENT_WS_KEY, []);
+  return Array.isArray(recent) ? recent.filter((r) => r && typeof r.path === "string" && r.path) : [];
+}
+function ocDefaultWorkspace(storage, contextService) {
+  const folder = contextService?.getWorkspace?.().folders?.[0];
+  if (folder?.uri?.scheme === "file") return { kind: "folder", path: folder.uri.fsPath, name: folder.name || ocWsBasename(folder.uri.fsPath) };
+  return ocRecentWorkspaces(storage)[0];
+}
+function ocSetSessionWorkspace(storage, resource, entry) {
+  const key = ocSessionKey(resource);
+  if (!key) return;
+  const map = { ...ocWsMap(storage) };
+  if (entry) map[key] = { kind: entry.kind, path: entry.path || "", name: entry.name || "", updated: Date.now() };
+  else delete map[key];
+  const keys = Object.keys(map);
+  if (keys.length > 2e3) keys.sort((a, b) => (map[a].updated || 0) - (map[b].updated || 0)).slice(0, keys.length - 2e3).forEach((k) => delete map[k]);
+  ocWsMapCache = map;
+  storage.store(OC_SESSION_WS_KEY, JSON.stringify(map), -1 /* APPLICATION */, 1 /* MACHINE */);
+  if (entry?.kind === "folder" && entry.path) {
+    const recent = [entry, ...ocRecentWorkspaces(storage).filter((r) => r.path.toLowerCase() !== entry.path.toLowerCase())].slice(0, 12).map((r) => ({ kind: "folder", path: r.path, name: r.name || ocWsBasename(r.path) }));
+    storage.store(OC_RECENT_WS_KEY, JSON.stringify(recent), -1 /* APPLICATION */, 1 /* MACHINE */);
+  }
+}
+function ocToResource(arg) {
+  if (!arg) return ocActiveChatViewPane?.widget?.viewModel?.sessionResource;
+  if (typeof arg === "string") return URI.parse(arg);
+  return arg.sessionResource ?? arg;
+}
+async function ocPickSessionWorkspace(accessor, arg) {
+  const storage = accessor.get(IStorageService);
+  const quickInput = accessor.get(IQuickInputService);
+  const fileDialog = accessor.get(IFileDialogService);
+  const contextService = accessor.get(IWorkspaceContextService);
+  let workspacesService;
+  try { workspacesService = accessor.get(IWorkspacesService); } catch {}
+  const resource = ocToResource(arg);
+  if (!resource) return void 0;
+  const stored = ocGetSessionWorkspace(storage, resource);
+  const current = stored ?? ocDefaultWorkspace(storage, contextService);
+  const items = [];
+  const seen = new Set();
+  const push = (entry, detail) => {
+    if (!entry?.path) return;
+    const k = entry.path.toLowerCase();
+    if (seen.has(k)) return;
+    seen.add(k);
+    const isCurrent = current?.kind !== "home" && current?.path?.toLowerCase() === k;
+    items.push({ label: `$(folder) ${entry.name || ocWsBasename(entry.path)}`, description: entry.path, detail: [isCurrent ? "\u2713 \u5f53\u524d" : "", detail || ""].filter(Boolean).join(" \u00b7 ") || void 0, entry });
+  };
+  for (const f of contextService.getWorkspace().folders) if (f.uri.scheme === "file") push({ kind: "folder", path: f.uri.fsPath, name: f.name }, "\u5f53\u524d\u6253\u5f00\u7684\u6587\u4ef6\u5939");
+  for (const r of ocRecentWorkspaces(storage)) push(r);
+  try {
+    const recent = await workspacesService?.getRecentlyOpened();
+    for (const w of recent?.workspaces ?? []) {
+      if (items.length >= 20) break;
+      const uri = w.folderUri;
+      if (uri?.scheme === "file") push({ kind: "folder", path: uri.fsPath, name: ocWsBasename(uri.fsPath) });
+    }
+  } catch {}
+  const picks = [
+    { type: "separator", label: "\u6700\u8fd1\u4f7f\u7528" },
+    ...items,
+    { type: "separator" },
+    { label: "$(folder-opened) \u9009\u62e9\u6587\u4ef6\u5939\u2026", ocAction: "browse" },
+    { label: "$(home) \u65e0\u5de5\u4f5c\u533a / \u7528\u6237\u76ee\u5f55", ocAction: "home", description: current?.kind === "home" ? "\u2713 \u5f53\u524d" : void 0 }
+  ];
+  const choice = await quickInput.pick(picks, {
+    placeHolder: current ? `\u5f53\u524d\u5bf9\u8bdd\u7684\u5de5\u4f5c\u533a\uff1a${ocWsLabel(current)}${current.path ? `\uff08${current.path}\uff09` : ""}${stored ? "" : "\uff08\u9ed8\u8ba4\uff09"}` : "\u4e3a\u5f53\u524d\u5bf9\u8bdd\u9009\u62e9\u5de5\u4f5c\u533a",
+    matchOnDescription: true
+  });
+  if (!choice) return void 0;
+  let entry;
+  if (choice.ocAction === "browse") {
+    const uris = await fileDialog.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false, title: "\u9009\u62e9\u5bf9\u8bdd\u5de5\u4f5c\u533a", openLabel: "\u9009\u62e9" });
+    const uri = uris?.[0];
+    if (!uri) return void 0;
+    entry = { kind: "folder", path: uri.fsPath, name: ocWsBasename(uri.fsPath) };
+  } else if (choice.ocAction === "home") {
+    entry = { kind: "home", path: "", name: "\u7528\u6237\u76ee\u5f55" };
+  } else {
+    entry = choice.entry;
+  }
+  if (!entry) return void 0;
+  ocSetSessionWorkspace(storage, resource, entry);
+  ocActiveChatViewPane?.ocRefreshWorkspaceUi?.();
+  return { kind: entry.kind, path: entry.path || "", name: ocWsLabel(entry) };
+}
+CommandsRegistry.registerCommand(OC_PICK_WS_COMMAND, (accessor, arg) => ocPickSessionWorkspace(accessor, arg));
+// 扩展在每次请求开始时调用：返回当前对话的工作区；未设置时写入默认值（打开的文件夹，否则最近使用）
+CommandsRegistry.registerCommand("opencode.chat.sessionWorkspace", (accessor, arg) => {
+  const storage = accessor.get(IStorageService);
+  const contextService = accessor.get(IWorkspaceContextService);
+  const resource = ocToResource(arg);
+  if (!resource) return null;
+  let entry = ocGetSessionWorkspace(storage, resource);
+  if (!entry) {
+    entry = ocDefaultWorkspace(storage, contextService);
+    if (entry) {
+      ocSetSessionWorkspace(storage, resource, entry);
+      ocActiveChatViewPane?.ocRefreshWorkspaceUi?.();
+    }
+  }
+  return entry ? { kind: entry.kind, path: entry.path || "", name: ocWsLabel(entry), sessionResource: ocSessionKey(resource) } : null;
+});
+// OpenCode: 「权限」按钮的模式与 MCP 决策（工作台工具审批与扩展按同一设置执行）
+var OC_PERMISSION_MODE_SETTING = "opencode.chat.permissionMode";
+var OC_MCP_PERMISSIONS_SETTING = "opencode.chat.mcpPermissions";
+var OC_PERMISSION_MODES = [
+  { id: "ask", label: "\u6bcf\u6b21\u8be2\u95ee", icon: "shield", detail: "\u7ec8\u7aef\u547d\u4ee4\u3001\u6587\u4ef6\u4fee\u6539\u548c MCP \u5de5\u5177\u8c03\u7528\u524d\u90fd\u9700\u8981\u786e\u8ba4" },
+  { id: "auto", label: "\u81ea\u52a8\u5141\u8bb8", icon: "unlock", detail: "\u5de5\u5177\u8c03\u7528\u4e0d\u518d\u5f39\u51fa\u786e\u8ba4" },
+  { id: "fullAuto", label: "\u5168\u81ea\u52a8", icon: "rocket", detail: "\u540c\u300c\u81ea\u52a8\u5141\u8bb8\u300d\uff0c\u5e76\u4e14 AI \u7684\u6240\u6709\u63d0\u95ee\u4e0d\u518d\u7b49\u5f85\uff0c\u76f4\u63a5\u91c7\u7528\u63a8\u8350\u9879\uff08\u5bf9\u8bdd\u91cc\u7559\u8bb0\u5f55\uff09\uff0c\u4ea4\u63a5\u81ea\u52a8\u53d1\u9001\uff1b\u5355\u72ec\u8bbe\u4e3a\u7981\u6b62 / \u8be2\u95ee\u7684\u7c7b\u522b\u548c\u5de5\u5177\u4ecd\u4f18\u5148" },
+  { id: "readonly", label: "\u53ea\u8bfb", icon: "eye", detail: "\u53ea\u5141\u8bb8\u8bfb\u53d6\u7c7b\u5de5\u5177\uff0c\u7981\u6b62\u4fee\u6539\u6587\u4ef6\u548c\u8fd0\u884c\u547d\u4ee4" }
+];
+var OC_PERMISSION_DECISION_LABEL = { allow: "\u5141\u8bb8", ask: "\u8be2\u95ee", deny: "\u7981\u6b62" };
+function ocNormalizePermission(value2) {
+  return value2 === "allow" || value2 === "ask" || value2 === "deny" ? value2 : void 0;
+}
+// OpenCode: 「权限」›「更多」的类别（与扩展 module-0140 / 工作台 module-2812 中的类别表保持一致；tools 为真实工具名）
+var OC_CATEGORY_PERMISSIONS_SETTING = "opencode.chat.categoryPermissions";
+var OC_TOOL_PERMISSIONS_SETTING = "opencode.chat.toolPermissions";
+var OC_PERMISSION_CATEGORIES = [
+  { id: "terminal", label: "\u7ec8\u7aef\u547d\u4ee4", tools: ["run_command", "send_command_input", "cancel_command"], defaults: { ask: "ask", auto: "allow", fullAuto: "allow", readonly: "deny" } },
+  { id: "edit", label: "\u4fee\u6539\u6587\u4ef6", tools: ["apply_patch"], defaults: { ask: "ask", auto: "allow", fullAuto: "allow", readonly: "deny" } },
+  { id: "screen", label: "\u5c4f\u5e55/\u6444\u50cf\u5934\u67e5\u770b", tools: ["see_now"], defaults: { ask: "allow", auto: "allow", fullAuto: "allow", readonly: "deny" } },
+  { id: "memoryWrite", label: "\u5199\u5165\u8bb0\u5fc6", tools: ["bridge_memory_append", "bridge_memory_forget", "bridge_memory_draft", "bridge_memory_handoff", "bridge_memory_archive", "bridge_memory_promote", "bridge_memory_scratch", "bridge_memory_consolidate", "bridge_memory_policy"], defaults: { ask: "allow", auto: "allow", fullAuto: "allow", readonly: "deny" } },
+  { id: "collab", label: "Bridge \u534f\u4f5c\u4e0e\u89c4\u5219", tools: ["bridge_get_effective_rules", "bridge_acknowledge_rules", "bridge_join_collaboration", "bridge_leave_collaboration", "bridge_get_collaboration", "bridge_create_task", "bridge_claim_task", "bridge_update_task", "bridge_get_execution", "bridge_send_message", "bridge_list_messages", "bridge_ack_message", "bridge_checkpoint_task", "bridge_resume_task", "bridge_wait_messages", "bridge_get_tool_gates"], defaults: { ask: "allow", auto: "allow", fullAuto: "allow", readonly: "deny" } },
+  { id: "mcpConfig", label: "\u914d\u7f6e MCP \u670d\u52a1\u5668", tools: ["configure_mcp"], defaults: { ask: "ask", auto: "allow", fullAuto: "allow", readonly: "deny" } },
+  { id: "custom", label: "\u81ea\u5b9a\u4e49\u5de5\u5177", prefix: "custom_", defaults: { ask: "own", auto: "own", fullAuto: "own", readonly: "deny" } },
+  { id: "mcp", label: "MCP \u5de5\u5177", mcp: true, defaults: { ask: "ask", auto: "allow", fullAuto: "allow", readonly: "deny" } },
+  { id: "branchCommand", label: "\u591a\u6a21\u578b\u540e\u53f0\u5206\u652f\u00b7\u7ec8\u7aef\u547d\u4ee4", follow: "terminal" },
+  { id: "worktreeEdit", label: "\u9694\u79bb\u5de5\u4f5c\u6811\u6539\u52a8", defaults: { ask: "allow", auto: "allow", fullAuto: "allow", readonly: "deny" } }
+];
+// 不需要权限的内部工具（读取、搜索、诊断、读取记忆与技能、任务卡与计划）：三种模式下都直接允许，不在「更多」里显示；旧的类别/单工具设置忽略
+var OC_PERMISSION_FREE_CATEGORY_IDS = /* @__PURE__ */ new Set(["read", "search", "diagnostics", "memoryRead", "tasks"]);
+var OC_PERMISSION_FREE_TOOLS = /* @__PURE__ */ new Set(["read_files", "read_image", "find_files", "search_files", "list_directory", "get_diagnostics", "lsp", "bridge_memory_brief", "bridge_memory_recall", "bridge_memory_search", "bridge_memory_status", "bridge_memory_digest", "bridge_memory_selftest", "list_skills", "bridge_search_sessions", "set_todos", "update_plan", "report_progress"]);
+// OpenCode: 「权限」菜单里的「隔离沙箱」开关——写入底层终端沙盒设置（Windows 为 chat.agent.sandbox.enabledWindows，其它平台为 chat.agent.sandbox.enabled）。
+// 扩展的托管终端（opencode_run_command 实际运行的 Bash）在 Windows 上按此设置以低完整性令牌启动：只能写入带低完整性标签的工作区目录，其余位置写入被系统拒绝。
+var OC_SANDBOX_SETTING = isWindows ? "chat.agent.sandbox.enabledWindows" : "chat.agent.sandbox.enabled";
+var OC_SANDBOX_LABEL = "\u9694\u79bb\u6c99\u7bb1";
+var OC_SANDBOX_ON_CLASS = "oc-perm-sandbox-on";
+// 自绘菜单（窗口使用自定义标题栏时）把开启状态的「隔离沙箱」项染成主题强调色；原生菜单（titleBarStyle=native）无法着色，只显示勾选
+function ocDecorateSandboxMenuItem(doc, enabled) {
+  const view = doc?.querySelector?.(".context-view.oc-permission-menu");
+  if (!view) return;
+  const roots = [view];
+  for (const el of view.querySelectorAll("*")) if (el.shadowRoot) roots.push(el.shadowRoot);
+  for (const root of roots) {
+    for (const label of root.querySelectorAll(".action-label")) {
+      if (label.textContent?.trim() !== OC_SANDBOX_LABEL) continue;
+      const item = label.closest(".action-menu-item") ?? label;
+      item.classList.toggle(OC_SANDBOX_ON_CLASS, enabled);
+      const color = enabled ? "var(--vscode-textLink-foreground, var(--vscode-button-background, #3794ff))" : "";
+      for (const el of [item, ...item.querySelectorAll(".action-label, .menu-item-check")]) el.style.color = color;
+      item.style.fontWeight = enabled ? "600" : "";
+    }
+  }
+}
+// 「权限」菜单及其子菜单：超出视口时往上推 / 换方向，保证每一项都在可见区域内（超高时由 VS Code Menu 自带的 max-height = 视口高度 - 35 + 滚动条处理）
+function ocFitMenuToViewport(el) {
+  const win = el?.ownerDocument?.defaultView;
+  if (!win) return;
+  const margin = 4;
+  const r = el.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  let dy = 0, dx = 0;
+  if (r.bottom > win.innerHeight - margin) dy = win.innerHeight - margin - r.bottom;
+  if (r.top + dy < margin) dy = margin - r.top;
+  if (r.right > win.innerWidth - margin) dx = win.innerWidth - margin - r.right;
+  if (r.left + dx < margin) dx = margin - r.left;
+  if (dy) el.style.top = `${(parseFloat(el.style.top) || 0) + dy}px`;
+  if (dx) el.style.left = `${(parseFloat(el.style.left) || 0) + dx}px`;
+}
+function ocWatchMenuViewport(doc, className) {
+  const view = doc?.querySelector?.(`.context-view.${className}`);
+  const Observer = doc?.defaultView?.MutationObserver;
+  if (!view || !Observer) return void 0;
+  const fit = (el) => doc.defaultView.requestAnimationFrame(() => ocFitMenuToViewport(el));
+  const observer = new Observer((records) => {
+    for (const record of records) for (const node of record.addedNodes) if (node?.classList?.contains("monaco-submenu")) fit(node);
+  });
+  observer.observe(view, { childList: true, subtree: true });
+  return observer;
+}
+function ocEnsureStyles(doc) {
+  if (!doc || doc.getElementById("oc-chat-sessions-style")) return;
+  const style = doc.createElement("style");
+  style.id = "oc-chat-sessions-style";
+  style.textContent = `
+.agent-sessions-title-container .oc-sessions-new-chat,
+.agent-sessions-title-container .oc-sessions-permission,
+.agent-sessions-title-container .oc-session-workspace-chip { display: inline-flex; align-items: center; gap: 3px; height: 20px; padding: 0 6px; margin-left: 6px; border-radius: 4px; font-size: 11px; line-height: 20px; cursor: pointer; color: var(--vscode-foreground, #cccccc); background: transparent; white-space: nowrap; min-width: 0; flex-shrink: 1; text-decoration: none; }
+/* OpenCode titlebar-step01: 标题行窄时工作区标签先缩，按钮收进「…」 */
+.agent-sessions-title-container { min-width: 0; overflow: hidden; }
+.agent-sessions-title-container .agent-sessions-toolbar { min-width: 0; flex: 0 1 auto; overflow: hidden; }
+.agent-sessions-title-container .oc-session-workspace-chip { min-width: 24px; flex: 0 1 auto; overflow: hidden; }
+.agent-sessions-title-container .oc-sessions-new-chat, .agent-sessions-title-container .oc-sessions-permission { flex: none; }
+.agent-sessions-title-container .oc-session-workspace-chip { max-width: 160px; }
+.agent-sessions-title-container .oc-sessions-new-chat,
+.agent-sessions-title-container .oc-sessions-permission { flex-shrink: 0; }
+.agent-sessions-title-container .oc-sessions-permission.oc-perm-auto > .codicon:first-child { color: var(--vscode-editorWarning-foreground, #cca700); }
+.agent-sessions-title-container .oc-sessions-permission.oc-perm-readonly > .codicon:first-child { color: var(--vscode-textLink-foreground, #3794ff); }
+.agent-sessions-title-container .oc-sessions-permission.oc-perm-fullauto > .codicon:first-child { color: var(--vscode-editorError-foreground, #f14c4c); }
+.agent-sessions-title-container .oc-sessions-permission .oc-perm-sandbox-badge.codicon { font-size: 11px; color: var(--vscode-textLink-foreground, #3794ff); }
+.agent-sessions-title-container .oc-sessions-new-chat:hover,
+.agent-sessions-title-container .oc-sessions-permission:hover,
+.agent-sessions-title-container .oc-session-workspace-chip:hover { background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31)); }
+.agent-sessions-title-container .oc-sessions-new-chat:focus-visible,
+.agent-sessions-title-container .oc-sessions-permission:focus-visible,
+.agent-sessions-title-container .oc-session-workspace-chip:focus-visible { outline: 1px solid var(--vscode-focusBorder, #007fd4); }
+.agent-sessions-title-container .oc-session-workspace-chip .codicon,
+.agent-sessions-title-container .oc-sessions-permission .codicon,
+.agent-sessions-title-container .oc-sessions-new-chat .codicon { font-size: 12px; }
+.agent-sessions-title-container .oc-ws-chip-label { overflow: hidden; text-overflow: ellipsis; }
+.agent-sessions-title { cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 2px; }
+.oc-sessions-chevron.codicon { font-size: 12px; }
+/* OpenCode: 新对话是纯图标按钮靠左，权限与工作区靠右 */
+.agent-sessions-title-container .oc-sessions-new-chat { order: -1; justify-content: center; width: 22px; height: 22px; padding: 0; margin: 0 2px 0 0; border-radius: 5px; color: var(--vscode-icon-foreground, #c5c5c5); }
+.agent-sessions-title-container .oc-sessions-new-chat .codicon { font-size: 16px; color: inherit; }
+.agent-sessions-title-container .oc-sessions-permission { margin-left: auto; }
+/* OpenCode: 不显示空对话欢迎页标题（「使用智能体构建」） */
+.chat-welcome-view-title { display: none !important; }
+/* OpenCode: 左侧 CHAT / BRIDGE 标题即切换按钮，前面带图标 */
+.composite-bar .action-item a.action-label[data-oc-mode] { cursor: pointer; position: relative; padding-left: 20px !important; }
+.composite-bar .action-item a.action-label[data-oc-mode]::before { content: "\\eac7" !important; position: absolute !important; left: 0 !important; top: 50% !important; transform: translateY(-50%) !important; width: 16px !important; height: 16px !important; margin: 0 !important; padding: 0 !important; border: none !important; background: none !important; font-family: codicon !important; font-size: 15px !important; line-height: 16px !important; font-weight: normal !important; text-transform: none !important; text-align: center; }
+.composite-bar .action-item a.action-label[data-oc-mode="bridge"]::before { content: "\\eb34" !important; }
+/* OpenCode bridge-switch-step01: Chat 停到侧栏/面板后，用标题文字切换 Chat / Bridge */
+.title-label h2[data-oc-mode], .pane-header h3.title[data-oc-mode] { cursor: pointer; position: relative; padding-left: 20px !important; overflow: visible !important; }
+.title-label h2[data-oc-mode]::before, .pane-header h3.title[data-oc-mode]::before { content: "\\eac7"; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; font-family: codicon; font-size: 15px; line-height: 16px; font-weight: normal; text-transform: none; text-align: center; }
+.title-label h2[data-oc-mode="bridge"]::before, .pane-header h3.title[data-oc-mode="bridge"]::before { content: "\\eb34"; }
+.title-label h2[data-oc-mode]:hover, .pane-header h3.title[data-oc-mode]:hover { color: var(--vscode-foreground); }
+.oc-sessions-compact .agent-sessions-container { border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, rgba(128, 128, 128, 0.35)); }
+/* OpenCode sessions-click-1717: 左右排列时单击进入对话全页，左上角「返回」回到列表页 */
+.oc-session-back-bar { display: flex; align-items: center; height: 26px; min-height: 26px; padding: 0 8px; box-sizing: border-box; flex-shrink: 0; }
+.oc-session-back-bar .oc-session-back { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px; border-radius: 5px; cursor: pointer; user-select: none; color: var(--vscode-foreground); text-decoration: none; }
+.oc-session-back-bar .oc-session-back:hover { background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31)); }
+.oc-session-back-bar .oc-session-back:focus-visible { outline: 1px solid var(--vscode-focusBorder, #007fd4); }
+.oc-session-back-bar .oc-session-back .codicon { font-size: 14px; }
+`;
+  (doc.head || doc.documentElement).appendChild(style);
+}
 var ChatViewPane = class extends ViewPane {
   constructor(options3, keybindingService2, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService, storageService, chatService, chatAgentService, logService, notificationService, layoutService, chatSessionsService, telemetryService, lifecycleService, progressService, agentSessionsService, chatEntitlementService, commandService, activityService, hostService, micCaptureService, ttsPlaybackService, voiceSessionController, voiceInputModeService, chatWidgetService, _agentTitleBarStatusService, _voicePlaybackService, _workbenchEnvironmentService, workspaceContextService, agentHostEnablementService, accessibilityService) {
     super(options3, keybindingService2, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
@@ -124,6 +411,10 @@ var ChatViewPane = class extends ViewPane {
     this._voiceBarDisposables = this._register(new DisposableStore());
     this.sessionsViewerOrientation = 1 /* Stacked */;
     this.sessionsViewerOrientationConfiguration = "sideBySide";
+    // OpenCode: 对话列表常驻 + 每个对话的工作区
+    this.ocSessionsCollapsed = this.storageService.getBoolean(OC_SESSIONS_COLLAPSED_KEY, -1 /* APPLICATION */, false);
+    ocActiveChatViewPane = this;
+    globalThis.__ocSessionWorkspaceLabel = (resource) => { try { return ocWsLabel(ocGetSessionWorkspace(this.storageService, resource)); } catch { return ""; } };
     this.sessionsViewerSashDisposables = this._register(new MutableDisposable());
     //#region Layout
     this.layoutingBody = false;
@@ -165,11 +456,63 @@ var ChatViewPane = class extends ViewPane {
   renderHeader(container3) {
     super.renderHeader(container3);
     this.updateTitle(this.getModeViewTitle());
+    this.ocInstallModeTab(container3.ownerDocument);
   }
   updateTitle(_title) {
     const title = this.getModeViewTitle();
     super.updateTitle(title);
     this.updateContainerTitle(title);
+    this.ocScheduleTagModeTab();
+  }
+  // OpenCode: 左侧视图标题（CHAT / BRIDGE）带图标，点击即在聊天与 Bridge 之间切换
+  ocInstallModeTab(doc) {
+    if (!doc || this.ocModeTabDoc === doc) return;
+    this.ocModeTabDoc = doc;
+    ocEnsureStyles(doc);
+    this._register(addDisposableListener(doc, EventType.CLICK, (e) => {
+      const tab = e.target?.closest?.("a.action-label[data-oc-mode], .title-label h2[data-oc-mode], .pane-header h3.title[data-oc-mode]");
+      if (!tab) return;
+      EventHelper.stop(e, true);
+      e.stopImmediatePropagation?.();
+      const toBridge = tab.getAttribute("data-oc-mode") !== "bridge";
+      void this.commandService.executeCommand(toBridge ? "opencode.bridge.openSession" : "_opencode.bridge.showChat");
+    }, true));
+    const Observer = doc.defaultView?.MutationObserver;
+    if (Observer) {
+      const observer = new Observer(() => this.ocScheduleTagModeTab());
+      for (const part of doc.querySelectorAll(".part.auxiliarybar, .part.sidebar, .part.panel")) {
+        observer.observe(part, { childList: true, subtree: true, characterData: true });
+      }
+      this._register(toDisposable(() => observer.disconnect()));
+    }
+    this.ocScheduleTagModeTab();
+  }
+  ocScheduleTagModeTab() {
+    const doc = this.ocModeTabDoc;
+    const win = doc?.defaultView;
+    if (!win || this.ocModeTabFrame) return;
+    this.ocModeTabFrame = win.requestAnimationFrame(() => {
+      this.ocModeTabFrame = 0;
+      this.ocTagModeTab();
+    });
+  }
+  ocTagModeTab() {
+    const doc = this.ocModeTabDoc;
+    if (!doc) return;
+    // OpenCode bridge-switch-step09: 不再把容器标签/标题改造成切换按钮（左右两边长得不一样）；统一用视图标题栏按钮
+    for (const label of doc.querySelectorAll("[data-oc-mode]")) label.removeAttribute("data-oc-mode");
+    return;
+    const chatTitle = localize(12705, null);
+    const bridgeTitle = localize(12704, null);
+    for (const label of doc.querySelectorAll(".composite-bar .action-item a.action-label, .part > .composite.title .title-label h2, .pane-header h3.title")) {
+      const text = (label.textContent || "").trim();
+      const mode = text === bridgeTitle ? "bridge" : text === chatTitle ? "chat" : void 0;
+      if (!mode) {
+        if (label.hasAttribute("data-oc-mode")) label.removeAttribute("data-oc-mode");
+        continue;
+      }
+      if (label.getAttribute("data-oc-mode") !== mode) label.setAttribute("data-oc-mode", mode);
+    }
   }
   updateContainerTitle(title) {
     const viewContainer5 = this.viewDescriptorService.getViewContainerByViewId(this.id);
@@ -401,6 +744,8 @@ var ChatViewPane = class extends ViewPane {
     const welcomeController = this.welcomeController = this._register(this.instantiationService.createInstance(ChatViewWelcomeController, parent, this, "panel" /* Chat */));
     const chatWidget = this.createChatControl(parent, taskShelfParent);
     this.registerControlsListeners(sessionsControl, chatWidget, welcomeController);
+    this._register(chatWidget.onDidChangeViewModel(() => this.ocRefreshWorkspaceUi()));
+    this.ocRefreshWorkspaceUi();
     this.updateSessionsControlVisibility();
   }
   _updateVoiceBar(container3) {
@@ -756,19 +1101,69 @@ var ChatViewPane = class extends ViewPane {
   get agentSessionsControl() {
     return this.sessionsControl;
   }
+  ocSessionsToolbarWidth(row, toolbarEl) {
+    const width2 = row.clientWidth;
+    if (!width2) return Number.MAX_SAFE_INTEGER;
+    let used = 0;
+    for (const child of row.children) {
+      if (child === toolbarEl) continue;
+      const w = child.getBoundingClientRect().width;
+      used += child.classList.contains("oc-session-workspace-chip") ? Math.min(w, 56) : w;
+    }
+    return Math.max(24, width2 - used - 16);
+  }
   createSessionsControl(parent) {
     const sessionsContainer = this.sessionsContainer = parent.appendChild($(".agent-sessions-container"));
     const sessionsTitleContainer = this.sessionsTitleContainer = append(sessionsContainer, $(".agent-sessions-title-container"));
     const sessionsTitle = this.sessionsTitle = append(sessionsTitleContainer, $("span.agent-sessions-title"));
-    sessionsTitle.textContent = localize(12703, null);
+    ocEnsureStyles(sessionsContainer.ownerDocument);
+    this.ocSessionsChevron = append(sessionsTitle, $("span.oc-sessions-chevron"));
+    // OpenCode: 标题行不再显示「对话」文字；打开对话时保留折叠箭头用于收起/展开列表
+    sessionsTitle.title = "\u6536\u8d77/\u5c55\u5f00\u5bf9\u8bdd\u5217\u8868";
     this._register(addDisposableListener(sessionsTitle, EventType.CLICK, () => {
+      if (this.sessionsViewerOrientation === 1 /* Stacked */ && this.ocIsChatOpen()) {
+        // OpenCode: 窄面板打开对话时，标题行就是「返回」：回到对话列表
+        void this.clear().then(() => this.focusSessions());
+        return;
+      }
       this.sessionsControl?.scrollToTop();
       this.sessionsControl?.focus();
     }));
     const sessionsToolbarContainer = append(sessionsTitleContainer, $(".agent-sessions-toolbar"));
     const sessionsToolbar = this._register(this.instantiationService.createInstance(MenuWorkbenchToolBar, sessionsToolbarContainer, MenuId.AgentSessionsToolbar, {
-      menuOptions: { shouldForwardArgs: true }
+      menuOptions: { shouldForwardArgs: true },
+      // OpenCode titlebar-step01: 宽度不够时收进「…」，不再出界
+      responsiveBehavior: { enabled: true, observedElement: sessionsTitleContainer, getAvailableWidth: () => this.ocSessionsToolbarWidth(sessionsTitleContainer, sessionsToolbarContainer), actionMinWidth: 22 }
     }));
+    // OpenCode: 标题行左侧的纯图标「新对话」按钮
+    const ocNewChat = sessionsTitleContainer.insertBefore($("a.oc-sessions-new-chat"), sessionsToolbarContainer);
+    ocNewChat.setAttribute("role", "button");
+    ocNewChat.tabIndex = 0;
+    append(ocNewChat, $("span.codicon.codicon-add"));
+    ocNewChat.setAttribute("aria-label", "\u65b0\u5efa\u5bf9\u8bdd");
+    ocNewChat.title = "\u65b0\u5efa\u5bf9\u8bdd";
+    this._register(addDisposableListener(ocNewChat, EventType.CLICK, (e) => { EventHelper.stop(e, true); this.commandService.executeCommand(ACTION_ID_NEW_CHAT, this.getActionsContext()); }));
+    // OpenCode: 标题行「权限」按钮——工具权限模式与 MCP 工具权限（设置 opencode.chat.permissionMode / opencode.chat.mcpPermissions）
+    const ocPerm = this.ocPermissionButton = append(sessionsTitleContainer, $("a.oc-sessions-permission"));
+    ocPerm.setAttribute("role", "button");
+    ocPerm.setAttribute("aria-haspopup", "menu");
+    ocPerm.tabIndex = 0;
+    const ocOpenPerm = (e) => { EventHelper.stop(e, true); this.ocShowPermissionMenu(ocPerm); };
+    this._register(addDisposableListener(ocPerm, EventType.CLICK, ocOpenPerm));
+    this._register(addDisposableListener(ocPerm, EventType.KEY_DOWN, (e) => { if (e.key === "Enter" || e.key === " ") ocOpenPerm(e); }));
+    this.ocRefreshPermissionUi();
+    this._register(this.configurationService.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration(OC_PERMISSION_MODE_SETTING) || e.affectsConfiguration(OC_MCP_PERMISSIONS_SETTING) || e.affectsConfiguration(OC_CATEGORY_PERMISSIONS_SETTING) || e.affectsConfiguration(OC_TOOL_PERMISSIONS_SETTING) || e.affectsConfiguration(OC_SANDBOX_SETTING)) this.ocRefreshPermissionUi();
+    }));
+    // OpenCode: 标题行右侧的当前对话工作区选择
+    const ocChip = this.ocWorkspaceChip = append(sessionsTitleContainer, $("a.oc-session-workspace-chip"));
+    ocChip.setAttribute("role", "button");
+    ocChip.tabIndex = 0;
+    // OpenCode: 工作区选择在按钮正下方弹出（不再使用顶部的 QuickPick 搜索框）
+    ocChip.setAttribute("aria-haspopup", "menu");
+    const ocPick = (e) => { EventHelper.stop(e, true); void this.ocShowWorkspaceMenu(ocChip); };
+    this._register(addDisposableListener(ocChip, EventType.CLICK, ocPick));
+    this._register(addDisposableListener(ocChip, EventType.KEY_DOWN, (e) => { if (e.key === "Enter" || e.key === " ") ocPick(e); }));
     const sessionsFilter = this._register(this.instantiationService.createInstance(AgentSessionsFilter, {
       filterMenuId: MenuId.AgentSessionsViewerFilterSubMenu,
       groupResults: () => this.sessionsViewerOrientation === 1 /* Stacked */ ? "capped" /* Capped */ : "date" /* Date */
@@ -792,7 +1187,12 @@ var ChatViewPane = class extends ViewPane {
         return !this._widget || this._widget.isEmpty();
       },
       overrideSessionOpenOptions: (openEvent) => {
-        if (this.sessionsViewerOrientation === 1 /* Stacked */ && !openEvent.sideBySide) {
+        // OpenCode sessions-click-1717: 单击（非中键、非并排打开）= 进入该对话全页，列表隐藏，左上角「返回」
+        const ocEnter = !openEvent.sideBySide && openEvent.browserEvent?.button !== 1 && !!openEvent.element?.resource;
+        if (ocEnter) {
+          this.ocFocusedSessionResource = openEvent.element.resource;
+        }
+        if ((this.sessionsViewerOrientation === 1 /* Stacked */ || ocEnter) && !openEvent.sideBySide) {
           return { ...openEvent, editorOptions: {
             ...openEvent.editorOptions,
             preserveFocus: false
@@ -814,6 +1214,315 @@ var ChatViewPane = class extends ViewPane {
       this.doUpdateConfiguredSessionsViewerOrientation(newSessionsViewerOrientationConfiguration, { updateConfiguration: false, layout: !!e });
     }));
     return sessionsControl;
+  }
+  ocPermissionMode() {
+    return normalizeOpenCodePermissionMode(this.configurationService.getValue(OC_PERMISSION_MODE_SETTING));
+  }
+  ocSandboxEnabled() {
+    return isAgentSandboxEnabledValue(this.configurationService.getValue(OC_SANDBOX_SETTING));
+  }
+  async ocToggleSandbox() {
+    if (!isWindows) return;
+    await this.ocUpdatePermissionSetting(OC_SANDBOX_SETTING, this.ocSandboxEnabled() ? "off" : "on");
+  }
+  ocMcpPermissions() {
+    const raw = this.configurationService.getValue(OC_MCP_PERMISSIONS_SETTING);
+    const rules = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+    const clean = (map) => {
+      const out = {};
+      if (map && typeof map === "object" && !Array.isArray(map)) for (const [key, value2] of Object.entries(map)) if (ocNormalizePermission(value2)) out[key] = value2;
+      return out;
+    };
+    return { servers: clean(rules.servers), tools: clean(rules.tools) };
+  }
+  ocRefreshPermissionUi() {
+    const el = this.ocPermissionButton;
+    if (!el) return;
+    const mode = this.ocPermissionMode();
+    const meta = OC_PERMISSION_MODES.find((m) => m.id === mode) ?? OC_PERMISSION_MODES[0];
+    el.replaceChildren();
+    append(el, $(`span.codicon.codicon-${meta.icon}`));
+    append(el, $("span")).textContent = "\u6743\u9650";
+    const sandboxOn = isWindows && this.ocSandboxEnabled();
+    if (sandboxOn) append(el, $("span.codicon.codicon-shield.oc-perm-sandbox-badge"));
+    append(el, $("span.codicon.codicon-chevron-down"));
+    el.title = `\u5bf9\u8bdd\u5de5\u5177\u6743\u9650\uff1a${meta.label}\n${meta.detail}${Object.keys(this.ocCategoryPermissions()).length + Object.keys(this.ocToolPermissions()).length ? `\n\u5df2\u5355\u72ec\u8bbe\u7f6e ${Object.keys(this.ocCategoryPermissions()).length} \u4e2a\u7c7b\u522b\u3001${Object.keys(this.ocToolPermissions()).length} \u4e2a\u5de5\u5177` : ""}${sandboxOn ? "\n\u9694\u79bb\u6c99\u7bb1\uff1a\u5df2\u5f00\u542f\uff08AI \u8fd0\u884c\u7684\u7ec8\u7aef\u547d\u4ee4\u53ea\u80fd\u5199\u5165\u5de5\u4f5c\u533a\uff09" : ""}\n\u70b9\u51fb\u5207\u6362\u6a21\u5f0f\uff1b\u300c\u66f4\u591a\u300d\u91cc\u53ef\u6309\u7c7b\u522b\uff08\u7ec8\u7aef\u3001\u6539\u6587\u4ef6\u3001MCP \u7b49\uff09\u6216\u5355\u4e2a\u5de5\u5177\u8bbe\u4e3a\u5141\u8bb8 / \u8be2\u95ee / \u7981\u6b62`;
+    el.setAttribute("aria-label", `\u6743\u9650\uff1a${meta.label}`);
+    el.classList.toggle("oc-perm-auto", mode === "auto");
+    el.classList.toggle("oc-perm-fullauto", mode === "fullAuto");
+    el.classList.toggle("oc-perm-readonly", mode === "readonly");
+  }
+  async ocUpdatePermissionSetting(key, value2) {
+    try {
+      await this.configurationService.updateValue(key, value2);
+    } catch (error2) {
+      this.notificationService.error(`\u4fdd\u5b58\u6743\u9650\u8bbe\u7f6e\u5931\u8d25\uff1a${toErrorMessage(error2)}`);
+    }
+    this.ocRefreshPermissionUi();
+  }
+  ocSetMcpPermission(kind, key, decision) {
+    const current = this.ocMcpPermissions();
+    if (decision) current[kind][key] = decision;
+    else delete current[kind][key];
+    return this.ocUpdatePermissionSetting(OC_MCP_PERMISSIONS_SETTING, current);
+  }
+  ocMcpServers() {
+    const servers = /* @__PURE__ */ new Map();
+    let toolsService;
+    try {
+      toolsService = this.instantiationService.invokeFunction((accessor) => accessor.get(ILanguageModelToolsService));
+    } catch {
+    }
+    try {
+      for (const tool of toolsService ? toolsService.getAllToolsIncludingDisabled() : []) {
+        if (tool?.source?.type !== "mcp") continue;
+        const label = String(tool.source.serverLabel || tool.source.label || "").trim();
+        if (!label) continue;
+        if (!servers.has(label)) servers.set(label, []);
+        servers.get(label).push(tool);
+      }
+    } catch {
+    }
+    for (const key of Object.keys(this.ocMcpPermissions().servers)) if (!servers.has(key)) servers.set(key, []);
+    return [...servers].sort((a, b) => a[0].localeCompare(b[0]));
+  }
+  ocCategoryPermissions() {
+    const raw = this.configurationService.getValue(OC_CATEGORY_PERMISSIONS_SETTING);
+    const out = {};
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) for (const [key, value2] of Object.entries(raw)) if (!OC_PERMISSION_FREE_CATEGORY_IDS.has(key) && ocNormalizePermission(value2)) out[key] = value2;
+    return out;
+  }
+  ocToolPermissions() {
+    const raw = this.configurationService.getValue(OC_TOOL_PERMISSIONS_SETTING);
+    const out = {};
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) for (const [key, value2] of Object.entries(raw)) if (!OC_PERMISSION_FREE_TOOLS.has(key) && ocNormalizePermission(value2)) out[key] = value2;
+    return out;
+  }
+  ocSetMapPermission(setting, current, key, decision) {
+    if (decision) current[key] = decision;
+    else delete current[key];
+    return this.ocUpdatePermissionSetting(setting, current);
+  }
+  // OpenCode: 对话工作区下拉菜单（参考 Cursor：最近项目、打开文件夹、在新窗口打开、在资源管理器中显示、复制路径、从最近移除）
+  async ocShowWorkspaceMenu(anchor) {
+    const resource = this._widget?.viewModel?.sessionResource ?? ocToResource();
+    if (!resource) return;
+    const { storage, contextService, workspacesService, fileDialog } = this.instantiationService.invokeFunction((accessor) => {
+      let ws;
+      try { ws = accessor.get(IWorkspacesService); } catch {}
+      return { storage: accessor.get(IStorageService), contextService: accessor.get(IWorkspaceContextService), workspacesService: ws, fileDialog: accessor.get(IFileDialogService) };
+    });
+    const stored = ocGetSessionWorkspace(storage, resource);
+    const current = stored ?? ocDefaultWorkspace(storage, contextService);
+    const currentKey = current?.kind !== "home" ? current?.path?.toLowerCase() : void 0;
+    const openFolders = new Set();
+    const savedRecent = new Set(ocRecentWorkspaces(storage).map((r) => r.path.toLowerCase()));
+    const entries = [];
+    const seen = new Set();
+    const push = (entry) => {
+      if (!entry?.path) return;
+      const k = entry.path.toLowerCase();
+      if (seen.has(k)) return;
+      seen.add(k);
+      entries.push(entry);
+    };
+    for (const f of contextService.getWorkspace().folders) if (f.uri.scheme === "file") { openFolders.add(f.uri.fsPath.toLowerCase()); push({ kind: "folder", path: f.uri.fsPath, name: f.name }); }
+    for (const r of ocRecentWorkspaces(storage)) push(r);
+    try {
+      const recent = await workspacesService?.getRecentlyOpened();
+      for (const w of recent?.workspaces ?? []) {
+        if (entries.length >= 12) break;
+        const uri = w.folderUri;
+        if (uri?.scheme === "file") push({ kind: "folder", path: uri.fsPath, name: ocWsBasename(uri.fsPath) });
+      }
+    } catch {}
+    const apply = (entry) => {
+      ocSetSessionWorkspace(storage, resource, entry);
+      this.ocRefreshWorkspaceUi?.();
+    };
+    const info = (id, label) => toAction({ id, label, enabled: false, run: () => void 0 });
+    const actions = [];
+    actions.push(info("opencode.ws.current", current ? `当前：${ocWsLabel(current)}${current.path ? `（${current.path}）` : ""}${stored ? "" : "（默认）"}` : "当前对话未选择工作区"));
+    if (entries.length) {
+      actions.push(new Separator(), info("opencode.ws.recentHeader", "最近使用"));
+      entries.slice(0, 12).forEach((entry, i) => {
+        const k = entry.path.toLowerCase();
+        const tags = [openFolders.has(k) ? "当前打开" : "", entry.path].filter(Boolean).join(" · ");
+        actions.push(toAction({ id: `opencode.ws.pick.${i}`, label: `${entry.name || ocWsBasename(entry.path)}`, tooltip: tags, checked: k === currentKey, run: () => apply(entry) }));
+      });
+    }
+    actions.push(new Separator());
+    actions.push(toAction({ id: "opencode.ws.browse", label: "打开文件夹…", run: async () => {
+      const uris = await fileDialog.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false, title: "选择对话工作区", openLabel: "选择" });
+      const uri = uris?.[0];
+      if (uri) apply({ kind: "folder", path: uri.fsPath, name: ocWsBasename(uri.fsPath) });
+    } }));
+    actions.push(toAction({ id: "opencode.ws.home", label: "无工作区 / 用户目录", checked: current?.kind === "home", run: () => apply({ kind: "home", path: "", name: "用户目录" }) }));
+    if (current?.path) {
+      const uri = URI.file(current.path);
+      const more = [
+        toAction({ id: "opencode.ws.reveal", label: isWindows ? "在文件资源管理器中显示" : "在系统文件管理器中显示", run: () => this.commandService.executeCommand("revealFileInOS", uri) }),
+        toAction({ id: "opencode.ws.copyPath", label: "复制路径", run: () => anchor.ownerDocument?.defaultView?.navigator?.clipboard?.writeText(current.path) }),
+        toAction({ id: "opencode.ws.openWindow", label: "在新窗口中打开此文件夹", run: () => this.commandService.executeCommand("vscode.openFolder", uri, { forceNewWindow: true }) }),
+        toAction({ id: "opencode.ws.openHere", label: "在当前窗口中打开此文件夹", enabled: !openFolders.has(current.path.toLowerCase()), run: () => this.commandService.executeCommand("vscode.openFolder", uri, { forceNewWindow: false }) })
+      ];
+      actions.push(new Separator(), new SubmenuAction("opencode.ws.more", "当前工作区", more));
+    }
+    const removable = entries.filter((e) => savedRecent.has(e.path.toLowerCase()) && e.path.toLowerCase() !== currentKey);
+    if (removable.length) {
+      actions.push(new SubmenuAction("opencode.ws.remove", "从最近使用中移除", removable.map((entry, i) => toAction({ id: `opencode.ws.remove.${i}`, label: entry.name || ocWsBasename(entry.path), tooltip: entry.path, run: () => {
+        const left = ocRecentWorkspaces(storage).filter((r) => r.path.toLowerCase() !== entry.path.toLowerCase());
+        storage.store(OC_RECENT_WS_KEY, JSON.stringify(left), -1 /* APPLICATION */, 1 /* MACHINE */);
+      } }))));
+    }
+    let viewportWatcher;
+    this.contextMenuService.showContextMenu({
+      getAnchor: () => anchor,
+      getActions: () => actions,
+      getMenuClassName: () => "oc-permission-menu",
+      onHide: () => {
+        viewportWatcher?.disconnect();
+        viewportWatcher = void 0;
+        anchor.focus?.();
+      }
+    });
+    try {
+      viewportWatcher = ocWatchMenuViewport(anchor.ownerDocument, "oc-permission-menu");
+    } catch {}
+  }
+  ocShowPermissionMenu(anchor) {
+    const mode = this.ocPermissionMode();
+    const modeMeta = OC_PERMISSION_MODES.find((m) => m.id === mode) ?? OC_PERMISSION_MODES[0];
+    const perms = this.ocMcpPermissions();
+    const categoryRules = this.ocCategoryPermissions();
+    const toolRules = this.ocToolPermissions();
+    const decisionItems = (idPrefix, current, inheritLabel, apply) => [
+      ...["allow", "ask", "deny"].map((decision) => toAction({ id: `${idPrefix}.${decision}`, label: OC_PERMISSION_DECISION_LABEL[decision], checked: current === decision, run: () => apply(decision) })),
+      toAction({ id: `${idPrefix}.inherit`, label: inheritLabel, checked: !current, run: () => apply(void 0) })
+    ];
+    const info = (id, label) => toAction({ id, label, enabled: false, run: () => void 0 });
+    const defaultLabel = (decision) => decision === "own" ? "\u6309\u5de5\u5177\u5b9a\u4e49\u7684 confirm" : OC_PERMISSION_DECISION_LABEL[decision] ?? "";
+    const categoryEffective = (category) => {
+      const rule = categoryRules[category.id];
+      if (rule) return OC_PERMISSION_DECISION_LABEL[rule];
+      if (category.follow) return categoryEffective(OC_PERMISSION_CATEGORIES.find((c) => c.id === category.follow));
+      return defaultLabel(category.defaults?.[mode]);
+    };
+    const actions = OC_PERMISSION_MODES.map((m) => toAction({ id: `opencode.permission.mode.${m.id}`, label: m.label, tooltip: m.detail, checked: m.id === mode, run: () => this.ocUpdatePermissionSetting(OC_PERMISSION_MODE_SETTING, m.id) }));
+    // MCP：按服务器 / 按工具（mcpPermissions），工具 > 服务器 > MCP 类别 > 模式
+    const mcpCategoryLabel = categoryEffective(OC_PERMISSION_CATEGORIES.find((c) => c.id === "mcp"));
+    const servers = this.ocMcpServers();
+    const serverItems = servers.length ? servers.map(([label, tools]) => {
+      const serverRule = perms.servers[label];
+      const children = decisionItems(`opencode.permission.mcp.server.${label}`, serverRule, `\u8ddf\u968f\u300cMCP \u5de5\u5177\u300d\uff08${mcpCategoryLabel}\uff09`, (decision) => this.ocSetMcpPermission("servers", label, decision));
+      const toolItems = tools.slice().sort((a, b) => String(a.displayName || a.id).localeCompare(String(b.displayName || b.id))).map((tool) => {
+        const toolRule = perms.tools[tool.id];
+        const name = String(tool.displayName || tool.toolReferenceName || tool.id);
+        return new SubmenuAction(`opencode.permission.mcp.tool.${tool.id}`, toolRule ? `${name}\uff08${OC_PERMISSION_DECISION_LABEL[toolRule]}\uff09` : name, decisionItems(`opencode.permission.mcp.tool.${tool.id}`, toolRule, "\u8ddf\u968f\u670d\u52a1\u5668", (decision) => this.ocSetMcpPermission("tools", tool.id, decision)));
+      });
+      if (toolItems.length) children.push(new Separator(), ...toolItems);
+      return new SubmenuAction(`opencode.permission.mcp.server.${label}`, `${label}\uff08${serverRule ? OC_PERMISSION_DECISION_LABEL[serverRule] : "\u8ddf\u968f"}\uff09`, children);
+    }) : [];
+    const categoryItems = OC_PERMISSION_CATEGORIES.map((category) => {
+      const rule = categoryRules[category.id];
+      const setCategory = (decision) => this.ocSetMapPermission(OC_CATEGORY_PERMISSIONS_SETTING, this.ocCategoryPermissions(), category.id, decision);
+      const followTarget = category.follow ? OC_PERMISSION_CATEGORIES.find((c) => c.id === category.follow) : void 0;
+      const inheritLabel = followTarget ? `\u8ddf\u968f\u300c${followTarget.label}\u300d\uff08${categoryEffective(followTarget)}\uff09` : `\u8ddf\u968f\u6a21\u5f0f\uff08${modeMeta.label}\uff1a${defaultLabel(category.defaults?.[mode])}\uff09`;
+      const children = [];
+      const toolNames = category.tools ? category.tools.slice() : category.prefix ? Object.keys(toolRules).filter((name) => name.startsWith(category.prefix)).sort() : [];
+      children.push(...decisionItems(`opencode.permission.cat.${category.id}`, rule, inheritLabel, setCategory));
+      if (category.mcp) {
+        if (serverItems.length) children.push(new Separator(), ...serverItems);
+      }
+      else if (toolNames.length) {
+        children.push(new Separator(), ...toolNames.map((name) => {
+          const toolRule = toolRules[name];
+          return new SubmenuAction(`opencode.permission.tool.${name}`, toolRule ? `${name}\uff08${OC_PERMISSION_DECISION_LABEL[toolRule]}\uff09` : name, decisionItems(`opencode.permission.tool.${name}`, toolRule, `\u8ddf\u968f\u7c7b\u522b\uff08${categoryEffective(category)}\uff09`, (decision) => this.ocSetMapPermission(OC_TOOL_PERMISSIONS_SETTING, this.ocToolPermissions(), name, decision)));
+        }));
+      }
+      return new SubmenuAction(`opencode.permission.cat.${category.id}`, `${category.label}\uff08${rule ? OC_PERMISSION_DECISION_LABEL[rule] : "\u8ddf\u968f"}\uff09`, children);
+    });
+    const hasOverrides = Object.keys(categoryRules).length || Object.keys(toolRules).length;
+    if (hasOverrides) categoryItems.push(new Separator(), toAction({ id: "opencode.permission.more.reset", label: "\u5168\u90e8\u7c7b\u522b\u4e0e\u5355\u4e2a\u5de5\u5177\u6062\u590d\u8ddf\u968f\uff08\u4e0d\u542b MCP\uff09", run: async () => {
+      await this.ocUpdatePermissionSetting(OC_CATEGORY_PERMISSIONS_SETTING, {});
+      await this.ocUpdatePermissionSetting(OC_TOOL_PERMISSIONS_SETTING, {});
+    } }));
+    const sandboxOn = isWindows && this.ocSandboxEnabled();
+    actions.push(new Separator(), toAction({
+      id: "opencode.permission.sandbox",
+      label: isWindows ? OC_SANDBOX_LABEL : `${OC_SANDBOX_LABEL}\uff08\u4ec5 Windows\uff09`,
+      tooltip: isWindows ? (sandboxOn ? "\u5df2\u5f00\u542f\uff1aAI \u8fd0\u884c\u7684\u7ec8\u7aef\u547d\u4ee4\u4ee5\u4f4e\u5b8c\u6574\u6027\u8fd0\u884c\uff0c\u53ea\u80fd\u5199\u5165\u5de5\u4f5c\u533a\uff1b\u70b9\u51fb\u5173\u95ed" : "\u70b9\u51fb\u5f00\u542f\uff1aAI \u8fd0\u884c\u7684\u7ec8\u7aef\u547d\u4ee4\u53ea\u80fd\u5199\u5165\u5de5\u4f5c\u533a\uff08\u4e0d\u9650\u5236\u8bfb\u53d6\u4e0e\u7f51\u7edc\uff09") : "\u5f53\u524d\u5e73\u53f0\u6ca1\u6709\u53ef\u7528\u7684\u7ec8\u7aef\u6c99\u7bb1",
+      checked: sandboxOn,
+      enabled: isWindows,
+      run: () => this.ocToggleSandbox()
+    }), new Separator(), new SubmenuAction("opencode.permission.more", "\u66f4\u591a", categoryItems));
+    let viewportWatcher;
+    this.contextMenuService.showContextMenu({
+      getAnchor: () => anchor,
+      getActions: () => actions,
+      getMenuClassName: () => "oc-permission-menu",
+      onHide: () => {
+        viewportWatcher?.disconnect();
+        viewportWatcher = void 0;
+        anchor.focus?.();
+      }
+    });
+    try {
+      viewportWatcher = ocWatchMenuViewport(anchor.ownerDocument, "oc-permission-menu");
+    } catch {
+    }
+    try {
+      ocDecorateSandboxMenuItem(anchor.ownerDocument, sandboxOn);
+      anchor.ownerDocument?.defaultView?.requestAnimationFrame(() => ocDecorateSandboxMenuItem(anchor.ownerDocument, sandboxOn));
+    } catch {
+    }
+  }
+  ocIsChatOpen() {
+    const w = this._widget;
+    if (!w) return false;
+    return !(w.isEmpty() && !!w.viewModel && !w.viewModel.model.title);
+  }
+  ocApplySessionsMode(chatOpen) {
+    const c = this.viewPaneContainer;
+    // OpenCode: 窄面板（上下排列）打开对话时不显示对话列表，只留左上角「返回」；空间够时（左右排列）不走这里
+    if (c) {
+      c.classList.toggle("oc-sessions-compact", chatOpen);
+      c.classList.toggle("oc-sessions-collapsed", chatOpen);
+    }
+    if (this.ocSessionsChevron) {
+      this.ocSessionsChevron.className = chatOpen ? "oc-sessions-chevron codicon codicon-arrow-left" : "oc-sessions-chevron";
+      if (!this.ocBackLabel && this.sessionsTitle) {
+        this.ocBackLabel = append(this.sessionsTitle, $("span.oc-sessions-back-label"));
+        this.ocBackLabel.textContent = "\u5bf9\u8bdd\u5217\u8868";
+        this.ocBackLabel.style.marginLeft = "4px";
+      }
+      if (this.ocBackLabel) this.ocBackLabel.style.display = chatOpen ? "" : "none";
+    }
+    if (this.sessionsTitle) this.sessionsTitle.title = chatOpen ? "\u8fd4\u56de\u5bf9\u8bdd\u5217\u8868" : "\u5bf9\u8bdd\u5217\u8868";
+    if (this.sessionsTitle) this.sessionsTitle.style.cursor = chatOpen ? "pointer" : "";
+    if (this.sessionsControlContainer) {
+      this.sessionsControlContainer.style.display = chatOpen ? "none" : "";
+    }
+  }
+  ocToggleSessionsCollapsed() {
+    this.ocSessionsCollapsed = !this.ocSessionsCollapsed;
+    this.storageService.store(OC_SESSIONS_COLLAPSED_KEY, this.ocSessionsCollapsed, -1 /* APPLICATION */, 1 /* MACHINE */);
+    this.relayout();
+  }
+  ocRefreshWorkspaceUi() {
+    const chip = this.ocWorkspaceChip;
+    if (chip) {
+      const res = this._widget?.viewModel?.sessionResource;
+      const stored = res ? ocGetSessionWorkspace(this.storageService, res) : void 0;
+      const entry = stored ?? ocDefaultWorkspace(this.storageService, this.workspaceContextService);
+      const label = entry ? ocWsLabel(entry) : "\u7528\u6237\u76ee\u5f55";
+      chip.replaceChildren();
+      append(chip, $("span.codicon.codicon-folder"));
+      append(chip, $("span.oc-ws-chip-label")).textContent = label + (stored ? "" : "\uff08\u9ed8\u8ba4\uff09");
+      append(chip, $("span.codicon.codicon-chevron-down"));
+      chip.title = `\u5f53\u524d\u5bf9\u8bdd\u7684\u5de5\u4f5c\u533a\uff1a${entry?.path || "\u7528\u6237\u76ee\u5f55"}\n\u70b9\u51fb\u5207\u6362\uff1a\u6700\u8fd1\u4f7f\u7528 / \u9009\u62e9\u6587\u4ef6\u5939\u2026 / \u65e0\u5de5\u4f5c\u533a`;
+    }
+    try { this.sessionsControl?.refresh(); } catch {}
   }
   getSessionsViewerOrientation() {
     return this.sessionsViewerOrientation;
@@ -851,16 +1560,15 @@ var ChatViewPane = class extends ViewPane {
       newSessionsContainerVisible = false;
     } else {
       if (this.sessionsViewerOrientation === 1 /* Stacked */) {
-        newSessionsContainerVisible = (!!this.chatEntitlementService.sentiment.completed || this.chatEntitlementService.hasByokModels) && // chat is setup (otherwise make room for terms and welcome)
-        (!this._widget || this._widget.isEmpty() && !!this._widget.viewModel && !this._widget.viewModel.model.title) && // chat widget empty (but not when model is loading or has a title)
-        this._sessionsListSuppressionCount === 0 && // not mid-transition (a slow session transiently shows an empty widget)
-        !this.welcomeController?.isShowingWelcome.get();
+        // OpenCode: 窄面板（上下排列）下对话列表常驻：空对话时作为主页铺满，打开对话时收为顶部可折叠区域
+        newSessionsContainerVisible = this._sessionsListSuppressionCount === 0 && !this.welcomeController?.isShowingWelcome.get() && !this.ocIsChatOpen(); // OpenCode: 窄面板打开对话时整块隐藏，只用左上角 ← 返回
       } else {
         newSessionsContainerVisible = !this.welcomeController?.isShowingWelcome.get() && // welcome not showing
-        !!this.lastDimensions && this.lastDimensions.width >= ChatViewPane.SESSIONS_SIDEBAR_VIEW_MIN_WIDTH;
+        !!this.lastDimensions && this.lastDimensions.width >= ChatViewPane.SESSIONS_SIDEBAR_VIEW_MIN_WIDTH && !this.ocSessionFocusActive(); // OpenCode sessions-click-1717: 单击进入对话后列表隐藏
       }
     }
     this.viewPaneContainer.classList.toggle("has-sessions-control", newSessionsContainerVisible);
+    this.ocUpdateSessionBackBar();
     const sessionsContainerVisible = this.sessionsContainer.style.display !== "none";
     setVisibility(newSessionsContainerVisible, this.sessionsContainer);
     this.sessionsViewerVisible = newSessionsContainerVisible;
@@ -906,6 +1614,7 @@ var ChatViewPane = class extends ViewPane {
     const locationBasedColors = this.getLocationBasedColors();
     const editorOverflowWidgetsDomNode = this.layoutService.getContainer(getWindow(chatControlsContainer)).appendChild($(".chat-editor-overflow.monaco-editor"));
     this._register(toDisposable(() => editorOverflowWidgetsDomNode.remove()));
+    this.ocCreateSessionBackBar(chatControlsContainer);
     this.createChatTitleControl(chatControlsContainer);
     const scopedInstantiationService = this._register(this.instantiationService.createChild(new ServiceCollection([IContextKeyService, this.scopedContextKeyService])));
     this._widget = this._register(scopedInstantiationService.createInstance(
@@ -948,6 +1657,16 @@ var ChatViewPane = class extends ViewPane {
       () => this.relayout()
     ));
     this.bridgeSessionView.setVisible(this.isBodyVisible(), this.bridgeMode);
+    // Native Chat questions show only in the conversation that raised them (task shelf filter).
+    this.bridgeSessionView.currentChatRequestIds = () => {
+      const ids = /* @__PURE__ */ new Set();
+      for (const item of this._widget?.viewModel?.getItems() ?? []) {
+        if (typeof item?.id === "string") ids.add(item.id);
+        if (typeof item?.requestId === "string") ids.add(item.requestId);
+      }
+      return ids;
+    };
+    this._register(this._widget.onDidChangeViewModel(() => void this.bridgeSessionView?.refresh(true)));
     const updateWidgetVisibility = (reader) => this._widget.setVisible(!this.bridgeMode && this.isBodyVisible() && !this.welcomeController?.isShowingWelcome.read(reader));
     this._register(this.onDidChangeBodyVisibility(() => {
       updateWidgetVisibility();
@@ -956,6 +1675,40 @@ var ChatViewPane = class extends ViewPane {
     this._register(autorun((reader) => updateWidgetVisibility(reader)));
     this.schedulePersistentBridgeStartup(chatControlsContainer);
     return this._widget;
+  }
+  ocCreateSessionBackBar(parent) {
+    // OpenCode sessions-click-1717: 对话全页模式下左上角的「返回」按钮（回到列表页 = 新的空对话 + 会话列表）
+    const bar = this.ocBackBar = append(parent, $(".oc-session-back-bar"));
+    bar.style.display = "none";
+    const back = append(bar, $("a.oc-session-back"));
+    back.setAttribute("role", "button");
+    back.tabIndex = 0;
+    back.title = "\u8fd4\u56de\u4f1a\u8bdd\u5217\u8868";
+    back.setAttribute("aria-label", "\u8fd4\u56de\u4f1a\u8bdd\u5217\u8868");
+    append(back, $("span.codicon.codicon-arrow-left"));
+    append(back, $("span.oc-session-back-label")).textContent = "\u8fd4\u56de";
+    const goBack = (e) => {
+      EventHelper.stop(e, true);
+      this.ocFocusedSessionResource = void 0;
+      void this.clear().then(() => {
+        this.refreshSessionsControlVisibility();
+        this.focusSessions();
+      });
+    };
+    this._register(addDisposableListener(back, EventType.CLICK, goBack));
+    this._register(addDisposableListener(back, EventType.KEY_DOWN, (e) => { if (e.key === "Enter" || e.key === " ") goBack(e); }));
+  }
+  ocSessionFocusActive() {
+    const r = this.ocFocusedSessionResource;
+    if (!r || this.bridgeMode) return false;
+    const cur = this._widget?.viewModel?.sessionResource;
+    return !!cur && isEqual2(cur, r);
+  }
+  ocUpdateSessionBackBar() {
+    const bar = this.ocBackBar;
+    if (!bar) return;
+    const show = this.sessionsViewerOrientation === 2 /* SideBySide */ && this.ocSessionFocusActive();
+    bar.style.display = show ? "" : "none";
   }
   createChatTitleControl(parent) {
     this.titleControl = this._register(this.instantiationService.createInstance(
@@ -983,13 +1736,21 @@ var ChatViewPane = class extends ViewPane {
         sessionsControl.clearFocus();
       }
       const { changed: visibilityChanged } = this.updateSessionsControlVisibility();
-      if (visibilityChanged) {
+      if (visibilityChanged || this.sessionsViewerOrientation === 1 /* Stacked */) {
         this.relayout();
       }
     }));
     this._register(chatWidget.onDidChangeViewModel(() => {
       const model = chatWidget.viewModel?.model;
       this.titleControl?.update(model);
+      // OpenCode sessions-click-1717: 切到别的对话（新建等）时退出全页模式；进入/退出时刷新列表显隐
+      {
+        const ocCur = chatWidget.viewModel?.sessionResource;
+        if (this.ocFocusedSessionResource && ocCur && !isEqual2(ocCur, this.ocFocusedSessionResource)) {
+          this.ocFocusedSessionResource = void 0;
+        }
+        this.refreshSessionsControlVisibility();
+      }
       this._currentSessionResource.set(chatWidget.viewModel?.sessionResource, void 0);
       if (this.sessionsViewerOrientation === 1 /* Stacked */) {
         return;
@@ -1343,7 +2104,8 @@ var ChatViewPane = class extends ViewPane {
     const remainingWidth = width2;
     const titleHeight = this.titleControl?.getHeight() ?? 0;
     remainingHeight -= titleHeight;
-    const { heightReduction, widthReduction } = this.layoutSessionsControl(remainingHeight, remainingWidth);
+    const { heightReduction: ocSessionsHeightReduction, widthReduction } = this.layoutSessionsControl(remainingHeight, remainingWidth);
+    const heightReduction = ocSessionsHeightReduction + (this.ocBackBar && this.ocBackBar.style.display !== "none" ? this.ocBackBar.offsetHeight || 26 : 0); // OpenCode sessions-click-1717
     const inputMaxHeight = this.sessionsViewerOrientation === 1 /* Stacked */ ? remainingHeight : void 0;
     if (layoutInput) {
       this._widget.setInputPartMaxHeightOverride(inputMaxHeight);
@@ -1410,8 +2172,14 @@ var ChatViewPane = class extends ViewPane {
     let availableSessionsHeight = height - sessionsTitleHeight;
     let reservedChatWidgetHeight = 0;
     if (this.sessionsViewerOrientation === 1 /* Stacked */) {
-      reservedChatWidgetHeight = Math.max(ChatViewPane.MIN_CHAT_WIDGET_HEIGHT, this._widget?.input?.height.get() ?? 0);
-      availableSessionsHeight -= reservedChatWidgetHeight;
+      const ocChatOpen = this.ocIsChatOpen();
+      this.ocApplySessionsMode(ocChatOpen);
+      if (ocChatOpen) {
+        availableSessionsHeight = 0;
+      } else {
+        reservedChatWidgetHeight = Math.max(ChatViewPane.MIN_CHAT_WIDGET_HEIGHT, this._widget?.input?.height.get() ?? 0);
+        availableSessionsHeight -= reservedChatWidgetHeight;
+      }
     } else {
       availableSessionsHeight -= this.sessionsNewButtonContainer?.offsetHeight ?? 0;
     }

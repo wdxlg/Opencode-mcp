@@ -1,0 +1,78 @@
+{
+  "task_id": "opencode-leanrea-replace-20261027-212700-step01",
+  "status": "completed",
+  "files": [
+    {
+      "path": "tasks/opencode-leanrea-replace-20261027-212700-step01/task.md",
+      "purpose": "目标与验收",
+      "sha256": "adfe8dcd4a44158e13a535c0a7f8744398a9d4c857527fe139b97d308336b1de"
+    },
+    {
+      "path": "tasks/opencode-leanrea-replace-20261027-212700-step01/progress.md",
+      "purpose": "进度",
+      "sha256": "3829fd67fde3ea336ee23d87208f48c0acbcfc10e2e1456e614c9b87fa6d1651"
+    },
+    {
+      "path": "backup/opencode-leanrea-replace-20261027-212700-step01/bundled-rea-before.zip",
+      "purpose": "受管旧依赖回滚备份，不入 Git",
+      "sha256": "bfdaa77b2ff1dc84664394a3a3a15774f48782d27ba30e2fb5fdeea448337425"
+    },
+    {
+      "path": "backup/opencode-leanrea-replace-20261027-212700-step01/memory-before.sqlite",
+      "purpose": "本地 SQL 备份，不入 Git",
+      "sha256": "fcbdb9893ed80391be0a24008268f6ddec5352c6b1196d3144affed32e8e5b70"
+    },
+    {
+      "path": "backup/opencode-leanrea-replace-20261027-212700-step01/reports-before-build.zip",
+      "purpose": "构建前报告备份",
+      "sha256": "5207a43c4a1beb9cb384323d1587262feac4a2de738ca1d1d70ec1fd3206e2dd"
+    },
+    {
+      "path": "backup/opencode-leanrea-replace-20261027-212700-step01/memory-before-final.sqlite",
+      "purpose": "结束前 SQL 一致性备份",
+      "sha256": "232d995abb2bea662732ea423531f8264bb12eb186703a79eb6337b440fa870d"
+    },
+    {
+      "path": "tasks/opencode-leanrea-replace-20261027-212700-step01/leanrea-tests-final.tap",
+      "purpose": "LeanREA 隔离专项测试",
+      "sha256": "a60590fc227866376c591cc4b6c49bff7905c57b113d3cb4d947dcff24ff4dd2"
+    },
+    {
+      "path": "tasks/opencode-leanrea-replace-20261027-212700-step01/concurrency-regression.json",
+      "purpose": "并发与锁回归",
+      "sha256": "29a6f72becd9573bd6af941cae8787d5df77796fe09e61c5e0e59b04531db418"
+    },
+    {
+      "path": "tasks/opencode-leanrea-replace-20261027-212700-step01/version-isolation-regression.json",
+      "purpose": "版本隔离回归",
+      "sha256": "613996938d9deff9e6a1ab7c043003e1cbd688cd960658717ee5a642aecb2ff2"
+    },
+    {
+      "path": "tasks/opencode-leanrea-replace-20261027-212700-step01/publisher-hardened-regression.json",
+      "purpose": "发布器保护与回滚夹具",
+      "sha256": "386cfb2559d0bd19ccb9b040f9f1a71ec9d0a2b0e7984107bfb6566b6b0b107e"
+    },
+    {
+      "path": "tasks/opencode-leanrea-replace-20261027-212700-step01/runtime-publish.log",
+      "purpose": "工程内运行版发布回执",
+      "sha256": "f9b46ea9a133dc615a4d521c5f454e857447714beac0ca1986fccf29dd1b9141"
+    },
+    {
+      "path": "reports/runtime-verification.json",
+      "purpose": "运行版完整 SHA-256 校验",
+      "sha256": "4f6a8ec28e334bd745a06ce2a71d19563a3a0144a682aa318fa2c47b397f3f60"
+    },
+    {
+      "path": "opencode/OPENCODE-RELEASE.json",
+      "purpose": "源码内运行版发布清单",
+      "sha256": "06357de393cab682465d30ec50c2f5bc664f05a65b6430e54e54deef053b46bc"
+    },
+    {
+      "path": ".update-backup/1793108798771-f15c118f/OPENCODE-RELEASE.json",
+      "purpose": "发布前运行版标记",
+      "sha256": "17e7e51480ad1706434ef3d76f528ff64045b7aeb5d95c148faa554e0c465a3a"
+    }
+  ],
+  "completed_at": "2026-10-27T21:50:06+08:00",
+  "source_commit": "2722df0f9023bf85238d509a0ace5cb4a4d81021"
+}

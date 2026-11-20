@@ -288,7 +288,7 @@ function bridgePresentation(toolName, args, resultText2, structuredContent, isEr
     const terminalOutput = blockBetween(resultText2, "--- OUTPUT BEGIN ---", "--- OUTPUT END ---");
     const status = stringField(resultText2, "status");
     const subtitle = [terminalName, cwd, status && status !== "completed" ? status : void 0, exitCode !== void 0 && exitCode !== null ? `exit ${exitCode}` : void 0].filter(Boolean).join(" \xB7 ") || void 0;
-    return { kind: "terminal", title: command || "Run command", subtitle, input: void 0, output: terminalOutput ?? (isError ? output2 : void 0), terminalId, commandId, exitCode };
+    return { kind: "terminal", title: command || "Run command", command: command || void 0, subtitle, input: void 0, output: terminalOutput ?? (isError ? output2 : void 0), terminalId, commandId, exitCode };
   }
   if (toolName === "get_command_output") {
     const commandId = typeof args.command_id === "string" ? args.command_id : void 0;

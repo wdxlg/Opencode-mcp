@@ -948,6 +948,16 @@ var ChatViewPane = class extends ViewPane {
       () => this.relayout()
     ));
     this.bridgeSessionView.setVisible(this.isBodyVisible(), this.bridgeMode);
+    // Native Chat questions show only in the conversation that raised them (task shelf filter).
+    this.bridgeSessionView.currentChatRequestIds = () => {
+      const ids = /* @__PURE__ */ new Set();
+      for (const item of this._widget?.viewModel?.getItems() ?? []) {
+        if (typeof item?.id === "string") ids.add(item.id);
+        if (typeof item?.requestId === "string") ids.add(item.requestId);
+      }
+      return ids;
+    };
+    this._register(this._widget.onDidChangeViewModel(() => void this.bridgeSessionView?.refresh(true)));
     const updateWidgetVisibility = (reader) => this._widget.setVisible(!this.bridgeMode && this.isBodyVisible() && !this.welcomeController?.isShowingWelcome.read(reader));
     this._register(this.onDidChangeBodyVisibility(() => {
       updateWidgetVisibility();

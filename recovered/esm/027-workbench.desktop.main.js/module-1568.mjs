@@ -19,6 +19,11 @@ function getAvailableEditorTypes(activeEditor, editorResolverService, hiddenEdit
   if (!resource) {
     return void 0;
   }
+  // OpenCode: 这类文件由标题栏的「预览/源码」按钮切换，不再显示右上角的编辑器类型下拉。
+  const ocAssoc = activeEditor?.associatedResource;
+  if (/\.(html?|xhtml|svg|md|markdown|mdown|mkd|pdf|ttf|otf|woff2?)$/i.test((ocAssoc ?? resource).path || "")) {
+    return void 0;
+  }
   const currentId = activeEditor?.editorId ?? DEFAULT_EDITOR_ASSOCIATION.id;
   const hiddenEditorIdSet = new Set(hiddenEditorIds);
   const editors = editorResolverService.getEditors(resource, {

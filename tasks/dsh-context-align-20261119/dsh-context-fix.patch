@@ -1,0 +1,179 @@
+diff --git a/recovered/esm/002-agent-host.js/agent-context.mjs b/recovered/esm/002-agent-host.js/agent-context.mjs
+index 778085b2..20c23e90 100644
+--- a/recovered/esm/002-agent-host.js/agent-context.mjs
++++ b/recovered/esm/002-agent-host.js/agent-context.mjs
+@@ -343,5 +343,5 @@ function offloadOldContextImages(messages, maxImages) {
+   return { count, freed };
+ }
+ 
+-export { DSH_SUMMARY_OPEN_TAG, DSH_SUMMARY_CLOSE_TAG, DSH_COMPACTION_INSTRUCTION, DSH_CHECKPOINT_PREAMBLE, dshFrameSummary, dshUnframeSummary, isCheckpointSummaryMessage, WORKSPACE_INSTRUCTIONS_OPEN, WORKSPACE_INSTRUCTIONS_PATH_RE, isPermanentPrefixMessage, permanentPrefixEnd, isSyntheticUserMessage };
++export { OC_CHARS_PER_TOKEN, OC_BLOCK_OVERHEAD, DSH_SUMMARY_OPEN_TAG, DSH_SUMMARY_CLOSE_TAG, DSH_COMPACTION_INSTRUCTION, DSH_CHECKPOINT_PREAMBLE, dshFrameSummary, dshUnframeSummary, isCheckpointSummaryMessage, WORKSPACE_INSTRUCTIONS_OPEN, WORKSPACE_INSTRUCTIONS_PATH_RE, isPermanentPrefixMessage, permanentPrefixEnd, isSyntheticUserMessage };
+ export { ocCharTokenWeight, estimatedTokens, OC_PRIOR_TOOL_CONTEXT_OPEN, OC_PRIOR_TOOL_CONTEXT_CLOSE, OC_PRIOR_TOOL_CONTEXT_TRIMMED, shrinkPriorToolContextBlocks, CONTEXT_IMAGE_TOKENS, CLEARED_TOOL_RESULT_PREFIX, CONTEXT_FALLBACK_WINDOW, contextCompactionSettings, contextTextOf, contextContentTokens, contextMessageTokens, contextMessagesTokens, contextBreakdownOf, contextHistoryItemTokens, contextClip, isContextOverflowError, serializeForCompaction, CONTEXT_COMPACTION_SYSTEM, contextCompactionPrompt, COMPACTION_TOOL_RESULT_MAX_CHARS, COMPACTION_TOOL_RESULT_HEAD_CHARS, COMPACTION_TOOL_RESULT_TAIL_CHARS, trimToolTextForCompaction, trimContextToolResultsForCompaction, clearOldContextToolResults, isContextImagePart, contextMaxImages, offloadOldContextImages };
+diff --git a/recovered/esm/002-agent-host.js/agent-turn.mjs b/recovered/esm/002-agent-host.js/agent-turn.mjs
+index 5c9bb0e0..f5a31899 100644
+--- a/recovered/esm/002-agent-host.js/agent-turn.mjs
++++ b/recovered/esm/002-agent-host.js/agent-turn.mjs
+@@ -1,7 +1,7 @@
+ // split-0029-step08: 从 runOpenAICompatibleAgent 拆出的「本轮开局」：在调用方给的空 messages 数组里放入系统提示、
+ // 按上下文设置选取或驱逐历史（含已保存的压缩检查点恢复），最后放入当前用户消息；以及用户插话时的让出结果。
+ // 压缩状态写入 env.cs（与 agent-compaction 共享同一对象）；module-0029 的本地常量与函数经 deps 传入，避免循环依赖。
+-import { estimatedTokens, contextMessagesTokens, contextMessageTokens, contextHistoryItemTokens, contextTextOf, WORKSPACE_INSTRUCTIONS_OPEN } from "./agent-context.mjs";
++import { estimatedTokens, contextMessagesTokens, contextMessageTokens, contextHistoryItemTokens, contextTextOf, isContextImagePart, WORKSPACE_INSTRUCTIONS_OPEN } from "./agent-context.mjs";
+ 
+ // dsh-context-align item1: 按存下来的真实消息重放以往轮次（dsh 完整重放结构化消息）。
+ // 只保留提供商接受的字段；推理内容只在当前也是 DeepSeek thinking 时保留，Anthropic thinking 只在同一模型时保留；
+@@ -23,8 +23,9 @@ function sanitizeReplayMessages(replay, options) {
+     }
+     flushPending();
+     if (raw.role === "user") {
+-      const content = typeof raw.content === "string" ? raw.content : contextTextOf(raw.content);
+-      if (content) out.push({ role: "user", content });
++      const parts = Array.isArray(raw.content) && raw.content.some(isContextImagePart) ? raw.content.filter((part) => isContextImagePart(part) || typeof part?.text === "string" && part.text) : void 0;
++      const content = parts ?? (typeof raw.content === "string" ? raw.content : contextTextOf(raw.content));
++      if (parts ? parts.length : content) out.push({ role: "user", content });
+       continue;
+     }
+     if (raw.role !== "assistant") continue;
+diff --git a/recovered/esm/002-agent-host.js/module-0029.mjs b/recovered/esm/002-agent-host.js/module-0029.mjs
+index 5f923279..c43b7b83 100644
+--- a/recovered/esm/002-agent-host.js/module-0029.mjs
++++ b/recovered/esm/002-agent-host.js/module-0029.mjs
+@@ -14,7 +14,7 @@ import { createContextCompactor } from "./agent-compaction.mjs";
+ import { promptToolsInstruction, toPromptToolMessages, buildAgentRequestHeaders, buildChatRequestBody, buildAnthropicRequestBody, buildResponsesRequestBody } from "./agent-request.mjs";
+ import { MAX_UNAVAILABLE_TOOL_ATTEMPTS, patchTargetPaths, toolFailureText, createToolCallExecutor } from "./agent-tool-exec.mjs";
+ import { TOOL_SEARCH_TOOL_NAME, MAX_API_TOOLS, SUBAGENT_TOOL_NAME, SUBAGENT_READ_TOOLS, SUBAGENT_INSTRUCTIONS, SUBAGENT_TOOL, buildAgentToolCatalog } from "./agent-tool-catalog.mjs";
+-import { ocCharTokenWeight, estimatedTokens, OC_PRIOR_TOOL_CONTEXT_OPEN, OC_PRIOR_TOOL_CONTEXT_CLOSE, OC_PRIOR_TOOL_CONTEXT_TRIMMED, shrinkPriorToolContextBlocks, CONTEXT_IMAGE_TOKENS, CLEARED_TOOL_RESULT_PREFIX, CONTEXT_FALLBACK_WINDOW, contextCompactionSettings, contextTextOf, contextContentTokens, contextMessageTokens, contextMessagesTokens, contextBreakdownOf, contextHistoryItemTokens, contextClip, isContextOverflowError, serializeForCompaction, CONTEXT_COMPACTION_SYSTEM, contextCompactionPrompt, COMPACTION_TOOL_RESULT_MAX_CHARS, COMPACTION_TOOL_RESULT_HEAD_CHARS, COMPACTION_TOOL_RESULT_TAIL_CHARS, trimToolTextForCompaction, trimContextToolResultsForCompaction, clearOldContextToolResults, isContextImagePart, contextMaxImages, offloadOldContextImages, isSyntheticUserMessage, permanentPrefixEnd, WORKSPACE_INSTRUCTIONS_PATH_RE } from "./agent-context.mjs";
++import { OC_CHARS_PER_TOKEN, OC_BLOCK_OVERHEAD, ocCharTokenWeight, estimatedTokens, OC_PRIOR_TOOL_CONTEXT_OPEN, OC_PRIOR_TOOL_CONTEXT_CLOSE, OC_PRIOR_TOOL_CONTEXT_TRIMMED, shrinkPriorToolContextBlocks, CONTEXT_IMAGE_TOKENS, CLEARED_TOOL_RESULT_PREFIX, CONTEXT_FALLBACK_WINDOW, contextCompactionSettings, contextTextOf, contextContentTokens, contextMessageTokens, contextMessagesTokens, contextBreakdownOf, contextHistoryItemTokens, contextClip, isContextOverflowError, serializeForCompaction, CONTEXT_COMPACTION_SYSTEM, contextCompactionPrompt, COMPACTION_TOOL_RESULT_MAX_CHARS, COMPACTION_TOOL_RESULT_HEAD_CHARS, COMPACTION_TOOL_RESULT_TAIL_CHARS, trimToolTextForCompaction, trimContextToolResultsForCompaction, clearOldContextToolResults, isContextImagePart, contextMaxImages, offloadOldContextImages, isSyntheticUserMessage, permanentPrefixEnd, WORKSPACE_INSTRUCTIONS_PATH_RE } from "./agent-context.mjs";
+ // OpenCode context-compaction-dsh PART B: dsh-compaction-basic 默认值（lib/index.js :15/:17/:63/:82）与「每个模型只警告一次」的配置错误记录（:843-850）
+ var DSH_COMPACTION_THRESHOLD_RATIO = 0.8;
+ var DSH_COMPACTION_RETAIN_RATIO = 0.16;
+@@ -694,27 +694,70 @@ function ocSafeTail(text, length) {
+   if (code >= 56320 && code <= 57343) cut += 1;
+   return text.slice(cut);
+ }
+-function ocSpillToolText(text, toolName, runCommandAvailable) {
++var OC_SPILL_EXEMPT_TOOLS = /* @__PURE__ */ new Set(["read_files"]);
++var ocSpillDirs = /* @__PURE__ */ new Map();
++function ocSpillDir(workspaceRoot) {
++  const fsX = require("node:fs");
++  const pathX = require("node:path");
++  const osX = require("node:os");
++  const key = workspaceRoot || "";
++  if (ocSpillDirs.has(key)) return ocSpillDirs.get(key);
++  let dir;
++  if (workspaceRoot) {
++    try {
++      // 放在工作区里，read_files / search_files 能直接按行读取（dsh spill-local + read 的对应做法）；目录自带 .gitignore。
++      dir = pathX.join(workspaceRoot, ".opencode", "tool-results");
++      fsX.mkdirSync(dir, { recursive: true, mode: 448 });
++      const ignore = pathX.join(dir, ".gitignore");
++      if (!fsX.existsSync(ignore)) fsX.writeFileSync(ignore, "*\n", "utf8");
++      const cutoff = Date.now() - 7 * 864e5;
++      for (const name of fsX.readdirSync(dir)) {
++        if (name === ".gitignore") continue;
++        try {
++          const file = pathX.join(dir, name);
++          if (fsX.statSync(file).mtimeMs < cutoff) fsX.unlinkSync(file);
++        } catch {
++        }
++      }
++    } catch {
++      dir = void 0;
++    }
++  }
++  if (!dir) {
++    ocSpillRoot ??= fsX.mkdtempSync(pathX.join(osX.tmpdir(), "opencode-spill-"));
++    dir = ocSpillRoot;
++  }
++  const entry = { dir, inWorkspace: dir !== ocSpillRoot };
++  ocSpillDirs.set(key, entry);
++  return entry;
++}
++function ocSpillPrice(text) {
++  return text.length ? estimatedTokens(text) + OC_BLOCK_OVERHEAD : 0;
++}
++function ocSpillToolText(text, toolName, options = {}) {
+   const value = typeof text === "string" ? text : String(text ?? "");
+-  if (estimatedTokens(value) <= OC_TOOL_RESULT_MAX_TOKENS) return value;
++  // dsh spill-policy 不处理 read（它自己有分页/截断）；这里同样放过 read_files。
++  if (OC_SPILL_EXEMPT_TOOLS.has(toolName) || ocSpillPrice(value) <= OC_TOOL_RESULT_MAX_TOKENS) return value;
+   let locator;
++  let inWorkspace = false;
+   try {
+     const fsX = require("node:fs");
+     const pathX = require("node:path");
+-    const osX = require("node:os");
+-    ocSpillRoot ??= fsX.mkdtempSync(pathX.join(osX.tmpdir(), "opencode-spill-"));
++    const spill = ocSpillDir(options.workspaceRoot);
++    inWorkspace = spill.inWorkspace;
+     const safeName = String(toolName || "tool").replace(/[^A-Za-z0-9_.-]+/g, "_").slice(0, 60) || "tool";
+-    locator = pathX.join(ocSpillRoot, `${(0, import_node_crypto.randomBytes)(6).toString("hex")}-${safeName}.txt`);
++    locator = pathX.join(spill.dir, `${(0, import_node_crypto.randomBytes)(6).toString("hex")}-${safeName}.txt`);
+     fsX.writeFileSync(locator, value, { encoding: "utf8", mode: 384 });
+   } catch (error2) {
+     locator = void 0;
+     console.error(`[agent-host] spill: could not store the full ${toolName} result: ${error2 instanceof Error ? error2.message : String(error2)}`);
+   }
+-  const hint = runCommandAvailable ? "Use run_command with sed -n 'START,ENDp' or grep on this path to read or search within it." : "Re-run the tool with a narrower scope if you need the omitted part.";
+-  const notice = (bytes) => locator ? `(Omitted ${bytes} bytes. Full formatted result stored at: ${locator}. ${hint})` : `(Omitted ${bytes} bytes; the full result could not be stored. Re-run the tool with a narrower scope if you need the omitted part.)`;
++  const hint = inWorkspace && options.readFilesAvailable ? options.runCommandAvailable ? "Use read_files with start_line/end_line on this path to read parts of it, or run_command with grep to search it" : "Use read_files with start_line/end_line on this path to read parts of it" : options.runCommandAvailable ? "Use run_command with sed -n 'START,ENDp' or grep on this path to read or search within it" : "Re-run the tool with a narrower scope if you need the omitted part";
++  const notice = (bytes) => locator ? `(Omitted ${bytes} bytes. Full formatted result stored at: ${locator}. ${hint}.)` : `(Omitted ${bytes} bytes; the full result could not be stored. Re-run the tool with a narrower scope if you need the omitted part.)`;
+   const totalBytes = Buffer.byteLength(value, "utf8");
+-  const budgetChars = Math.max(0, OC_TOOL_RESULT_MAX_TOKENS * 4 - OC_SPILL_GAP.length - 2 - notice(totalBytes).length - 8);
+-  const head = ocSafeHead(value, Math.ceil(budgetChars / 2));
++  const reserved = ocSpillPrice(OC_SPILL_GAP) + ocSpillPrice(`\n\n${notice(totalBytes)}`);
++  const budgetChars = Math.max(0, (OC_TOOL_RESULT_MAX_TOKENS - reserved - OC_BLOCK_OVERHEAD) * OC_CHARS_PER_TOKEN);
++  const head = ocSafeHead(value, Math.floor(budgetChars / 2));
+   const tail = ocSafeTail(value, Math.floor(budgetChars / 2));
+   const omitted = totalBytes - Buffer.byteLength(head, "utf8") - Buffer.byteLength(tail, "utf8");
+   return `${head}${OC_SPILL_GAP}${tail}\n\n${notice(omitted)}`;
+@@ -822,6 +865,8 @@ function ocTurnReplayResult(input2, messages, cs, finalMessage) {
+     const start = messages.indexOf(cs.turnUserMessage);
+     if (start < 0) return {};
+     const flatten = (content) => typeof content === "string" ? content : Array.isArray(content) ? content.map((part) => isContextImagePart(part) ? "[Image omitted from stored history]" : typeof part?.text === "string" ? part.text : "").filter(Boolean).join("\n") : content == null ? "" : String(content);
++    // 本轮注入的图片（工具截图等）保留原样，下一轮继续可见（dsh 会话里图片同样保留）。
++    const keepParts = (content) => Array.isArray(content) && content.some(isContextImagePart) ? content.map((part) => isContextImagePart(part) ? JSON.parse(JSON.stringify(part)) : { type: "text", text: typeof part?.text === "string" ? part.text : "" }).filter((part) => part.type !== "text" || part.text) : flatten(content);
+     const assistantOf = (message) => ({
+       role: "assistant",
+       content: typeof message.content === "string" ? message.content : message.content == null ? "" : flatten(message.content),
+@@ -833,13 +878,27 @@ function ocTurnReplayResult(input2, messages, cs, finalMessage) {
+     for (const message of messages.slice(start + 1)) {
+       if (message?.role === "assistant") out.push(assistantOf(message));
+       else if (message?.role === "tool") out.push({ role: "tool", tool_call_id: message.tool_call_id, content: flatten(message.content) });
+-      else if (message?.role === "user") out.push({ role: "user", content: flatten(message.content) });
++      else if (message?.role === "user") out.push({ role: "user", content: keepParts(message.content) });
+     }
+     if (finalMessage) out.push(assistantOf(finalMessage));
+-    if (JSON.stringify(out).length > 4e6) {
+-      for (const message of out) if (message.role === "tool" && message.content.length > 12e3) message.content = contextClip(message.content, 12e3);
+-      if (JSON.stringify(out).length > 4e6) return {};
++    // 存储上限（聊天记录元数据）：超出时依次去掉图片、把工具结果截到 12K、再截到 2K；结构始终保留，只有仍超 8MB 才放弃重放。
++    const size = () => JSON.stringify(out).length;
++    const steps = [
++      () => {
++        for (const message of out) if (Array.isArray(message.content)) message.content = flatten(message.content);
++      },
++      () => {
++        for (const message of out) if (message.role === "tool" && message.content.length > 12e3) message.content = contextClip(message.content, 12e3);
++      },
++      () => {
++        for (const message of out) if (message.role === "tool" && message.content.length > 2e3) message.content = contextClip(message.content, 2e3);
++      }
++    ];
++    for (const step of steps) {
++      if (size() <= 4e6) break;
++      step();
+     }
++    if (size() > 8e6) return {};
+     return { replay: { version: 1, model: input2.model, user: flatten(cs.turnUserMessage.content), messages: out } };
+   } catch (error2) {
+     console.error(`[agent-host] turn replay capture failed: ${error2 instanceof Error ? error2.message : String(error2)}`);
+@@ -1315,7 +1374,7 @@ async function runOpenAICompatibleAgent(input2, dependencies = {}) {
+         messages.push({
+           role: "tool",
+           tool_call_id: call.id,
+-          content: ocSpillToolText(toolText, toolName, availableToolNames.has("run_command"))
++          content: ocSpillToolText(toolText, toolName, { workspaceRoot: input2.workspaceRoot, readFilesAvailable: availableToolNames.has("read_files"), runCommandAvailable: availableToolNames.has("run_command") })
+         });
+       }
+       for (const { call, toolName, toolImages } of completedCalls) {

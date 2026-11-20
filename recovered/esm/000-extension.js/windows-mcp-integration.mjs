@@ -35,13 +35,16 @@ export const WINDOWS_MCP_RELEASE = Object.freeze({
   "license": "MIT"
 });
 export const WINDOWS_MCP_SETUP_COMMAND = 'opencode.mcp.windows.setup';
+// Routing: looking at the screen / screenshots / videos go through the native see_now tool;
+// Windows-MCP stays registered for clicking, typing and other desktop input.
+export const WINDOWS_MCP_ROUTING_NOTE = '看屏幕、截图、看视频请用原生工具 see_now（单张截图 action:"peek"）；Windows-MCP 只负责点击、键入等桌面操作。';
 export function windowsMcpConfiguration(){
   return {mcpServers:{windows_mcp:{
     command:'uvx',
     args:['--python','3.14','--from','windows-mcp==0.8.8','windows-mcp','serve'],
     env:{ANONYMIZED_TELEMETRY:'false'},
     timeout:180,
-    description:'Windows-MCP 0.8.8：完整 21 项桌面与系统工具；需 Windows 10/11 和 Python 3.14。使用前按任务授权，不自动测试。'
+    description:'Windows-MCP 0.8.8：负责点击、键入等桌面操作（共 21 项工具）；'+WINDOWS_MCP_ROUTING_NOTE+'需 Windows 10/11 和 Python 3.14。使用前按任务授权，不自动测试。'
   }}};
 }
 // Uses the catalog's cross-process lock and normal secret storage. No desktop RPCs.

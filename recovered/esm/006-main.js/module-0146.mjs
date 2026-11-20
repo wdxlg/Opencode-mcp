@@ -137,6 +137,22 @@ var init_browserView2 = __esm({
         this._view.webContents.setUserAgent(toStandardChromiumUserAgent(this._view.webContents.getUserAgent()));
         this._view.setBounds({ x: 0, y: 0, width: 1024, height: 768 });
         this._view.setBackgroundColor("#FFFFFF");
+        // OpenCode: 新开的浏览器视图等页面画出来再显示，避免切到预览时先闪一下白底。
+        this._ocPainted = !!options?.webContents;
+        const ocReveal = () => {
+          if (this._ocPainted) return;
+          this._ocPainted = true;
+          try {
+            if (this._wantsVisibility && this._hasBeenLaidOut && !this._view.getVisible()) this._view.setVisible(true);
+          } catch {
+          }
+        };
+        if (!this._ocPainted) {
+          this._view.webContents.once("dom-ready", () => setTimeout(ocReveal, 60));
+          this._view.webContents.once("did-finish-load", ocReveal);
+          this._view.webContents.once("did-fail-load", ocReveal);
+          setTimeout(ocReveal, 1500);
+        }
         this._ownerWindow = this.windowsMainService.getWindowById(hostWindowId);
         if (!this._ownerWindow) {
           throw new Error(`Window with ID ${hostWindowId} not found`);
@@ -578,7 +594,7 @@ var init_browserView2 = __esm({
           height: Math.round(bounds.height * bounds.zoomFactor)
         });
         this._hasBeenLaidOut = true;
-        if (this._wantsVisibility && !this._view.getVisible()) {
+        if (this._wantsVisibility && this._ocPainted && !this._view.getVisible()) {
           this._view.setVisible(true);
         }
       }
@@ -597,7 +613,7 @@ var init_browserView2 = __esm({
         if (!visible && this._view.webContents.isFocused()) {
           this._currentWindow?.win?.webContents.focus();
         }
-        if (this._hasBeenLaidOut || !visible) {
+        if ((this._hasBeenLaidOut && this._ocPainted) || !visible) {
           this._view.setVisible(visible);
         }
         this._wantsVisibility = visible;

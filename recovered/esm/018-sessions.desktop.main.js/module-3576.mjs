@@ -10,7 +10,7 @@ import { MutableDisposable } from "./module-0012.mjs";
 import { autorun } from "./module-0052.mjs";
 import { getChatSessionType } from "./module-0962.mjs";
 import { IChatSessionsService, isAgentHostTarget } from "./module-0961.mjs";
-import { applyAgentHostCompletionAction, isPolicyBlockedCompletionAction } from "./module-2796.mjs";
+import { applyAgentHostCompletionAction } from "./module-2796.mjs";
 import { IDialogService } from "./module-0267.mjs";
 import { IStorageService } from "./module-0512.mjs";
 import { ISessionsProvidersService } from "./module-1765.mjs";
@@ -183,7 +183,7 @@ var AgentHostInputCompletionHandler = class extends AgentHostInputCompletionsBas
       case "command": {
         const action = getCompletionAction(attachment._meta);
         if (action) {
-          if (isPolicyBlockedCompletionAction(action, this._configurationService)) {
+          if (false) {
             return void 0;
           }
           const keep = item.insertText !== "";

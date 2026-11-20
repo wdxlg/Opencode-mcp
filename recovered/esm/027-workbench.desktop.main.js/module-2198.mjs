@@ -274,7 +274,8 @@ var ChatContextUsageWidget = class extends Disposable {
     const modelConfiguration = this._modelConfigurationResolver?.(modelId) ?? this.languageModelsService.getModelConfiguration(modelId);
     const maxInputTokens = resolveContextWindowInputTokens(modelConfiguration, modelMetadata.configurationSchema, modelMetadata.maxInputTokens);
     const maxOutputTokens = modelMetadata.maxOutputTokens;
-    const totalContextWindow = (maxInputTokens ?? 0) + (maxOutputTokens ?? 0);
+    // OpenCode dsh-metrics: ring denominator = context window only (dsh percent = used / contextWindow)
+    const totalContextWindow = maxInputTokens ?? 0;
     if (totalContextWindow <= 0) {
       return void 0;
     }
@@ -296,7 +297,7 @@ var ChatContextUsageWidget = class extends Disposable {
     const promptTokenDetails = usage.promptTokenDetails;
     const usedTokens = promptTokens + completionTokens;
     const percentage = usedTokens / totalContextWindow * 100;
-    const outputBufferPercentage = maxOutputTokens !== void 0 ? Math.max(0, maxOutputTokens - completionTokens) / totalContextWindow * 100 : void 0;
+    const outputBufferPercentage = void 0; // OpenCode dsh-metrics: dsh shows no output-reserve band
     this.render({
       usedTokens,
       completionTokens,

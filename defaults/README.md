@@ -1,0 +1,1 @@
+Bundled public defaults. manifest.json pins contents. No credentials or external-mcp.json are shipped. LeanREA is a read-only bundled Skill for Bridge discovery, not an MCP server. User-owned Skills and customized external services are never overwritten.

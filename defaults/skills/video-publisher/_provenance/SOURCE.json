@@ -1,0 +1,84 @@
+{
+  "id": "video-publisher",
+  "sourceName": "video-publisher",
+  "title": "多平台视频自动录制与发布",
+  "category": "内容与自媒体自动化",
+  "repo": "local/opencode-builtin-skills",
+  "commit": "f266a10f65c42b8764125229f587b546ad4d2249",
+  "sourcePath": "skills/video-publisher/",
+  "sourceUrl": "https://github.com/dreammis/social-auto-upload",
+  "license": "Apache-2.0",
+  "licenseBasis": "Bundled skill LICENSE.txt",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "内置可迁移 Python + Playwright (Microsoft Edge) 脚本，不含任何个人账号凭据。",
+  "modifications": [
+    "Integrated directly into OpenCode default bundled skills with self-contained scripts/ directory."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "agents/openai.yaml",
+      "upstreamSha256": "0f6644fe583d522b1783cb4988d7d9210f8c7bdfd9dfa460c6154975efff11e1"
+    },
+    {
+      "path": "LICENSE.txt",
+      "upstreamSha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"
+    },
+    {
+      "path": "scripts/config.json",
+      "upstreamSha256": "f44c9e3c923ae00649bea22129f18d01dd2d3a632b06134ee30a3ae6615bc5d6"
+    },
+    {
+      "path": "scripts/platforms/__init__.py",
+      "upstreamSha256": "def805a34f90b81f5a98204926223f6b6e2639ae17d2bb2d8107d727e35ba291"
+    },
+    {
+      "path": "scripts/platforms/base.py",
+      "upstreamSha256": "763b953578a5e2db6cfa430a70880d947520972427bceefa41781c889e4cb423"
+    },
+    {
+      "path": "scripts/platforms/bilibili.py",
+      "upstreamSha256": "e7a83b4cf7ac447f608d726f07103612d8e0ab49e40b64f8fc64870c810a5259"
+    },
+    {
+      "path": "scripts/platforms/douyin.py",
+      "upstreamSha256": "314b760915c502ec408c4224eee73008dd27b1583594282fa6647bc38b65fd5a"
+    },
+    {
+      "path": "scripts/platforms/instagram.py",
+      "upstreamSha256": "8562a52f0fba841f6488c2783c39c9e290b31b44ba0c138ea8c467367558a4ea"
+    },
+    {
+      "path": "scripts/platforms/kuaishou.py",
+      "upstreamSha256": "594f6ed60a3292bc04b0f408c14cc56add9063e01288653276284912b36d9efe"
+    },
+    {
+      "path": "scripts/platforms/tiktok.py",
+      "upstreamSha256": "5a3e8c154dc653e3f531e99d32dec5d1d77a68782980137859fa6f3a6b806b5e"
+    },
+    {
+      "path": "scripts/platforms/xiaohongshu.py",
+      "upstreamSha256": "7c3920c233c3a3ab496fcec74206f4a54576fff855fd2782095cfad527bcbe16"
+    },
+    {
+      "path": "scripts/platforms/youtube.py",
+      "upstreamSha256": "ea325ef3456d92f0aa8a3bc5a00f4b570573327e1d794f4820a108c9e508f2d7"
+    },
+    {
+      "path": "scripts/polo_record_runner.gd",
+      "upstreamSha256": "0c99c00657c2b3d635df93464540a55adb2f68a1b54f8532cc309c5bb6ddba50"
+    },
+    {
+      "path": "scripts/vpub.cmd",
+      "upstreamSha256": "53e31083a2f204e187ad4d38d4c5f9413e2e1bb19ef4830afc5e606802b59b76"
+    },
+    {
+      "path": "scripts/vpub.py",
+      "upstreamSha256": "11d36090f78b73c1b5003d0698383b5389519d2759620839f1eab1d2f9dba516"
+    },
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "225fff20effa0b9664684f46c18103798df4dea0a53dd53ced314d2720b9918f"
+    }
+  ]
+}

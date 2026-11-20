@@ -21,8 +21,13 @@ export function withinRoot(file, root) {
 }
 function executeGit(root, args, options = {}) {
   return new Promise((resolve, reject) => {
-    execFile(options.executable || 'git', ['--no-pager', '-c', 'core.fsmonitor=false', '-c', 'submodule.recurse=false', '-C', root, ...args], { windowsHide: true, encoding: options.encoding || 'utf8', timeout: options.timeout || 30000, maxBuffer: options.maxBuffer || 2 * 1024 * 1024, env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_OPTIONAL_LOCKS: '0', GIT_LFS_SKIP_SMUDGE: '1', GIT_NO_LAZY_FETCH: '1' } }, (error, stdout, stderr) => {
-      if (error) { error.gitMessage = String(stderr || error.message).slice(0, 2000); reject(error); }
+    const env = { ...process.env };
+    // The manual merge path must not inherit a redirected repository or index.
+    if (options.safeEnv) for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key];
+    Object.assign(env, options.env || {}, { GIT_TERMINAL_PROMPT: '0', GIT_OPTIONAL_LOCKS: '0', GIT_LFS_SKIP_SMUDGE: '1', GIT_NO_LAZY_FETCH: '1' });
+    if (options.safeEnv) env.GIT_NO_REPLACE_OBJECTS = '1';
+    execFile(options.executable || 'git', ['--no-pager', '-c', 'core.fsmonitor=false', '-c', 'submodule.recurse=false', '-C', root, ...args], { windowsHide: true, encoding: options.encoding || 'utf8', timeout: options.timeout || 30000, maxBuffer: options.maxBuffer || 2 * 1024 * 1024, env }, (error, stdout, stderr) => {
+      if (error) { error.gitMessage = String(stderr || error.message).slice(0, 2000); error.gitOutput = String(stdout || '').slice(0, 12000); reject(error); }
       else resolve(stdout);
     });
   });
@@ -54,16 +59,79 @@ export async function planWorkspace(root, isolation, readOnly, worktreeHome, tas
     return { mode: 'single-writer', root, sourceRoot: root, baseRef: null, reason: 'Git/HEAD 不可用，auto 使用协作单写者；不提供 OS 沙箱。' };
   }
   if (isolation === 'single-writer') return { mode: 'single-writer', root, sourceRoot: root, baseRef, hooksPath, reason: '本地明确选择协作单写者；开始时的已有差异单独保留。Git hooks/filters 不执行。' };
-  if (dirty) {
-    if (isolation === 'worktree') fail('TASK_WORKTREE_DIRTY', '源工作区有未提交内容；拒绝从旧 HEAD 静默创建副本。先整理源工作区，或明确选择 single-writer。');
-    return { mode: 'single-writer', root, sourceRoot: root, baseRef, hooksPath, reason: '源工作区有未提交内容；auto 使用协作单写者，不复制用户未提交或私密文件。' };
-  }
+  // 有未提交改动时也照样开独立 worktree（从当前 HEAD 开始），不再退回「一次只让一个人写」；未提交改动不带进副本。
+  const dirtyNote = dirty ? '源工作区有未提交改动，这些改动不在任务副本里；副本从当前 HEAD 开始。' : '';
   if (canonicalPath(repository) !== canonicalPath(root)) {
     if (isolation === 'worktree') fail('TASK_WORKTREE_ROOT_REQUIRED', '请把 Git 仓库根目录登记为任务工作区。');
     return { mode: 'single-writer', root, sourceRoot: root, baseRef, hooksPath, reason: '当前工作区不是 Git 仓库根目录，auto 使用协作单写者。' };
   }
   const suffix = attemptId.replace(/[^a-zA-Z0-9_-]/g, '');
-  return { mode: 'worktree', sourceRoot: root, root: path.join(worktreeHome, suffix), baseRef, hooksPath, branch: 'opencode/' + taskId.replace(/[^a-zA-Z0-9_-]/g, '') + '/' + suffix, reason: '干净 Git 仓库；使用独立任务分支与工作副本。' };
+  return { mode: 'worktree', sourceRoot: root, root: path.join(worktreeHome, suffix), baseRef, hooksPath, branch: 'opencode/' + taskId.replace(/[^a-zA-Z0-9_-]/g, '') + '/' + suffix, reason: (dirtyNote || '干净 Git 仓库；') + '使用独立任务分支与工作副本。' };
+}
+// 与 Claude Code / Conductor / Cursor 相同：worktree 只含已提交文件；被 .gitignore 忽略的文件按 .worktreeinclude 清单复制，
+// 依赖等由 .opencode/worktrees.json（兼容 .cursor/worktrees.json）里的准备命令在新副本里安装。
+async function copyWorktreeInclude(plan, executable) {
+  const list = path.join(plan.sourceRoot, '.worktreeinclude');
+  if (!fs.existsSync(list)) return '';
+  const options = { executable, hooksPath: plan.hooksPath, timeout: 120000, maxBuffer: 16 * 1024 * 1024 };
+  const candidates = (await git(plan.sourceRoot, ['ls-files', '-z', '--others', '--ignored', '--exclude-from=' + list, '--', '.'], options)).split('\0').filter(Boolean).slice(0, 5000);
+  const ignored = [];
+  for (let i = 0; i < candidates.length; i += 100) {
+    const chunk = candidates.slice(i, i + 100);
+    try { ignored.push(...(await git(plan.sourceRoot, ['-c', 'core.quotePath=false', 'check-ignore', '--', ...chunk], options)).split(/\r?\n/).filter(Boolean)); }
+    catch (error) { if (error.code !== 1) throw error; }
+  }
+  let copied = 0, skipped = 0;
+  for (const rel of ignored) {
+    const source = path.resolve(plan.sourceRoot, rel), target = path.resolve(plan.root, rel);
+    if (!withinRoot(source, plan.sourceRoot) || !withinRoot(target, plan.root)) { skipped++; continue; }
+    let stat; try { stat = await fsp.lstat(source); } catch { skipped++; continue; }
+    if (!stat.isFile() || stat.size > 64 * 1024 * 1024) { skipped++; continue; }
+    await fsp.mkdir(path.dirname(target), { recursive: true });
+    try { await fsp.copyFile(source, target, fs.constants.COPYFILE_EXCL); copied++; } catch (error) { if (error.code === 'EEXIST') skipped++; else throw error; }
+  }
+  return '按 .worktreeinclude 复制 ' + copied + ' 个被忽略的文件' + (skipped ? '（跳过 ' + skipped + ' 个）' : '') + '。';
+}
+function worktreeSetupConfig(plan) {
+  for (const base of [plan.root, plan.sourceRoot]) for (const dir of ['.opencode', '.cursor']) {
+    const file = path.join(base, dir, 'worktrees.json');
+    if (!fs.existsSync(file)) continue;
+    let value; try { value = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (error) { fail('TASK_WORKTREE_SETUP_INVALID', file + ' 不是有效 JSON：' + error.message); }
+    const steps = value?.[process.platform === 'win32' ? 'setup-worktree-windows' : 'setup-worktree-unix'] ?? value?.['setup-worktree'];
+    if (steps === undefined || steps === null) return null;
+    if (typeof steps !== 'string' && !(Array.isArray(steps) && steps.every(item => typeof item === 'string'))) fail('TASK_WORKTREE_SETUP_INVALID', file + ' 的 setup-worktree 必须是命令数组或脚本路径。');
+    return { file, dir: path.dirname(file), steps };
+  }
+  return null;
+}
+function runSetupStep(command, plan, script) {
+  return new Promise((resolve, reject) => {
+    const env = { ...process.env, ROOT_WORKTREE_PATH: plan.sourceRoot, OPENCODE_ROOT_WORKTREE_PATH: plan.sourceRoot, OPENCODE_WORKTREE_PATH: plan.root };
+    let file, args;
+    if (script) {
+      const ext = path.extname(script).toLowerCase();
+      if (ext === '.ps1') { file = 'powershell.exe'; args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script]; }
+      else if (ext === '.cmd' || ext === '.bat') { file = process.env.ComSpec || 'cmd.exe'; args = ['/d', '/s', '/c', script]; }
+      else if (ext === '.sh') { file = 'bash'; args = [script]; }
+      else if (ext === '.js' || ext === '.mjs' || ext === '.cjs') { file = process.execPath; args = [script]; env.ELECTRON_RUN_AS_NODE = '1'; }
+      else { file = script; args = []; }
+    } else if (process.platform === 'win32') { file = process.env.ComSpec || 'cmd.exe'; args = ['/d', '/s', '/c', '"' + command + '"']; }
+    else { file = '/bin/sh'; args = ['-c', command]; }
+    execFile(file, args, { cwd: plan.root, env, windowsHide: true, windowsVerbatimArguments: process.platform === 'win32' && !script, timeout: 15 * 60 * 1000, maxBuffer: 8 * 1024 * 1024, encoding: 'utf8' }, (error, stdout, stderr) => {
+      if (error) reject(Object.assign(error, { output: String(stderr || stdout || error.message).slice(-1500) })); else resolve();
+    });
+  });
+}
+async function runWorktreeSetup(plan) {
+  const config = worktreeSetupConfig(plan);
+  if (!config) return '';
+  const steps = typeof config.steps === 'string' ? [{ script: path.resolve(config.dir, config.steps) }] : config.steps.map(command => ({ command }));
+  for (const step of steps) {
+    if (step.script && !fs.existsSync(step.script)) fail('TASK_WORKTREE_SETUP_FAILED', '准备脚本不存在：' + step.script);
+    try { await runSetupStep(step.command, plan, step.script); }
+    catch (error) { fail('TASK_WORKTREE_SETUP_FAILED', '任务副本的准备命令失败（' + (step.script || step.command) + '）：' + (error.killed ? '超过 15 分钟被停止' : error.output || error.message) + '\n副本保留在 ' + plan.root + '，可以手动处理后重新开始任务。'); }
+  }
+  return '已按 ' + path.relative(path.dirname(config.dir), config.file).replaceAll('\\', '/') + ' 执行 ' + steps.length + ' 条准备命令。';
 }
 export async function prepareWorkspace(plan, executable) {
   if (plan.mode !== 'worktree') return plan;
@@ -72,7 +140,10 @@ export async function prepareWorkspace(plan, executable) {
   await fsp.mkdir(path.dirname(plan.root), { recursive: true });
   await fsp.mkdir(plan.hooksPath, { recursive: true, mode: 0o700 });
   await git(plan.sourceRoot, ['worktree', 'add', '-b', plan.branch, '--', plan.root, plan.baseRef], { executable, hooksPath: plan.hooksPath });
-  return verifyWorkspace(plan, executable);
+  await verifyWorkspace(plan, executable);
+  const notes = [await copyWorktreeInclude(plan, executable), await runWorktreeSetup(plan)].filter(Boolean);
+  if (notes.length) plan.reason = [plan.reason, ...notes].filter(Boolean).join(' ');
+  return plan;
 }
 export async function verifyWorkspace(plan, executable) {
   if (!fs.existsSync(plan.root)) fail('TASK_EXECUTION_FILES_MISSING', '执行工作副本已缺失；不会把源目录冒充旧工作副本。');

@@ -70,13 +70,18 @@ try {
   });
   const settingsSource=read('recovered/esm/000-extension.js/module-0026.mjs');
   const cls=settingsSource.slice(settingsSource.indexOf('var GlobalSkillSettings = class'),settingsSource.lastIndexOf('\nexport'));
-  const Settings=vm.runInNewContext(cls+';GlobalSkillSettings',{localProfilePath,process,import_node_fs2:fs,import_node_path2:{default:path},import_node_crypto:crypto});
-  await test('Skills settings use portable relative paths and survive copy/rename',()=>{
+  const {readSharedSkillsDirectory,writeSharedSkillsDirectory}=await import(pathToFileURL(path.join(root,'recovered/shared/shared-skills-paths.mjs')));
+  const Settings=vm.runInNewContext(cls+';GlobalSkillSettings',{localProfilePath,process,import_node_fs2:fs,import_node_path2:{default:path},import_node_crypto:crypto,readSharedSkillsDirectory,writeSharedSkillsDirectory});
+  await test('shared Skills pointer survives profile moves and ignores legacy version-local settings',()=>{
     const file=path.join(profile,'.opencode/global-skills.json'),settings=new Settings(file,path.join(profile,'skills'));
-    settings.setDirectory(path.join(profile,'skills-custom'));const stored=JSON.parse(fs.readFileSync(file));assert.equal(stored.version,2);assert.equal(stored.directory,'skills-custom');
-    const moved=path.join(tmp,'renamed-version/data');fs.mkdirSync(moved,{recursive:true});const movedFile=path.join(moved,'.opencode/global-skills.json');write(movedFile,fs.readFileSync(file));
-    process.env.VSCODE_PORTABLE=moved;assert.equal(new Settings(movedFile,path.join(moved,'skills')).getDirectory(),path.join(moved,'skills-custom'));
-    write(movedFile,JSON.stringify({version:1,directory:path.join(a,'data/skills')}));assert.throws(()=>new Settings(movedFile,'').getDirectory(),/VERSION_DATA_OUTSIDE_PROFILE/);process.env.VSCODE_PORTABLE=profile;
+    assert.throws(()=>settings.getDirectory(),/SHARED_SKILLS_CONFIG_REQUIRED/);
+    const shared=path.join(tmp,'shared-skills');fs.mkdirSync(shared,{recursive:true});settings.setDirectory(shared);
+    const pointer=path.join(process.env.USERPROFILE,'.opencode/shared-skills.json'),stored=JSON.parse(fs.readFileSync(pointer));
+    assert.equal(stored.version,3);assert.equal(stored.kind,'opencode-shared-skills');assert.equal(stored.directory,shared);assert(!fs.existsSync(file));
+    const moved=path.join(tmp,'renamed-version/data');fs.mkdirSync(moved,{recursive:true});const movedFile=path.join(moved,'.opencode/global-skills.json');
+    write(movedFile,JSON.stringify({version:1,directory:path.join(a,'data/skills')}));process.env.VSCODE_PORTABLE=moved;
+    assert.equal(new Settings(movedFile,path.join(moved,'skills')).getDirectory(),shared);
+    fs.rmSync(pointer);assert.throws(()=>new Settings(movedFile,'').getDirectory(),/SHARED_SKILLS_CONFIG_REQUIRED/);process.env.VSCODE_PORTABLE=profile;
   });
   const catalogSource=read('recovered/esm/000-extension.js/module-0059.mjs');
   await test('legacy MCP migration is copy-only and never overwrites destination',()=>{
@@ -88,7 +93,10 @@ try {
   });
   await test('MCP catalog never falls back to public HOME in portable mode',()=>{
     const fn=catalogSource.slice(catalogSource.indexOf('function defaultExternalMcpConfigPath()'),catalogSource.indexOf('\nvar MAX_EXTERNAL_MCP_SERVERS'));
-    const get=vm.runInNewContext(fn+';defaultExternalMcpConfigPath',{globalSkillsDirectory:()=>undefined,process,localProfilePath,import_node_path24:{default:path},LEGACY_EXTERNAL_MCP_CONFIG_PATH:path.join(tmp,'public.json'),EXTERNAL_MCP_CONFIG_FILENAME:'external-mcp.json'});
+    const get=vm.runInNewContext(fn+';defaultExternalMcpConfigPath',{globalSkillsDirectory:()=>undefined,process,localProfilePath,import_node_fs19:fs,import_node_path24:{default:path},LEGACY_EXTERNAL_MCP_CONFIG_PATH:path.join(tmp,'public.json'),EXTERNAL_MCP_CONFIG_FILENAME:'external-mcp.json'});
+    const legacy=path.join(profile,'skills/external-mcp.json');
+    assert.equal(get(),legacy); // The preceding fixture left a private legacy file in place.
+    fs.unlinkSync(legacy);
     assert.equal(get(),path.join(profile,'.opencode/external-mcp.json'));
   });
   const module=path.join(root,'recovered/shared/automation-store.mjs');

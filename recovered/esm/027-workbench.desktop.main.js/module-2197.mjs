@@ -12,6 +12,7 @@ import { toAction } from "./module-0082.mjs";
 import { formatCopilotCreditsLabel } from "./module-0972.mjs";
 import { __decorateClass, __decorateParam } from "./module-0000.mjs";
 import { IInstantiationService } from "./module-0077.mjs";
+import { IHoverService } from "./module-0520.mjs";
 import { IContextKeyService } from "./module-0089.mjs";
 
 
@@ -20,14 +21,31 @@ var $41 = $;
 
 var COMPACT_AGENT_HOST_CONVERSATION_ACTION_ID = "workbench.action.chat.compactAgentHostConversation";
 
+// OpenCode: 「上下文用量」弹窗外框改为圆角矩形卡片（只作用于含 .oc-context-usage 的悬浮框，不影响其他 hover）
+var OC_CONTEXT_USAGE_STYLE_ID = "oc-context-usage-style";
+function ocEnsureContextUsageStyle() {
+  if (typeof document === "undefined" || document.getElementById(OC_CONTEXT_USAGE_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = OC_CONTEXT_USAGE_STYLE_ID;
+  style.textContent = [
+    ".monaco-hover:has(.oc-context-usage) { border-radius: 12px !important; overflow: hidden !important; border: 1px solid var(--vscode-editorWidget-border, rgba(128,128,128,0.35)) !important; box-shadow: 0 8px 28px rgba(0,0,0,0.35) !important; }",
+    ".monaco-hover:has(.oc-context-usage) .monaco-hover-content, .monaco-hover:has(.oc-context-usage) .hover-row, .monaco-hover:has(.oc-context-usage) .hover-contents { border-radius: 12px; }",
+    ".monaco-hover:has(.oc-context-usage) .hover-contents { padding: 12px 14px !important; }",
+    ".workbench-hover-container:has(.oc-context-usage) .workbench-hover-pointer { display: none !important; }",
+    ".oc-context-usage .codicon-close { border-radius: 6px; padding: 2px; }",
+    ".oc-context-usage .codicon-close:hover { background: var(--vscode-toolbar-hoverBackground, rgba(128,128,128,0.2)); opacity: 1 !important; }"
+  ].join("\n");
+  document.head.appendChild(style);
+}
 var ChatContextUsageDetails = class extends Disposable {
-  constructor(_chatWidget, _dataObservable, instantiationService, menuService, contextKeyService) {
+  constructor(_chatWidget, _dataObservable, instantiationService, menuService, contextKeyService, hoverService) {
     super();
     this._chatWidget = _chatWidget;
     this._dataObservable = _dataObservable;
     this.instantiationService = instantiationService;
     this.menuService = menuService;
     this.contextKeyService = contextKeyService;
+    this.hoverService = hoverService;
     this.domNode = $41(".chat-context-usage-details");
     const topHeader = this.domNode.appendChild($41("div.header"));
     topHeader.textContent = localize(12695, null);
@@ -95,39 +113,93 @@ var ChatContextUsageDetails = class extends Disposable {
     });
   }
   _render(data) {
-    const { percentage, usedTokens, totalContextWindow, outputBufferPercentage, promptTokenDetails, sessionCost } = data;
+    const { percentage, sessionCost } = data;
     if (typeof sessionCost === "number" && sessionCost > 0) {
       this.sessionCostValue.textContent = formatCopilotCreditsLabel(sessionCost);
       this.sessionCostSection.style.display = "";
     } else {
       this.sessionCostSection.style.display = "none";
     }
-    this.tokenCountLabel.textContent = localize(
-      12696,
-      null,
-      this.formatTokenCount(usedTokens, 1),
-      this.formatTokenCount(totalContextWindow, 0)
-    );
-    this.percentageLabel.textContent = localize(12693, null, Math.min(100, percentage).toFixed(0));
-    const usageBarWidth = Math.max(0, Math.min(100, percentage));
-    this.progressFill.style.width = `${usageBarWidth}%`;
-    if (outputBufferPercentage !== void 0 && outputBufferPercentage > 0) {
-      this.outputBufferFill.style.width = `${Math.max(0, Math.min(100 - usageBarWidth, outputBufferPercentage))}%`;
-      this.outputBufferFill.style.display = "";
-      this.outputBufferLegend.style.display = "";
-    } else {
-      this.outputBufferFill.style.width = "0";
-      this.outputBufferFill.style.display = "none";
-      this.outputBufferLegend.style.display = "none";
-    }
-    this.quotaItem.classList.remove("warning", "error");
-    if (percentage >= 90) {
-      this.quotaItem.classList.add("error");
-    } else if (percentage >= 75) {
-      this.quotaItem.classList.add("warning");
-    }
-    this.renderTokenDetails(promptTokenDetails, percentage);
+    this._ocRenderUsage(data);
     this.warningMessage.style.display = percentage >= 75 ? "" : "none";
+  }
+  // OpenCode: 「上下文用量」弹窗：标题 + 关闭、总占比、已使用/上限、彩色分段条、分项圆点列表
+  _ocRenderUsage(data) {
+    const { percentage, usedTokens, completionTokens, totalContextWindow, promptTokenDetails } = data;
+    if (!this._ocRoot) {
+      for (const child of Array.from(this.domNode.children)) {
+        if (child.classList.contains("header") || child.classList.contains("quota-indicator") || child.classList.contains("token-details-container")) child.style.display = "none";
+      }
+      this._ocRoot = $41(".oc-context-usage");
+      this._ocRoot.style.cssText = "display:flex;flex-direction:column;gap:10px;min-width:280px;padding:4px 2px;";
+      this.domNode.insertBefore(this._ocRoot, this.domNode.firstChild);
+    }
+    ocEnsureContextUsageStyle();
+    const root = this._ocRoot;
+    clearNode(root);
+    const titleRow = root.appendChild($41("div"));
+    titleRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:12px;";
+    titleRow.appendChild($41("span")).textContent = "\u4E0A\u4E0B\u6587\u7528\u91CF";
+    const close = titleRow.appendChild($41("span.codicon.codicon-close"));
+    close.setAttribute("role", "button");
+    close.setAttribute("tabindex", "0");
+    close.setAttribute("aria-label", "\u5173\u95ED");
+    close.title = "\u5173\u95ED";
+    close.style.cssText = "cursor:pointer;opacity:0.7;";
+    const hide = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.hoverService.hideHover(true);
+    };
+    close.addEventListener("click", hide);
+    close.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") hide(e);
+    });
+    const pct = Math.max(0, Math.min(100, percentage));
+    const summary = root.appendChild($41("div"));
+    summary.style.cssText = "display:flex;align-items:baseline;gap:10px;";
+    const big = summary.appendChild($41("span"));
+    big.style.cssText = "font-size:22px;font-weight:600;";
+    big.textContent = `${pct.toFixed(1)}%`;
+    const used = summary.appendChild($41("span"));
+    used.style.cssText = "font-size:12px;opacity:0.65;";
+    used.textContent = `\u5DF2\u4F7F\u7528 ${this.formatTokenCount(usedTokens, 1)}/ ${this.formatTokenCount(totalContextWindow, 1)}`;
+    const bar = root.appendChild($41("div"));
+    bar.style.cssText = "display:flex;gap:1px;height:8px;border-radius:4px;overflow:hidden;background:rgba(128,128,128,0.18);";
+    const colors = ["#10b981", "#e0b252", "#8b5cf6", "#22c3d6", "#5b7cf6"];
+    const promptPct = totalContextWindow > 0 ? Math.max(0, usedTokens - (completionTokens ?? 0)) / totalContextWindow * 100 : 0;
+    const rows = (Array.isArray(promptTokenDetails) ? promptTokenDetails : []).map((item, index) => ({
+      label: item.label,
+      color: colors[index % colors.length],
+      value: Math.max(0, item.percentageOfPrompt ?? 0) / 100 * promptPct
+    }));
+    let filled = 0;
+    for (const row of rows) {
+      if (row.value <= 0 || filled >= 100) continue;
+      const seg = bar.appendChild($41("div"));
+      seg.style.cssText = `flex:none;min-width:2px;width:${Math.min(100 - filled, row.value)}%;background:${row.color};`;
+      filled += row.value;
+    }
+    if (pct - filled > 0.05) {
+      const seg = bar.appendChild($41("div"));
+      seg.style.cssText = `flex:none;width:${pct - filled}%;background:var(--vscode-descriptionForeground, #888);opacity:0.55;`;
+    }
+    if (rows.length > 0) {
+      const list = root.appendChild($41("div"));
+      list.style.cssText = "display:flex;flex-direction:column;gap:8px;margin-top:4px;";
+      for (const row of rows) {
+        const line = list.appendChild($41("div"));
+        line.style.cssText = "display:flex;align-items:center;gap:8px;";
+        const dot = line.appendChild($41("span"));
+        dot.style.cssText = `flex:none;width:8px;height:8px;border-radius:50%;background:${row.color};`;
+        const label = line.appendChild($41("span"));
+        label.style.cssText = "flex:1;";
+        label.textContent = row.label;
+        const value = line.appendChild($41("span"));
+        value.style.cssText = "opacity:0.65;font-variant-numeric:tabular-nums;";
+        value.textContent = row.value > 0 ? `${row.value.toFixed(1)}%` : "0%";
+      }
+    }
   }
   formatTokenCount(count2, decimals) {
     const mThreshold = 1e6 - 500 * Math.pow(10, -decimals);
@@ -188,6 +260,7 @@ var ChatContextUsageDetails = class extends Disposable {
 ChatContextUsageDetails = __decorateClass([
   __decorateParam(2, IInstantiationService),
   __decorateParam(3, IMenuService),
-  __decorateParam(4, IContextKeyService)
+  __decorateParam(4, IContextKeyService),
+  __decorateParam(5, IHoverService)
 ], ChatContextUsageDetails);
 export { $41, COMPACT_AGENT_HOST_CONVERSATION_ACTION_ID, ChatContextUsageDetails };

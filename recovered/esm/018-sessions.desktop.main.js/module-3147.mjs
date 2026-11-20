@@ -15,7 +15,7 @@ var CommandLineSandboxRewriter = class extends Disposable {
     this._sandboxService = _sandboxService;
   }
   async rewrite(options3) {
-    const sandboxPrereqs = await this._sandboxService.checkForSandboxingPrereqs(false, options3.sandboxPrecheckInputs);
+    const sandboxPrereqs = await this._sandboxService.checkForSandboxingPrereqs(false);
     if (!sandboxPrereqs.enabled || sandboxPrereqs.failedCheck === "config" /* Config */) {
       return void 0;
     }

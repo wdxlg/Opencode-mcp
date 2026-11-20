@@ -1,4 +1,5 @@
-import { ChunkRing, withResourceLocks, canonicalResource, acquireResources } from './concurrency-runtime.mjs';
+import { ChunkRing, acquireResources, canonicalResource } from './concurrency-runtime.mjs';
+import { applyLowIlSandbox, labelFolderForLowWrites, sandboxModeFromToggle } from './sandbox-lowil.mjs';
 // Recovered JavaScript implementation; original TS types are not recovered.
 // Artifact: resources/app/extensions/opencode/dist/extension.js
 // Original module marker: extensions/opencode/src/ide-tool-broker.ts
@@ -152,6 +153,12 @@ function managedProcessEnvironment() {
   env10.TERM = "xterm-256color";
   env10.COLORTERM = "truecolor";
   env10.OPENCODE_AGENT_TERMINAL = "1";
+  // dsh-gap-fixes: an agent terminal has nobody to page output or answer prompts; without these git log/diff/commit can block until the call times out.
+  if (!env10.GIT_PAGER) env10.GIT_PAGER = "cat";
+  if (!env10.PAGER) env10.PAGER = "cat";
+  if (!env10.GIT_TERMINAL_PROMPT) env10.GIT_TERMINAL_PROMPT = "0";
+  if (!env10.GCM_INTERACTIVE) env10.GCM_INTERACTIVE = "never";
+  if (!env10.GIT_EDITOR) env10.GIT_EDITOR = "true";
   if (process.platform === "win32") {
     const vendorModules = bundledModulesDir();
     if (vendorModules) env10.PSModulePath = `${vendorModules};${env10.PSModulePath ?? ""}`;
@@ -216,6 +223,50 @@ function bashPromptCommand(protocolToken) {
   ].join("; ");
 }
 
+// OpenCode: 「权限」菜单的「隔离沙箱」开关（chat.agent.sandbox.enabledWindows）决定托管 Bash 是否以低完整性令牌 + Job 启动。
+var MANAGED_SANDBOX_SECTION = "chat.agent.sandbox";
+var MANAGED_SANDBOX_KEY = "enabledWindows";
+function currentManagedSandboxMode() {
+  if (process.platform !== "win32") return "off";
+  return sandboxModeFromToggle(vscode15.workspace.getConfiguration(MANAGED_SANDBOX_SECTION).get(MANAGED_SANDBOX_KEY));
+}
+function managedSandboxWritableRoots() {
+  return (vscode15.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
+}
+var sandboxLabelPromptOpen = false;
+/** 工作区没有低完整性标签时提示用户；只有用户点击「为工作区启用沙箱写入」才执行 icacls。 */
+function promptSandboxWorkspaceLabel(missing) {
+  if (sandboxLabelPromptOpen || !missing?.length) return;
+  sandboxLabelPromptOpen = true;
+  const enable = "\u4e3a\u5de5\u4f5c\u533a\u542f\u7528\u6c99\u7bb1\u5199\u5165";
+  const turnOff = "\u5173\u95ed\u9694\u79bb\u6c99\u7bb1";
+  void vscode15.window.showWarningMessage(
+    `\u300c\u9694\u79bb\u6c99\u7bb1\u300d\u5df2\u5f00\u542f\uff0c\u4f46\u5de5\u4f5c\u533a\u8fd8\u4e0d\u80fd\u88ab\u6c99\u7bb1\u5199\u5165\uff0cAI \u7684\u7ec8\u7aef\u547d\u4ee4\u6682\u4e0d\u8fd0\u884c\uff1a${missing.join("\uff1b")}\u3002\u70b9\u51fb\u300c${enable}\u300d\u4f1a\u5bf9\u4e0a\u8ff0\u76ee\u5f55\u6267\u884c icacls /setintegritylevel (OI)(CI)low\uff08\u53ea\u653e\u5f00\u6c99\u7bb1\u5bf9\u8fd9\u4e9b\u76ee\u5f55\u7684\u5199\u5165\uff1b\u5982\u7f3a\u5c11\u6743\u9650\uff0c\u4f1a\u5148\u7ed9\u5f53\u524d\u7528\u6237\u6388\u4e88\u8be5\u76ee\u5f55\u7684\u300c\u66f4\u6539\u6240\u6709\u8005\u300d\u6743\u9650\uff09\u3002`,
+    enable,
+    turnOff
+  ).then(async (choice) => {
+    try {
+      if (choice === enable) {
+        const failed = [];
+        for (const folder of missing) {
+          try {
+            labelFolderForLowWrites(folder);
+          } catch (error2) {
+            failed.push(`${folder}\uff1a${error2 instanceof Error ? error2.message : String(error2)}`);
+          }
+        }
+        if (failed.length) void vscode15.window.showErrorMessage(`\u4e3a\u5de5\u4f5c\u533a\u542f\u7528\u6c99\u7bb1\u5199\u5165\u5931\u8d25\uff1a${failed.join("\uff1b")}`);
+        else void vscode15.window.showInformationMessage("\u5df2\u4e3a\u5de5\u4f5c\u533a\u542f\u7528\u6c99\u7bb1\u5199\u5165\uff0cAI \u7684\u7ec8\u7aef\u547d\u4ee4\u53ef\u4ee5\u5728\u6c99\u7bb1\u4e2d\u8fd0\u884c\u4e86\u3002");
+      } else if (choice === turnOff) {
+        await vscode15.workspace.getConfiguration(MANAGED_SANDBOX_SECTION).update(MANAGED_SANDBOX_KEY, "off", vscode15.ConfigurationTarget.Global);
+      }
+    } finally {
+      sandboxLabelPromptOpen = false;
+    }
+  }, () => {
+    sandboxLabelPromptOpen = false;
+  });
+}
 var ManagedCommandPseudoterminal = class {
   constructor(initialCwd) {
     this.initialCwd = initialCwd;
@@ -433,7 +484,17 @@ var ManagedCommandPseudoterminal = class {
   async startPersistentShell() {
     await this.openPromise;
     if (this.disposed) throw new Error("The OpenCode managed terminal is closed.");
-    const shell = managedShellSpec(this.protocolToken);
+    // OpenCode: Low-integrity write sandbox, switched by the 「隔离沙箱」 toggle (chat.agent.sandbox.enabledWindows; OPENCODE_SANDBOX_MODE overrides).
+    let shell;
+    try {
+      shell = applyLowIlSandbox(managedShellSpec(this.protocolToken), {
+        mode: this.sandboxMode ?? currentManagedSandboxMode(),
+        writableRoots: managedSandboxWritableRoots()
+      });
+    } catch (error2) {
+      if (error2?.code === "SANDBOX_LABEL_REQUIRED") promptSandboxWorkspaceLabel(error2.missing);
+      throw error2;
+    }
     this.shellKind = shell.kind;
     const env10 = { ...managedProcessEnvironment(), ...shell.env };
     const ptyProcess = getNodePty().spawn(shell.executable, shell.args, {
@@ -939,7 +1000,8 @@ function resolveWorkspacePath(relative = ".") {
 
 function resolveCommandCwd(requested) {
   const raw = requested.trim();
-  workspaceRoot2();
+  // OpenCode: an absolute cwd works without an opened folder (native chat in an empty window passes
+  // the dialogue's selected directory, e.g. the user home); relative paths still need a workspace.
   if (!import_node_path30.default.isAbsolute(raw) || (vscode15.workspace.workspaceFolders ?? []).some((folder) => isInside3(folder.uri.fsPath, raw))) {
     return resolveWorkspacePath(raw);
   }
@@ -1048,6 +1110,12 @@ function resultText(result) {
   }).filter(Boolean).join("\n");
 }
 
+// recovered.33: light same-directory safety without WORKSPACE_BUSY. Mutating git/npm/pnpm/yarn subcommands of
+// different sessions in one cwd are serialized for at most 30 s through the cross-process port registry; after
+// that the command proceeds and its result carries concurrency_warning. apply_patch file locks are unchanged.
+var SOFT_MUTATION_WAIT_MS = 30000;
+var SOFT_MUTATION_RE = /(?:^|[\s;&|(])(?:git(?:\.exe)?(?:\s+-[cC]\s+\S+)*\s+(?:add|commit|checkout|switch|reset|merge|rebase|clean|pull|fetch|stash|cherry-pick|revert|restore|rm|mv|apply|am|tag|branch\s+-[dDmM])|(?:npm|pnpm|yarn)(?:\.cmd|\.exe)?\s+(?:install|i|ci|add|remove|rm|uninstall|un|update|up|upgrade|dedupe|prune|link|build|run\s+build))\b/i;
+var SOFT_MUTATION_HOLDERS = /* @__PURE__ */ new Map();
 var TerminalCommandManager = class {
   states = /* @__PURE__ */ new Map();
   slots = /* @__PURE__ */ new Map();
@@ -1058,6 +1126,11 @@ var TerminalCommandManager = class {
     for (const terminal of vscode15.window.terminals) {
       if (MANAGED_TERMINAL_NAME.test(terminal.name)) terminal.dispose();
     }
+    // OpenCode: 「隔离沙箱」开关切换后重启托管终端——空闲的立即关闭，正在运行命令的在命令结束后不再复用并关闭
+    this.disposables.push(vscode15.workspace.onDidChangeConfiguration((event) => {
+      if (!event.affectsConfiguration(`${MANAGED_SANDBOX_SECTION}.${MANAGED_SANDBOX_KEY}`)) return;
+      this.closeSlotsWithStaleSandbox();
+    }));
     this.disposables.push(
       vscode15.window.onDidCloseTerminal((terminal) => {
         for (const [slotId, slot] of this.slots) {
@@ -1134,6 +1207,14 @@ var TerminalCommandManager = class {
     this.slots.delete(slot.id);
     slot.terminal.dispose();
   }
+  closeSlotsWithStaleSandbox() {
+    const mode = currentManagedSandboxMode();
+    for (const slot of [...this.slots.values()]) {
+      if (slot.closed || slot.sandboxMode === mode) continue;
+      if (slot.busyCommandId) slot.sandboxStale = true;
+      else this.disposeIdleSlot(slot);
+    }
+  }
   forceCloseSlot(slot) {
     if (slot.closed) return;
     this.clearIdleTimer(slot);
@@ -1144,7 +1225,11 @@ var TerminalCommandManager = class {
     slot.terminal.dispose();
   }
   async acquireTerminal(ownerId, commandId, cwdInfo) {
-    const candidates = [...this.slots.values()].filter((slot2) => slot2.ownerId === ownerId && !slot2.closed && !slot2.busyCommandId).sort((a, b) => b.lastUsedAt - a.lastUsedAt);
+    const sandboxMode2 = currentManagedSandboxMode();
+    for (const stale of [...this.slots.values()]) {
+      if (!stale.closed && !stale.busyCommandId && stale.sandboxMode !== sandboxMode2) this.disposeIdleSlot(stale);
+    }
+    const candidates = [...this.slots.values()].filter((slot2) => slot2.ownerId === ownerId && !slot2.closed && !slot2.busyCommandId && slot2.sandboxMode === sandboxMode2).sort((a, b) => b.lastUsedAt - a.lastUsedAt);
     for (const slot2 of candidates) {
       if (slot2.closed || slot2.busyCommandId) continue;
       if (cwdInfo && !this.sameFileSystemPath(this.currentSlotCwd(slot2), cwdInfo.absolute)) continue;
@@ -1162,11 +1247,12 @@ var TerminalCommandManager = class {
     const initialCwd = cwdInfo?.absolute ?? resolveWorkspacePath(".").absolute;
     const terminalNumber = this.nextTerminalId++;
     const pty = new ManagedCommandPseudoterminal(initialCwd);
+    pty.sandboxMode = sandboxMode2;
     const terminal = vscode15.window.createTerminal({
       name: `OpenCode \xB7 ${terminalNumber}`,
       pty,
       location: vscode15.TerminalLocation.Panel,
-      iconPath: new vscode15.ThemeIcon("shield"),
+      iconPath: new vscode15.ThemeIcon(sandboxMode2 === "off" ? "shield" : "lock"),
       color: new vscode15.ThemeColor("terminal.ansiBlue"),
       // Agent terminals are implementation detail of the current Extension Host session.
       // Persisting/restoring them creates orphan duplicates because command state is in memory.
@@ -1180,6 +1266,7 @@ var TerminalCommandManager = class {
       initialCwd,
       busyCommandId: commandId,
       closed: false,
+      sandboxMode: sandboxMode2,
       lastUsedAt: Date.now()
     };
     this.slots.set(slot.id, slot);
@@ -1241,7 +1328,8 @@ var TerminalCommandManager = class {
     if (state.slot) {
       state.slot.lastUsedAt = state.endedAt;
       if (state.slot.busyCommandId === state.id) state.slot.busyCommandId = void 0;
-      if (!state.slot.closed) this.scheduleIdleClose(state.slot);
+      if (!state.slot.closed && state.slot.sandboxStale && !state.slot.busyCommandId) this.disposeIdleSlot(state.slot);
+      else if (!state.slot.closed) this.scheduleIdleClose(state.slot);
     }
     const tempScript = state.tempScriptPath;
     if (tempScript) {
@@ -1309,30 +1397,98 @@ var TerminalCommandManager = class {
     }
   }
   async run(input, ownerId = NATIVE_MANAGED_COMMAND_OWNER_ID, signal) {
-    // No global process-slot quota. Keep same-workspace mutation locking and terminal ownership.
-    const queueMs=Math.min(10000,asInteger2(input.timeout_ms,10000,1000,120000));
-    const deadline=Date.now()+queueMs;
-    let attached=false,resourceRelease;
-    const done=()=>{resourceRelease?.();};
+    // No global process-slot quota and no WORKSPACE_BUSY rejection. Keep terminal ownership.
+    signal?.throwIfAborted();
+    const soft = await this.softMutationAdmission(input, ownerId, signal);
+    let capWarning = null;
     try {
-      if(/(?:^|[\s;&|])(?:git|npm|pnpm|yarn|pip|cargo|cmake|make)(?:\.exe|\.cmd)?\s+(?:add|commit|checkout|switch|reset|merge|rebase|clean|install|ci|update|build|run\s+build)\b/i.test(String(input.command))){
-        const cwd=typeof input.cwd==='string'?resolveCommandCwd(input.cwd).absolute:resolveWorkspacePath('.').absolute;
-        try {
-          resourceRelease=await acquireResources(['workspace-mutation:'+await canonicalResource(cwd)],{signal,timeoutMs:Math.max(1,deadline-Date.now())});
-        } catch(error) {
-          if(error.code==='RESOURCE_BUSY')throw Object.assign(new Error('WORKSPACE_BUSY: command not started; another command holds the workspace mutation lock.'),{code:'WORKSPACE_BUSY',phase:'workspace-lock',command_started:false});
-          throw error;
-        }
-      }
+      capWarning = await this.softRunningCap(input, signal);
+    } catch (error) {
+      soft.release?.();
+      throw error;
+    }
+    const warning = [soft.warning, capWarning].filter(Boolean).join("；") || null;
+    let attached = false;
+    try {
       signal?.throwIfAborted();
-      return await this.runLeased(input,ownerId,done,()=>{attached=true;});
-    } finally {if(!attached)done();}
+      const text = await this.runLeased(input, ownerId, soft.release, () => { attached = true; });
+      return warning && typeof text === "string" ? text.replace("=== RUN_COMMAND BEGIN ===\n", `=== RUN_COMMAND BEGIN ===\nconcurrency_warning: ${JSON.stringify(warning)}\n`) : text;
+    } finally {
+      if (!attached) soft.release?.();
+    }
+  }
+  /**
+   * running-cap: soft limit on foreground commands running at once across all sessions in this window,
+   * so parallel models cannot saturate the machine. Never rejects (no busy/quota error):
+   * waits up to 60 s for a running command to finish, then starts anyway with a warning.
+   * Limit: setting opencode.commands.maxConcurrent or env OPENCODE_MAX_RUNNING_COMMANDS;
+   * default max(4, logical CPUs); 0 = unlimited. Background commands are not counted or delayed.
+   */
+  runningCapLimit() {
+    const env = globalThis.process?.env ?? {};
+    let configured;
+    try { configured = vscode15.workspace.getConfiguration("opencode").get("commands.maxConcurrent"); } catch { configured = void 0; }
+    const pick = [env.OPENCODE_MAX_RUNNING_COMMANDS, configured].find((value) => value !== void 0 && value !== null && String(value).trim() !== "");
+    const raw = pick === void 0 ? NaN : Number(pick);
+    if (Number.isFinite(raw) && raw >= 0) return Math.floor(raw);
+    const cpus = Number(env.NUMBER_OF_PROCESSORS) || 4;
+    return Math.max(4, cpus);
+  }
+  async softRunningCap(input, signal) {
+    if (input?.background === true) return null;
+    const limit = this.runningCapLimit();
+    if (!limit) return null;
+    const running = () => [...this.states.values()].filter((state) => state.status === "running" && state.background !== true).length;
+    if (running() < limit) return null;
+    const started = Date.now();
+    while (running() >= limit) {
+      signal?.throwIfAborted();
+      if (Date.now() - started >= 60e3) return `已有 ${running()} 条前台命令在运行（上限 ${limit}），等待 60 秒后仍直接启动`;
+      await new Promise((resolve) => { const timer = setTimeout(resolve, 250); timer.unref?.(); });
+    }
+    const waited = Date.now() - started;
+    return waited >= 1e3 ? `前台命令已达上限 ${limit}，排队 ${Math.round(waited / 1e3)} 秒后启动` : null;
+  }
+  /** Never rejects for contention: waits up to 30 s for another session's in-flight mutating command in the same cwd. */
+  async softMutationAdmission(input, ownerId, signal) {
+    const none = { release: void 0, warning: null };
+    if (!SOFT_MUTATION_RE.test(String(input?.command ?? ""))) return none;
+    let key, cwd;
+    try {
+      cwd = typeof input.cwd === "string" && input.cwd.trim() ? resolveCommandCwd(input.cwd).absolute : resolveWorkspacePath(".").absolute;
+      key = "workspace-mutation-soft:" + await canonicalResource(cwd);
+    } catch {
+      return none;
+    }
+    // The same session's own commands are ordered by that session; only other sessions are waited for.
+    if (SOFT_MUTATION_HOLDERS.get(key)?.owner === ownerId) return none;
+    const started = Date.now();
+    let releasePort;
+    try {
+      releasePort = await acquireResources([key], { signal, timeoutMs: SOFT_MUTATION_WAIT_MS });
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      if (error?.code !== "RESOURCE_BUSY") return none;
+      const holder = SOFT_MUTATION_HOLDERS.get(key);
+      return { release: void 0, warning: `同一目录 ${cwd} 中另一会话的 git/npm/pnpm/yarn 修改命令在 ${SOFT_MUTATION_WAIT_MS / 1e3} 秒内仍未结束${holder ? "（本窗口内的其他会话）" : "（可能在其他 OpenCode 窗口）"}；本命令已照常执行，未加锁。请留意 .git/index.lock、lockfile 或 node_modules 并发冲突。` };
+    }
+    const waited = Date.now() - started;
+    SOFT_MUTATION_HOLDERS.set(key, { owner: ownerId, at: Date.now() });
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      if (SOFT_MUTATION_HOLDERS.get(key)?.owner === ownerId) SOFT_MUTATION_HOLDERS.delete(key);
+      releasePort?.();
+    };
+    return { release, warning: waited >= 500 ? `已等待同目录其他会话的修改命令结束约 ${Math.round(waited / 1e3)} 秒后执行。` : null };
   }
   async runLeased(input, ownerId = NATIVE_MANAGED_COMMAND_OWNER_ID, processRelease, attachLease) {
     const command = asString2(input.command).trim();
     if (!command) throw new Error("command must be a non-empty string");
     const background = asBoolean2(input.background, false);
-    const timeoutMs = asInteger2(input.timeout_ms, 12e4, 1e3, 12e4);
+    // dsh-gap-fixes: return status=running before common MCP client deadlines (~60 s) instead of after 120 s; OPENCODE_RUN_COMMAND_DEFAULT_TIMEOUT_MS overrides.
+    const timeoutMs = asInteger2(input.timeout_ms, asInteger2(Number(process.env.OPENCODE_RUN_COMMAND_DEFAULT_TIMEOUT_MS), 5e4, 1e3, 12e4), 1e3, 12e4);
     const cwdInfo = typeof input.cwd === "string" && input.cwd.trim() ? resolveCommandCwd(input.cwd) : void 0;
     if (input.execution !== void 0 && input.execution !== "pty") {
       throw new Error("The managed terminal uses the persistent Bash PTY only; direct execution is no longer part of the public terminal contract.");
@@ -1578,6 +1734,14 @@ var TerminalCommandManager = class {
   stateForOwner(commandId, ownerId) {
     const id = normalizeManagedCommandId(commandId);
     const state = this.states.get(id);
+    // orphan-adopt: a background command whose MCP session ended is kept alive for a grace period
+    // (see releaseOwner). Its opaque command_id was only ever returned to the original caller, so
+    // presenting it is the capability: the next connection adopts the command and its terminal.
+    if (state && state.ownerId !== ownerId && state.orphanedAt && ownerId) {
+      state.ownerId = ownerId;
+      delete state.orphanedAt;
+      if (state.slot && state.slot.busyCommandId === state.id) state.slot.ownerId = ownerId;
+    }
     if (!state || state.ownerId !== ownerId) throw managedCommandNotAccessibleError();
     return state;
   }
@@ -1676,14 +1840,45 @@ ${preview.command}${consequence}`,
       return;
     }
     this.commandCanceller.releaseOwner(ownerId);
+    const orphanTtlEnv = globalThis.process?.env?.OPENCODE_ORPHAN_COMMAND_TTL_MS;
+    const orphanTtlRaw = orphanTtlEnv === void 0 || String(orphanTtlEnv).trim() === "" ? NaN : Number(orphanTtlEnv);
+    const orphanTtl = Number.isFinite(orphanTtlRaw) && orphanTtlRaw >= 0 ? orphanTtlRaw : 30 * 6e4;
     for (const state of [...this.states.values()]) {
       if (state.ownerId !== ownerId) continue;
+      if (orphanTtl > 0 && state.background === true && state.status === "running" && state.slot && ownerId !== NATIVE_MANAGED_COMMAND_OWNER_ID) {
+        // Keep long-running background work alive across a reconnect instead of killing it with the session.
+        const orphanedAt = Date.now();
+        state.orphanedAt = orphanedAt;
+        const timer = setTimeout(() => {
+          if (state.orphanedAt !== orphanedAt) return;
+          if (state.status === "running" && state.slot) this.forceCloseSlot(state.slot);
+          this.states.delete(state.id);
+        }, orphanTtl);
+        timer.unref?.();
+        continue;
+      }
       if (state.status === "running" && state.slot) this.forceCloseSlot(state.slot);
       this.states.delete(state.id);
     }
     for (const slot of [...this.slots.values()]) if (slot.ownerId === ownerId && !slot.busyCommandId) this.disposeIdleSlot(slot);
   }
+  /** dsh-gap-fixes: background-job view — this owner's managed commands, newest first. */
+  listCommands(input, ownerId = NATIVE_MANAGED_COMMAND_OWNER_ID) {
+    this.pruneCommandStates();
+    const only = asString2(input.status, "any");
+    const now = Date.now();
+    const rows = [...this.states.values()].filter((state) => state.ownerId === ownerId && (only === "any" || state.status === only)).sort((a, b) => b.startedAt - a.startedAt).slice(0, 50);
+    const lines = [];
+    for (const state of rows) {
+      const end = state.endedAt ?? now;
+      lines.push(`${state.id} | ${state.status} | exit=${state.exitCode ?? "null"} | background=${state.background === true} | started=${new Date(state.startedAt).toISOString()} | duration_ms=${end - state.startedAt} | bytes=${state.totalOutputBytes ?? 0} | cwd=${JSON.stringify(state.cwd ?? "")} | ${JSON.stringify(summarizeCommand(state.command ?? ""))}`);
+    }
+    if (!rows.length) lines.push("(no retained commands for this owner; finished commands are pruned by the retention policy)");
+    // Same COMMAND_OUTPUT envelope as a normal read so structured parsing keeps working; the list is the output body.
+    return ["=== COMMAND_OUTPUT BEGIN ===", "command_id: list", "status: completed", `hint: ${rows.length} commands; columns: command_id | status | exit | background | started | duration_ms | bytes | cwd | command`, "--- OUTPUT BEGIN ---", lines.join("\n"), "--- OUTPUT END ---", "=== COMMAND_OUTPUT END ==="].join("\n");
+  }
   getOutput(input, ownerId = NATIVE_MANAGED_COMMAND_OWNER_ID) {
+    if (input.list === true || (input.command_id === void 0 || input.command_id === "")) return this.listCommands(input, ownerId);
     const state = this.stateForOwner(asString2(input.command_id), ownerId);
     const id = state.id;
     const offset = asInteger2(input.offset, 0, 0, Number.MAX_SAFE_INTEGER);
@@ -2041,7 +2236,7 @@ Background: \`${background}\``);
       return { text: resultText(result), isError: false };
     } catch (error2) {
       const message2 = error2 instanceof Error ? error2.message : String(error2);
-      const admissionError = error2?.code === 'PROCESS_BUDGET_BUSY' || error2?.code === 'WORKSPACE_BUSY';
+      const admissionError = error2?.code === 'PROCESS_BUDGET_BUSY';
       return { text: `IDE tool ${name} failed: ${message2}`, isError: true,
         ...(admissionError ? { structuredContent: { error: { code: error2.code, message: message2 },
           phase: error2.phase, command_started: false, ...(error2.wait_ms === undefined ? {} : { wait_ms: error2.wait_ms }) } } : {}) };

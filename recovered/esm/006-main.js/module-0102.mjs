@@ -19,6 +19,66 @@ import { getAllWindowsExcludingOffscreen, init_windows } from "./module-0101.mjs
 
 // src/vs/platform/lifecycle/electron-main/lifecycleMainService.ts
 import electron4 from "electron";
+import { spawn as ocCloseSpawn } from "child_process";
+import * as ocClosePath from "path";
+// OpenCode: after a confirmed (or forced) quit, stop every leftover process started from the app folder
+// (terminals, bash, OpenConsole, helper services) once the main process has exited.
+var ocFullCloseCleanupStarted = false;
+function ocScheduleFullCloseCleanup() {
+  if (ocFullCloseCleanupStarted || process.platform !== "win32" || !electron4.app.isPackaged) {
+    return;
+  }
+  ocFullCloseCleanupStarted = true;
+  try {
+    const dir = ocClosePath.dirname(process.execPath).replace(/'/g, "''");
+    const ps = `$t=${process.pid};for($i=0;$i -lt 80;$i++){if(-not (Get-Process -Id $t -ErrorAction SilentlyContinue)){break};Start-Sleep -Milliseconds 250};Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith('${dir}\\',[System.StringComparison]::OrdinalIgnoreCase) -and $_.ProcessId -ne $t } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`;
+    ocCloseSpawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", ps], { detached: true, stdio: "ignore", windowsHide: true }).unref();
+  } catch {
+  }
+}
+
+// OpenCode: if the normal shutdown hangs (an extension host, terminal or MCP server never answers),
+// still end the app instead of leaving a windowless OpenCode running in the background.
+var ocForceExitTimer;
+function ocArmForceExit(delayMs) {
+  if (ocForceExitTimer || isMacintosh) {
+    return;
+  }
+  ocScheduleFullCloseCleanup();
+  ocForceExitTimer = setTimeout(() => {
+    try {
+      electron4.app.exit(0);
+    } catch {
+      process.exit(0);
+    }
+  }, delayMs);
+}
+
+// OpenCode: every way of closing takes the same road: the window disappears at once and shutdown continues
+// in the background; the renderer shows it again only when a dialog needs the user or the close is vetoed.
+var ocCloseStartedAt = 0;
+function ocCloseLog(logService, msg) {
+  try {
+    logService.info(`[OpenCode close] +${ocCloseStartedAt ? Date.now() - ocCloseStartedAt : 0}ms ${msg}`);
+  } catch {
+  }
+}
+function ocSetCloseWindowVisible(window2, visible) {
+  try {
+    const win = window2?.win;
+    if (!win || win.isDestroyed() || isMacintosh) {
+      return;
+    }
+    if (visible) {
+      if (!win.isVisible()) {
+        win.show();
+      }
+    } else {
+      win.hide();
+    }
+  } catch {
+  }
+}
 
 var ILifecycleMainService, LifecycleMainService;
 
@@ -108,7 +168,9 @@ var init_lifecycleMainService = __esm({
         electron4.app.addListener("window-all-closed", windowAllClosedListener);
         electron4.app.once("will-quit", (e) => {
           this.trace("Lifecycle#app.on(will-quit) - begin");
+          ocCloseLog(this.logService, "will-quit");
           e.preventDefault();
+          ocArmForceExit(8e3);
           const shutdownPromise = this.fireOnWillShutdown(1 /* QUIT */);
           shutdownPromise.finally(() => {
             this.trace("Lifecycle#app.on(will-quit) - after fireOnWillShutdown");
@@ -119,6 +181,7 @@ var init_lifecycleMainService = __esm({
             electron4.app.removeListener("before-quit", beforeQuitListener);
             electron4.app.removeListener("window-all-closed", windowAllClosedListener);
             this.trace("Lifecycle#app.on(will-quit) - calling app.quit()");
+            ocScheduleFullCloseCleanup();
             electron4.app.quit();
           });
         });
@@ -134,8 +197,10 @@ var init_lifecycleMainService = __esm({
           reason,
           join(id2, promise) {
             logService.trace(`Lifecycle#onWillShutdown - begin '${id2}'`);
+            ocCloseLog(logService, `main shutdown participant begin '${id2}'`);
             joiners.push(promise.finally(() => {
               logService.trace(`Lifecycle#onWillShutdown - end '${id2}'`);
+              ocCloseLog(logService, `main shutdown participant end '${id2}'`);
             }));
           }
         });
@@ -189,10 +254,30 @@ var init_lifecycleMainService = __esm({
           if (this.windowToCloseRequest.delete(windowId)) {
             return;
           }
+          if (this.mapWindowIdToPendingUnload.has(windowId) && !this.ocForceCloseRequested && this.windowCounter <= 1) {
+            // OpenCode: closing again while the close confirmation is pending quits completely.
+            this.ocForceCloseRequested = true;
+            e.preventDefault();
+            ocSetCloseWindowVisible(window2, false);
+            ocCloseLog(this.logService, `second close while confirming, window ${windowId} hidden, quitting`);
+            this.trace(`Lifecycle#window.on('close') - second close while confirming, forcing full quit (window ID ${windowId})`);
+            this._quitRequested = true;
+            ocScheduleFullCloseCleanup();
+            ocArmForceExit(5e3);
+            Promise.race([this.fireOnWillShutdown(2 /* QUIT */), timeout(3e3)]).finally(() => electron4.app.exit(0));
+            return;
+          }
           this.trace(`Lifecycle#window.on('close') - window ID ${window2.id}`);
           e.preventDefault();
+          if (!this.mapWindowIdToPendingUnload.has(windowId)) {
+            ocCloseStartedAt = Date.now();
+          }
+          ocSetCloseWindowVisible(window2, false);
+          ocCloseLog(this.logService, `close requested, window ${windowId} hidden`);
           this.unload(window2, 1 /* CLOSE */).then((veto) => {
+            ocCloseLog(this.logService, `unload finished, veto=${!!veto}`);
             if (veto) {
+              ocSetCloseWindowVisible(window2, true);
               this.windowToCloseRequest.delete(windowId);
               return;
             }
@@ -204,9 +289,12 @@ var init_lifecycleMainService = __esm({
         }));
         windowListeners.add(Event.fromNodeEventEmitter(win, "closed")(() => {
           this.trace(`Lifecycle#window.on('closed') - window ID ${window2.id}`);
+          ocCloseLog(this.logService, `window ${window2.id} closed`);
           this.windowCounter--;
           windowListeners.dispose();
           if (this.windowCounter === 0 && (!isMacintosh || this._quitRequested)) {
+            // OpenCode: the last window is gone, so the app must end even if shutdown participants hang.
+            ocArmForceExit(1e4);
             this.fireOnWillShutdown(1 /* QUIT */);
           }
         }));
@@ -253,6 +341,17 @@ var init_lifecycleMainService = __esm({
         if (veto) {
           this.trace(`Lifecycle#unload() - veto in renderer (window ID ${window2.id})`);
           return this.handleWindowUnloadVeto(veto);
+        }
+        // OpenCode: nothing vetoed the close, so hide the window right away; extension/terminal shutdown
+        // continues in the background instead of leaving a frozen window on screen for several seconds.
+        // On quit only the last window is hidden early, so a later veto never leaves a hidden window behind.
+        if (windowUnloadReason === 1 /* CLOSE */ || windowUnloadReason === 2 /* QUIT */ && this.windowCounter <= 1) {
+          try {
+            if (window2.win && !window2.win.isDestroyed()) {
+              window2.win.hide();
+            }
+          } catch {
+          }
         }
         await this.onWillUnloadWindowInRenderer(window2, windowUnloadReason);
         return false;

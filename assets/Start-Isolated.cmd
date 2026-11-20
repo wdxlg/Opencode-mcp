@@ -1,5 +1,14 @@
 @echo off
 setlocal
+rem OpenCode p36: apply a deferred update staged in ..\opencode.next (marker ..\.pending-update.json) before launching.
+rem The update may replace this very file, so after applying, re-run the fresh copy and exit inside the same block.
+if not defined OPENCODE_PENDING_APPLIED if exist "%~dp0..\.pending-update.json" if exist "%~dp0..\scripts\apply-pending-update.cmd" (
+  set "OPENCODE_PENDING_APPLIED=1"
+  call "%~dp0..\scripts\apply-pending-update.cmd"
+  call "%~f0" %*
+  exit /b
+)
+set "OPENCODE_PENDING_APPLIED="
 set "ELECTRON_RUN_AS_NODE="
 set "VSCODE_IPC_HOOK_CLI="
 rem Ordinary profile is local; rules/collaboration remain in the original user's shared store.

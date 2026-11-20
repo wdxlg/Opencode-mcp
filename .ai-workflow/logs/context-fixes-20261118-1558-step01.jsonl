@@ -1,0 +1,4 @@
+{"at": "2026-11-18T15:58:00+08:00", "task": "context-fixes-20261118-1558-step01", "op": "backup+snapshot", "files": "backup/context-fixes-20261118-1558", "tag": "pre/context-fixes-20261118-1558-step01"}
+{"at": "2026-11-18T16:06:00+08:00", "task": "context-fixes-20261118-1558-step01", "op": "git apply tasks/context-fixes-20261118/context-fixes.patch", "files": 11, "result": "ok; node --check ok"}
+{"at": "2026-11-18T16:07:00+08:00", "task": "context-fixes-20261118-1558-step01", "op": "selfcheck", "cmd": "node tasks/context-fixes-20261118/selfcheck.mjs", "result": "24 passed, 0 failed"}
+{"at": "2026-11-18T16:09:00+08:00", "task": "context-fixes-20261118-1558-step01", "op": "build", "cmd": "node scripts/update.cjs", "log": "hark_build_context-fixes.log", "exit": 0, "published": "opencode/", "verification": "not run (no test authorization)"}

@@ -1,0 +1,146 @@
+# OpenCode cloud agent: installed by "OpenCode：安装云端工作流".
+# Dispatched by "OpenCode：发到云端运行"; runs on GitHub-hosted runners, so it keeps going with your PC off.
+# Model key: repository secret OPENCODE_API_KEY (or the name passed in input secret_name).
+# Optional: secret or variable OPENCODE_API_BASE (OpenAI-compatible base URL), variable OPENCODE_MODEL.
+# Results: branch opencode/agent-<run_id> + a DRAFT pull request (never merged automatically) + artifact with summary/logs.
+name: OpenCode Agent
+run-name: "opencode-agent ${{ inputs.run_id }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Task for the agent"
+        required: true
+        type: string
+      base:
+        description: "Base branch (empty = repository default branch)"
+        required: false
+        type: string
+        default: ""
+      model:
+        description: "Model id (empty = variable OPENCODE_MODEL or runner default)"
+        required: false
+        type: string
+        default: ""
+      run_id:
+        description: "Run id chosen by OpenCode (branch opencode/agent-<run_id>)"
+        required: true
+        type: string
+      secret_name:
+        description: "Name of the repository secret that holds the model API key"
+        required: false
+        type: string
+        default: "OPENCODE_API_KEY"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: opencode-agent-${{ inputs.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RUN_ID: ${{ inputs.run_id }}
+      BASE_BRANCH: ${{ inputs.base || github.event.repository.default_branch }}
+    steps:
+      - name: Validate inputs
+        env:
+          TASK: ${{ inputs.task }}
+        run: |
+          if ! printf '%s' "$RUN_ID" | grep -Eq '^[A-Za-z0-9._-]{1,64}$'; then echo "invalid run_id"; exit 1; fi
+          if [ -z "$TASK" ]; then echo "empty task"; exit 1; fi
+          echo "OPENCODE_OUT_DIR=$RUNNER_TEMP/opencode-cloud" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/opencode-cloud"
+
+      - name: Checkout base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base || github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run OpenCode agent
+        id: agent
+        continue-on-error: true
+        timeout-minutes: 50
+        env:
+          OPENCODE_TASK: ${{ inputs.task }}
+          OPENCODE_API_KEY: ${{ secrets[inputs.secret_name || 'OPENCODE_API_KEY'] }}
+          OPENCODE_API_BASE: ${{ secrets.OPENCODE_API_BASE || vars.OPENCODE_API_BASE }}
+          OPENCODE_MODEL: ${{ inputs.model || vars.OPENCODE_MODEL }}
+          OPENCODE_MAX_STEPS: ${{ vars.OPENCODE_MAX_STEPS || '40' }}
+          OPENCODE_MAX_MINUTES: ${{ vars.OPENCODE_MAX_MINUTES || '45' }}
+        run: |
+          # The runner lives in the repo (.github/opencode/cloud-agent-runner.mjs); copy it out so the agent cannot change the code that is running.
+          cp .github/opencode/cloud-agent-runner.mjs "$RUNNER_TEMP/cloud-agent-runner.mjs"
+          # exit 2 = step/runtime limit reached: keep the partial work, do not fail the job.
+          node "$RUNNER_TEMP/cloud-agent-runner.mjs" || { code=$?; if [ "$code" = "2" ]; then echo "::warning::Agent stopped at its step/runtime limit; partial result kept."; else exit "$code"; fi; }
+
+      - name: Run tests (non-fatal)
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          if [ -f package.json ] && node -e "process.exit(require('./package.json').scripts?.test ? 0 : 1)"; then
+            ( [ -f package-lock.json ] && npm ci || npm install ) > "$OPENCODE_OUT_DIR/install.log" 2>&1 || true
+            npm test 2>&1 | tee "$OPENCODE_OUT_DIR/tests.log"
+            echo "tests_exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "No package.json test script found; skipping tests." | tee "$OPENCODE_OUT_DIR/tests.log"
+          fi
+
+      - name: Push branch and open draft PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TASK: ${{ inputs.task }}
+          AGENT_OUTCOME: ${{ steps.agent.outcome }}
+        run: |
+          BRANCH="opencode/agent-$RUN_ID"
+          git config user.name "opencode-agent[bot]"
+          git config user.email "opencode-agent@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add -A
+          # GITHUB_TOKEN cannot push workflow changes; never include them.
+          git reset -q -- .github/workflows .opencode-cloud 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "The agent made no changes; nothing to push."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          TITLE="$(printf '%s' "$TASK" | tr '\r\n' '  ' | cut -c1-72)"
+          git commit -q -m "opencode agent: $TITLE" -m "Run id: $RUN_ID"
+          git push --force-with-lease origin "HEAD:refs/heads/$BRANCH"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          BODY="$OPENCODE_OUT_DIR/pr-body.md"
+          if [ -f "$OPENCODE_OUT_DIR/summary.md" ]; then cat "$OPENCODE_OUT_DIR/summary.md" > "$BODY"; else echo "Agent summary missing (agent step: $AGENT_OUTCOME)." > "$BODY"; fi
+          printf '\n---\nOpened by OpenCode cloud agent, run `%s`, [workflow run](%s/%s/actions/runs/%s). Draft: review before merging.\n' "$RUN_ID" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> "$BODY"
+          if gh pr create --draft --base "$BASE_BRANCH" --head "$BRANCH" --title "[OpenCode] $TITLE" --body-file "$BODY"; then
+            echo "pr=created" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Could not open the pull request. Enable Settings > Actions > General > 'Allow GitHub Actions to create and approve pull requests', or open it manually from branch $BRANCH."
+          fi
+
+      - name: Upload summary and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-agent-${{ inputs.run_id }}
+          path: ${{ runner.temp }}/opencode-cloud
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail when the agent failed
+        if: steps.agent.outcome == 'failure'
+        run: |
+          echo "The agent step failed; see summary.md in the artifact."
+          exit 1

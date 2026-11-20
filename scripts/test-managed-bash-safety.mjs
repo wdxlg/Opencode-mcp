@@ -22,7 +22,7 @@ test('literal exclamation survives the actual Windows-protocol Bash invocation',
  const spec=protocol('isolated_test');
  const match=spec.args[3].match(/exec "\$BASH" ([^;]+)$/);assert(match);
  const args=match[1].trim().split(/\s+/);
- const bash=process.platform==='win32'?path.join(root,'generated/source-build/resources/app/extensions/opencode/runtime/git/bin/bash.exe'):'/bin/bash';
+ const bash=process.platform==='win32'?[path.join(root,'generated/source-build/resources/app/extensions/opencode/runtime/git/bin/bash.exe'),path.join(root,'opencode/resources/app/extensions/opencode/runtime/git/bin/bash.exe')].find(p=>fs.existsSync(p))||path.join(root,'opencode/resources/app/extensions/opencode/runtime/git/bin/bash.exe')/* source-build 发布后会被删除，退回已发布的 opencode/ */:'/bin/bash';
  assert(fs.existsSync(bash),'Bundled Bash must already exist; do not install dependencies automatically');
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'opencode-bash-safety-'));
  try {

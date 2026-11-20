@@ -343,26 +343,6 @@ var TIP_CATALOG = [
       ChatContextKeys.hasCanDelegateProviders
     ),
     excludeWhenCommandsExecuted: ["workbench.action.chat.openNewChatSessionInPlace.copilotcli"]
-  },
-  {
-    id: "tip.defaultPermissions",
-    tier: "qol" /* Qol */,
-    buildMessage() {
-      return new MarkdownString(
-        localize(
-          11297,
-          null,
-          "default permissions",
-          "chat.permissions.default" /* DefaultPermissionLevel */
-        )
-      );
-    },
-    when: ContextKeyExpr.or(
-      ChatContextKeys.chatModeKind.isEqualTo("agent" /* Agent */),
-      ChatContextKeys.chatModeKind.isEqualTo("edit" /* Edit */)
-    ),
-    excludeWhenSettingsChanged: ["chat.permissions.default" /* DefaultPermissionLevel */],
-    dismissWhenCommandsClicked: ["workbench.action.openSettings"]
   }
 ];
 export { formatKeybinding, extractCommandIds, TIP_CATALOG };

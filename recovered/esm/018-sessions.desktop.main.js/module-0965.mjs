@@ -23,41 +23,29 @@ var ChatModeKind = /* @__PURE__ */ ((ChatModeKind2) => {
   return ChatModeKind2;
 })(ChatModeKind || {});
 
-var ChatPermissionLevel = /* @__PURE__ */ ((ChatPermissionLevel6) => {
-  ChatPermissionLevel6["Default"] = "default";
-  ChatPermissionLevel6["Assisted"] = "assisted";
-  ChatPermissionLevel6["AutoApprove"] = "autoApprove";
-  ChatPermissionLevel6["Autopilot"] = "autopilot";
-  return ChatPermissionLevel6;
-})(ChatPermissionLevel || {});
+// OpenCode: 对话工具权限模式——对话面板标题行「权限」按钮（设置 opencode.chat.permissionMode），
+// 取代已删除的旧「默认审批」权限级别体系（默认审批 / 自动批准 / Autopilot）及其默认设置。
+// ask = 每次询问；auto = 自动允许；fullAuto = 全自动（自动允许 + 所有提问自动选推荐项 + 交接自动发送）；readonly = 只读。
+var OPENCODE_PERMISSION_MODE_SETTING = "opencode.chat.permissionMode";
 
-var chatPermissionLevels = new Set(Object.values(ChatPermissionLevel));
+var OPENCODE_PERMISSION_MODES = ["ask", "auto", "fullAuto", "readonly"];
 
-function isChatPermissionLevel(level) {
-  return chatPermissionLevels.has(level);
+function normalizeOpenCodePermissionMode(value2) {
+  return value2 === "auto" || value2 === "fullAuto" || value2 === "readonly" ? value2 : "ask";
 }
 
-function getChatPermissionLevelFromDefaultConfiguration(value2) {
-  switch (value2) {
-    case "manual" /* Manual */:
-    case "default" /* Default */:
-      return "default" /* Default */;
-    case "assisted" /* Assisted */:
-      return "assisted" /* Assisted */;
-    case "allowAll" /* AllowAll */:
-    case "autoApprove" /* AutoApprove */:
-      return "autoApprove" /* AutoApprove */;
-    default:
-      return void 0;
-  }
+function getOpenCodePermissionMode(configurationService) {
+  return normalizeOpenCodePermissionMode(configurationService?.getValue(OPENCODE_PERMISSION_MODE_SETTING));
 }
 
-function isAutoApproveLevel(level) {
-  return level === "autoApprove" /* AutoApprove */ || level === "autopilot" /* Autopilot */;
+/** 自动允许或全自动：工具调用默认免确认（单个类别 / 工具设的「禁止」「询问」仍由 ocToolPermissionDecision 优先执行）。 */
+function isOpenCodeAutoApproveMode(configurationService) {
+  const mode = getOpenCodePermissionMode(configurationService);
+  return mode === "auto" || mode === "fullAuto";
 }
 
-function isAutopilotLevel(level) {
-  return level === "autopilot" /* Autopilot */;
+function isOpenCodeFullAutoMode(configurationService) {
+  return getOpenCodePermissionMode(configurationService) === "fullAuto";
 }
 
 var ChatAgentLocation = /* @__PURE__ */ ((ChatAgentLocation5) => {
@@ -262,4 +250,24 @@ var ChatEditorTitleMaxLength = 30;
 var CONTEXT_MODELS_EDITOR = new RawContextKey("inModelsEditor", false);
 
 var CONTEXT_MODELS_SEARCH_FOCUS = new RawContextKey("inModelsSearch", false);
-export { isChatPermissionLevel, getChatPermissionLevelFromDefaultConfiguration, isAutoApproveLevel, isAutopilotLevel, isChatInputModel, isSupportedChatFileScheme, getComputedDefaultSessionType, isNewChatSessionTypeUsable, getLocalFallbackSessionTypeSelectionReason, getDefaultNewChatSessionType, getDefaultNewChatSessionTypeAndReasonFromServices, getDefaultNewChatSessionTypeAndReason, getUsableRememberedSessionType, recordUserSelectedSessionType, isCopilotHarnessDefault, isCopilotHarnessPreferred, isEditorLocalAgentEnabled, isVisibleEditorChatSessionType, getVisibleNonLocalEditorChatSessionTypes, ChatModeKind, ChatPermissionLevel, chatPermissionLevels, ChatAgentLocation, chatAlwaysUnsupportedFileSchemes, chatInputSchemes, MANAGE_CHAT_COMMAND_ID, CHAT_OPEN_AGENT_HOST_CHAT_COMMAND_ID, CHAT_SUBAGENT_RESOURCE_QUERY_PARAM, OPEN_WORKSPACE_IN_AGENTS_WINDOW_COMMAND_ID, OPEN_AGENTS_WINDOW_COMMAND_ID, OPENCODE_NATIVE_AGENTS_WINDOW_ENABLED, OPEN_AGENTS_WINDOW_PRECONDITION, ChatEditorTitleMaxLength, CONTEXT_MODELS_EDITOR, CONTEXT_MODELS_SEARCH_FOCUS };
+// OpenCode 018 compat: sessions-only modules still validate legacy permission level strings
+var chatPermissionLevelsCompat = new Set(["default", "assisted", "autoApprove", "autopilot"]);
+function isChatPermissionLevel(level) {
+  return chatPermissionLevelsCompat.has(level);
+}
+function getChatPermissionLevelFromDefaultConfiguration(value2) {
+  switch (value2) {
+    case "manual":
+    case "default":
+      return "default";
+    case "assisted":
+      return "assisted";
+    case "allowAll":
+    case "autoApprove":
+      return "autoApprove";
+    default:
+      return void 0;
+  }
+}
+
+export { isChatPermissionLevel, getChatPermissionLevelFromDefaultConfiguration, isChatInputModel, isSupportedChatFileScheme, getComputedDefaultSessionType, isNewChatSessionTypeUsable, getLocalFallbackSessionTypeSelectionReason, getDefaultNewChatSessionType, getDefaultNewChatSessionTypeAndReasonFromServices, getDefaultNewChatSessionTypeAndReason, getUsableRememberedSessionType, recordUserSelectedSessionType, isCopilotHarnessDefault, isCopilotHarnessPreferred, isEditorLocalAgentEnabled, isVisibleEditorChatSessionType, getVisibleNonLocalEditorChatSessionTypes, ChatModeKind, ChatAgentLocation, chatAlwaysUnsupportedFileSchemes, chatInputSchemes, MANAGE_CHAT_COMMAND_ID, CHAT_OPEN_AGENT_HOST_CHAT_COMMAND_ID, CHAT_SUBAGENT_RESOURCE_QUERY_PARAM, OPEN_WORKSPACE_IN_AGENTS_WINDOW_COMMAND_ID, OPEN_AGENTS_WINDOW_COMMAND_ID, OPENCODE_NATIVE_AGENTS_WINDOW_ENABLED, OPEN_AGENTS_WINDOW_PRECONDITION, ChatEditorTitleMaxLength, CONTEXT_MODELS_EDITOR, CONTEXT_MODELS_SEARCH_FOCUS, OPENCODE_PERMISSION_MODE_SETTING, OPENCODE_PERMISSION_MODES, normalizeOpenCodePermissionMode, getOpenCodePermissionMode, isOpenCodeAutoApproveMode, isOpenCodeFullAutoMode };

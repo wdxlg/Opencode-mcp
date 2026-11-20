@@ -1,0 +1,46 @@
+{
+  "id": "copywriting",
+  "sourceName": "copywriting",
+  "title": "网页与产品文案",
+  "category": "写作营销",
+  "repo": "coreyhaines31/marketingskills",
+  "commit": "1efedbc5148b54b2f0f6c6c9fe0be62e151c7fff",
+  "sourcePath": "skills/copywriting/",
+  "sourceUrl": "https://github.com/coreyhaines31/marketingskills/tree/1efedbc5148b54b2f0f6c6c9fe0be62e151c7fff/skills/copywriting",
+  "license": "MIT",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "社区技能；依据真实产品证据，不虚构效果、证言、客户或数据；不自动发布内容。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "78c0a09b78a41995ba055d6549bbd7db3fe958673d039b9121e7a2e32bb4bb06"
+    },
+    {
+      "path": "_provenance/REPOSITORY_LICENSE",
+      "upstreamSha256": "b70d71e24e40fce5da8f4b6f9cd862096a048e433db7f3c8cac5e348e6d34591"
+    },
+    {
+      "path": "evals/evals.json",
+      "upstreamSha256": "c365b3208b3e07b97520bce9acca496fc5f939e3e1d70fec54bf1e8f9f92b0d7"
+    },
+    {
+      "path": "references/ai-tells.md",
+      "upstreamSha256": "048a436d35d011313a4dd49dd1c6a6fb9f05203a2e40b8970ff88e7a2c548591"
+    },
+    {
+      "path": "references/copy-frameworks.md",
+      "upstreamSha256": "352122944bf9e891ceb0e003adce41591d111e9d97057700626249919dfe430d"
+    },
+    {
+      "path": "references/natural-transitions.md",
+      "upstreamSha256": "9bd61b0de5be2c4de4ce130c68236b4f290b12737823827a458bb2b4c8584683"
+    }
+  ]
+}

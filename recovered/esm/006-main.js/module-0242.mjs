@@ -45,6 +45,95 @@ import { Color, init_color } from "./module-0098.mjs";
 
 // src/vs/platform/windows/electron-main/windowImpl.ts
 import electron8, { screen as screen3 } from "electron";
+import * as ocOverlayCp from "child_process";
+// OpenCode: native taskbar overlay, same path as 模型助手 TaskbarStatusBadgeIcon. Electron's
+// BrowserWindow.setOverlayIcon always shrinks the bitmap to 16x16 (taskbar_host.cc kOverlayIconSize),
+// which Windows then stretches on scaled displays (blurry). A small PowerShell host compiles the
+// C# below once and calls ITaskbarList3::SetOverlayIcon with an ICO built from the renderer's PNG
+// frames at SM_CXSMICON for the window's monitor DPI. Falls back to Electron if the host fails.
+var OC_OVERLAY_CS = "using System;\nusing System.IO;\nusing System.Drawing;\nusing System.Collections.Generic;\nusing System.Runtime.InteropServices;\n\n// OpenCode taskbar overlay helper: same native path as 模型助手 TaskbarStatusBadgeIcon\n// (PNG frames -> ICO stream -> System.Drawing.Icon at SM_CXSMICON for the window DPI ->\n// ITaskbarList3::SetOverlayIcon). Electron's BrowserWindow.setOverlayIcon always shrinks the\n// bitmap to 16x16, which Windows then stretches on scaled displays, so it is bypassed.\npublic static class OcTaskbarOverlay\n{\n    const int SmCxSmIcon = 49;\n    static readonly int[] StandardOverlaySizes = { 16, 20, 24, 32 };\n    static ITaskbarList3 taskbarList;\n    static readonly Dictionary<long, Icon> liveIcons = new Dictionary<long, Icon>();\n\n    public static int PixelSize(long hwnd)\n    {\n        try\n        {\n            uint dpi = 0;\n            // Per-monitor aware thread, so the real monitor DPI is read even from a helper process.\n            try { SetThreadDpiAwarenessContext(new IntPtr(-4)); } catch { }\n            try\n            {\n                IntPtr monitor = MonitorFromWindow(new IntPtr(hwnd), 2);\n                uint dx, dy;\n                if (monitor != IntPtr.Zero && GetDpiForMonitor(monitor, 0, out dx, out dy) == 0) dpi = dx;\n            }\n            catch { dpi = 0; }\n            if (dpi == 0) { try { dpi = GetDpiForWindow(new IntPtr(hwnd)); } catch { dpi = 0; } }\n            if (dpi == 0) { try { dpi = GetDpiForSystem(); } catch { dpi = 0; } }\n            if (dpi > 0)\n            {\n                try { int scaled = GetSystemMetricsForDpi(SmCxSmIcon, dpi); if (scaled > 0) return Clamp(scaled); } catch { }\n            }\n            int sys = GetSystemMetrics(SmCxSmIcon);\n            if (sys > 0) return Clamp(sys);\n        }\n        catch { }\n        return 16;\n    }\n\n    public static string Set(long hwnd, string description, string framesSpec)\n    {\n        var frames = new Dictionary<int, byte[]>();\n        foreach (string part in framesSpec.Split(';'))\n        {\n            int eq = part.IndexOf('=');\n            if (eq <= 0) continue;\n            frames[int.Parse(part.Substring(0, eq))] = Convert.FromBase64String(part.Substring(eq + 1));\n        }\n        if (frames.Count == 0) return \"err no-frames\";\n        int target = PixelSize(hwnd);\n        int pick = -1;\n        if (frames.ContainsKey(target)) pick = target;\n        else\n        {\n            int above = int.MaxValue, largest = -1;\n            foreach (int k in frames.Keys) { if (k >= target && k < above) above = k; if (k > largest) largest = k; }\n            pick = above != int.MaxValue ? above : largest;\n        }\n        var order = new List<int> { pick };\n        foreach (int s in StandardOverlaySizes) if (!order.Contains(s) && frames.ContainsKey(s)) order.Add(s);\n\n        Icon icon;\n        using (var ico = BuildIconStream(order, frames)) icon = new Icon(ico, pick, pick);\n        int hr = Call(hwnd, icon.Handle, description ?? string.Empty);\n        Icon previous;\n        if (liveIcons.TryGetValue(hwnd, out previous) && previous != null) previous.Dispose();\n        liveIcons[hwnd] = icon;\n        return \"ok target=\" + target + \" frame=\" + pick + \" hr=\" + hr;\n    }\n\n    public static string Clear(long hwnd)\n    {\n        int hr = Call(hwnd, IntPtr.Zero, string.Empty);\n        Icon previous;\n        if (liveIcons.TryGetValue(hwnd, out previous) && previous != null) previous.Dispose();\n        liveIcons.Remove(hwnd);\n        return \"ok clear hr=\" + hr;\n    }\n\n    static int Call(long hwnd, IntPtr hIcon, string text)\n    {\n        for (int attempt = 0; attempt < 2; attempt++)\n        {\n            try\n            {\n                if (taskbarList == null)\n                {\n                    var instance = (ITaskbarList3)new TaskbarListComObject();\n                    if (instance.HrInit() < 0) return -1;\n                    taskbarList = instance;\n                }\n                int hr = taskbarList.SetOverlayIcon(new IntPtr(hwnd), hIcon, text);\n                if (hr == 0) return 0;\n                if (attempt == 1) return hr;\n            }\n            catch { if (attempt == 1) return -2; }\n            try { if (taskbarList != null) Marshal.FinalReleaseComObject(taskbarList); } catch { }\n            taskbarList = null;\n        }\n        return -3;\n    }\n\n    static MemoryStream BuildIconStream(List<int> order, Dictionary<int, byte[]> frames)\n    {\n        var ms = new MemoryStream();\n        var writer = new BinaryWriter(ms);\n        writer.Write((ushort)0);\n        writer.Write((ushort)1);\n        writer.Write((ushort)order.Count);\n        int dataOffset = 6 + order.Count * 16;\n        foreach (int size in order)\n        {\n            byte[] png = frames[size];\n            byte dim = size >= 256 ? (byte)0 : (byte)size;\n            writer.Write(dim);\n            writer.Write(dim);\n            writer.Write((byte)0);\n            writer.Write((byte)0);\n            writer.Write((ushort)1);\n            writer.Write((ushort)32);\n            writer.Write((uint)png.Length);\n            writer.Write((uint)dataOffset);\n            dataOffset += png.Length;\n        }\n        foreach (int size in order) writer.Write(frames[size]);\n        writer.Flush();\n        ms.Position = 0;\n        return ms;\n    }\n\n    static int Clamp(int size) { return size < 16 ? 16 : (size > 64 ? 64 : size); }\n\n    [DllImport(\"user32.dll\")] static extern int GetSystemMetrics(int nIndex);\n    [DllImport(\"user32.dll\")] static extern int GetSystemMetricsForDpi(int nIndex, uint dpi);\n    [DllImport(\"user32.dll\")] static extern uint GetDpiForWindow(IntPtr hwnd);\n    [DllImport(\"user32.dll\")] static extern uint GetDpiForSystem();\n    [DllImport(\"user32.dll\")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);\n    [DllImport(\"user32.dll\")] static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);\n    [DllImport(\"shcore.dll\")] static extern int GetDpiForMonitor(IntPtr monitor, int dpiType, out uint dpiX, out uint dpiY);\n\n    [ComImport]\n    [Guid(\"56FDF344-FD6D-11d0-958A-006097C9A090\")]\n    [ClassInterface(ClassInterfaceType.None)]\n    class TaskbarListComObject { }\n\n    [ComImport]\n    [Guid(\"EA1AFB91-9E28-4B86-90E9-9E9F8A5EEFAF\")]\n    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]\n    interface ITaskbarList3\n    {\n        [PreserveSig] int HrInit();\n        [PreserveSig] int AddTab(IntPtr hwnd);\n        [PreserveSig] int DeleteTab(IntPtr hwnd);\n        [PreserveSig] int ActivateTab(IntPtr hwnd);\n        [PreserveSig] int SetActiveAlt(IntPtr hwnd);\n        [PreserveSig] int MarkFullscreenWindow(IntPtr hwnd, [MarshalAs(UnmanagedType.Bool)] bool fFullscreen);\n        [PreserveSig] int SetProgressValue(IntPtr hwnd, ulong ullCompleted, ulong ullTotal);\n        [PreserveSig] int SetProgressState(IntPtr hwnd, int tbpFlags);\n        [PreserveSig] int RegisterTab(IntPtr hwndTab, IntPtr hwndMDI);\n        [PreserveSig] int UnregisterTab(IntPtr hwndTab);\n        [PreserveSig] int SetTabOrder(IntPtr hwndTab, IntPtr hwndInsertBefore);\n        [PreserveSig] int SetTabActive(IntPtr hwndTab, IntPtr hwndMDI, uint dwReserved);\n        [PreserveSig] int ThumbBarAddButtons(IntPtr hwnd, uint cButtons, IntPtr pButton);\n        [PreserveSig] int ThumbBarUpdateButtons(IntPtr hwnd, uint cButtons, IntPtr pButton);\n        [PreserveSig] int ThumbBarSetImageList(IntPtr hwnd, IntPtr himl);\n        [PreserveSig] int SetOverlayIcon(IntPtr hwnd, IntPtr hIcon, [MarshalAs(UnmanagedType.LPWStr)] string pszDescription);\n        [PreserveSig] int SetThumbnailTooltip(IntPtr hwnd, [MarshalAs(UnmanagedType.LPWStr)] string pszTip);\n        [PreserveSig] int SetThumbnailClip(IntPtr hwnd, IntPtr prcClip);\n    }\n}\n";
+var OC_OVERLAY_PS = "$ErrorActionPreference = 'Stop'\nAdd-Type -TypeDefinition $env:OC_OVERLAY_CS -ReferencedAssemblies System.Drawing\n[Console]::Out.WriteLine('ready')\n[Console]::Out.Flush()\nwhile ($true) {\n  $line = [Console]::In.ReadLine()\n  if ($line -eq $null) { break }\n  try {\n    $p = $line.Split(\"`t\")\n    if ($p[0] -eq 'S') { $r = [OcTaskbarOverlay]::Set([long]$p[1], [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($p[2])), $p[3]) }\n    elseif ($p[0] -eq 'C') { $r = [OcTaskbarOverlay]::Clear([long]$p[1]) }\n    else { $r = 'err unknown' }\n  } catch { $r = 'err ' + $_.Exception.Message }\n  [Console]::Out.WriteLine($r)\n  [Console]::Out.Flush()\n}\n";
+var ocOverlayHost = { proc: void 0, failed: false, restarts: 0, windows: new Set(), displayHooked: false };
+var OC_REAPER_PS = "$ErrorActionPreference = 'SilentlyContinue'\n$mainPid = [int]$env:OC_REAPER_PID\n$root = $env:OC_REAPER_ROOT.TrimEnd('\\') + '\\'\n$self = [string]$PID\n$mainInfo = Get-CimInstance Win32_Process -Filter \"ProcessId=$mainPid\"\nif (-not $mainInfo) { exit }\n$mainStart = $mainInfo.CreationDate\ntry { $mainProc = [System.Diagnostics.Process]::GetProcessById($mainPid); $mainProc.WaitForExit() } catch { }\n$exitAt = Get-Date\nStart-Sleep -Seconds 4\nfunction UnderRoot($x) { $x.ExecutablePath -and $x.ExecutablePath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase) }\nfunction IsMainLike($x) { (UnderRoot $x) -and $x.Name -eq 'OpenCode.exe' -and $x.CommandLine -notlike '*--type=*' -and $x.CommandLine -notlike '*--node-ipc*' -and $x.CommandLine -notlike '*resources\\app*' -and $x.CommandLine -notlike '*resources/app*' }\nfor ($round = 0; $round -lt 4; $round++) {\n  $all = @(Get-CimInstance Win32_Process)\n  $kids = @{}\n  foreach ($x in $all) { $k = [string]$x.ParentProcessId; if (-not $kids.ContainsKey($k)) { $kids[$k] = New-Object System.Collections.ArrayList }; [void]$kids[$k].Add($x) }\n  # A newer OpenCode window (relaunch, or the user opened it again) and everything under it is left alone.\n  $protect = @{}\n  $pq = New-Object System.Collections.Queue\n  foreach ($x in $all) { if ($x.ProcessId -ne $mainPid -and (IsMainLike $x)) { $protect[[string]$x.ProcessId] = 1; $pq.Enqueue([string]$x.ProcessId) } }\n  while ($pq.Count -gt 0) { $cur = $pq.Dequeue(); if ($kids.ContainsKey($cur)) { foreach ($c in $kids[$cur]) { $id = [string]$c.ProcessId; if (-not $protect.ContainsKey($id)) { $protect[$id] = 1; $pq.Enqueue($id) } } } }\n  $hit = @{}\n  $q = New-Object System.Collections.Queue\n  $q.Enqueue([string]$mainPid)\n  while ($q.Count -gt 0) {\n    $cur = $q.Dequeue()\n    if ($kids.ContainsKey($cur)) { foreach ($c in $kids[$cur]) { $id = [string]$c.ProcessId; if ($c.CreationDate -ge $mainStart -and $c.CreationDate -le $exitAt -and -not $hit.ContainsKey($id) -and -not $protect.ContainsKey($id)) { $hit[$id] = $c; $q.Enqueue($id) } } }\n  }\n  foreach ($x in $all) { $id = [string]$x.ProcessId; if ((UnderRoot $x) -and $x.CreationDate -le $exitAt -and -not $protect.ContainsKey($id)) { $hit[$id] = $x } }\n  $hit.Remove($self)\n  if ($hit.Count -eq 0) { break }\n  foreach ($id in @($hit.Keys)) { Stop-Process -Id ([int]$id) -Force }\n  Start-Sleep -Seconds 1\n}\n";
+var ocReaperStarted = false;
+// OpenCode: 关闭程序即彻底关闭。主进程启动一个独立的隐藏 PowerShell，等主进程退出（正常关闭或崩溃）后
+// 4 秒，结束本次启动留下的所有子孙进程（终端里的 shell、OpenConsole、语言服务、tailscaled、cloudflared 等）
+// 以及仍在安装目录下运行的进程；之后再打开的 OpenCode 及其子进程不受影响。
+function ocExitReaperStart() {
+  if (ocReaperStarted || process.platform !== "win32") return;
+  ocReaperStarted = true;
+  try {
+    const encoded = Buffer.from(OC_REAPER_PS, "utf16le").toString("base64");
+    const root = process.execPath.slice(0, Math.max(process.execPath.lastIndexOf("\\"), process.execPath.lastIndexOf("/")));
+    const proc = ocOverlayCp.spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", encoded], {
+      windowsHide: true,
+      detached: true,
+      stdio: "ignore",
+      cwd: process.env.SystemRoot || "C:\\Windows",
+      env: { ...process.env, OC_REAPER_PID: String(process.pid), OC_REAPER_ROOT: root }
+    });
+    proc.on("error", () => void 0);
+    proc.unref();
+  } catch {
+  }
+}
+function ocOverlayEnsure() {
+  if (ocOverlayHost.failed) return void 0;
+  if (ocOverlayHost.proc) return ocOverlayHost.proc;
+  try {
+    const encoded = Buffer.from(OC_OVERLAY_PS, "utf16le").toString("base64");
+    const proc = ocOverlayCp.spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded], {
+      windowsHide: true,
+      stdio: ["pipe", "pipe", "ignore"],
+      env: { ...process.env, OC_OVERLAY_CS }
+    });
+    const onDead = () => ocOverlayDead(proc);
+    proc.on("error", onDead);
+    proc.on("exit", onDead);
+    proc.stdin.on("error", onDead);
+    proc.stdout.setEncoding("utf8");
+    let pending = "";
+    proc.stdout.on("data", (chunk) => {
+      pending += chunk;
+      let index;
+      while ((index = pending.indexOf("\n")) >= 0) {
+        const line = pending.slice(0, index).trim();
+        pending = pending.slice(index + 1);
+        if (line.startsWith("err")) ocOverlayHost.lastError = line;
+      }
+    });
+    ocOverlayHost.proc = proc;
+    return proc;
+  } catch {
+    ocOverlayHost.failed = true;
+    return void 0;
+  }
+}
+function ocOverlayDead(proc) {
+  if (ocOverlayHost.proc !== proc) return;
+  ocOverlayHost.proc = void 0;
+  ocOverlayHost.restarts++;
+  if (ocOverlayHost.restarts > 2) ocOverlayHost.failed = true;
+  for (const window2 of [...ocOverlayHost.windows]) {
+    try {
+      window2._ocReapplyOverlay();
+    } catch {
+    }
+  }
+}
+function ocOverlayFrameSpec(badge) {
+  const parts = [];
+  const frames = badge.iconDataURLs && typeof badge.iconDataURLs === "object" ? badge.iconDataURLs : {};
+  for (const key of Object.keys(frames)) {
+    const size = Number(key);
+    const url = frames[key];
+    if (!(size > 0) || typeof url !== "string") continue;
+    const comma = url.indexOf("base64,");
+    if (comma < 0) continue;
+    parts.push(size + "=" + url.slice(comma + 7));
+  }
+  return parts.join(";");
+}
 
 import { release as release6 } from "os";
 
@@ -305,13 +394,87 @@ var init_windowImpl = __esm({
       setApplicationBadge(badge) {
         const count = badge && badge.count > 0 ? badge.count : 0;
         if (isWindows2) {
-          if (count === 0 || !badge?.iconDataURL) {
-            this.win?.setOverlayIcon(null, "");
-          } else {
-            this.win?.setOverlayIcon(electron8.nativeImage.createFromDataURL(badge.iconDataURL), badge.description);
-          }
+          this._ocLastBadge = count === 0 || !badge?.iconDataURL ? void 0 : badge;
+          this._ocReapplyOverlay();
         } else {
           DockBadgeManager.INSTANCE.setCount(this, count);
+        }
+      }
+      _ocReapplyOverlay() {
+        if (!this.win || this.win.isDestroyed()) {
+          ocOverlayHost.windows.delete(this);
+          return;
+        }
+        if (!this._ocNativeOverlay(this._ocLastBadge)) this._ocElectronOverlay(this._ocLastBadge);
+      }
+      _ocNativeOverlay(badge) {
+        const proc = ocOverlayEnsure();
+        if (!proc) return false;
+        let hwnd;
+        try {
+          const handle = this.win.getNativeWindowHandle();
+          hwnd = handle.length >= 8 ? handle.readBigUInt64LE(0).toString() : String(handle.readUInt32LE(0));
+        } catch {
+          return false;
+        }
+        let line;
+        if (!badge) {
+          line = `C\t${hwnd}\n`;
+        } else {
+          const spec = ocOverlayFrameSpec(badge);
+          if (!spec) return false;
+          line = `S\t${hwnd}\t${Buffer.from(badge.description || "", "utf8").toString("base64")}\t${spec}\n`;
+        }
+        ocOverlayHost.windows.add(this);
+        if (!ocOverlayHost.displayHooked) {
+          ocOverlayHost.displayHooked = true;
+          try {
+            // A monitor/DPI change alters SM_CXSMICON; re-send so the host picks the matching frame.
+            screen3.on("display-metrics-changed", () => {
+              for (const window2 of [...ocOverlayHost.windows]) {
+                try {
+                  if (window2._ocLastBadge) window2._ocReapplyOverlay();
+                } catch {
+                }
+              }
+            });
+          } catch {
+          }
+        }
+        try {
+          proc.stdin.write(line);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      _ocElectronOverlay(badge) {
+        {
+          if (!badge) {
+            this.win?.setOverlayIcon(null, "");
+          } else {
+            // OpenCode: pick the frame rendered at this window's real small-icon size
+            // (GetSystemMetricsForDpi(SM_CXSMICON) == round(16 * monitor scale)), like 模型助手; the
+            // renderer's devicePixelRatio includes the zoom level, so it cannot choose the size itself.
+            let iconDataURL = badge.iconDataURL;
+            const frames = badge.iconDataURLs && typeof badge.iconDataURLs === "object" ? badge.iconDataURLs : void 0;
+            if (frames) {
+              let scale = 1;
+              try {
+                const bounds = this.win?.getBounds();
+                scale = (bounds ? electron8.screen.getDisplayMatching(bounds) : electron8.screen.getPrimaryDisplay()).scaleFactor || 1;
+              } catch {
+              }
+              const want = Math.min(64, Math.max(16, Math.round(16 * scale)));
+              const sizes = Object.keys(frames).map(Number).filter((n) => n > 0 && typeof frames[n] === "string");
+              if (sizes.length) {
+                const exact = sizes.find((n) => n === want);
+                const pick = exact ?? sizes.filter((n) => n >= want).sort((a, b) => a - b)[0] ?? Math.max(...sizes);
+                iconDataURL = frames[pick];
+              }
+            }
+            this.win?.setOverlayIcon(electron8.nativeImage.createFromDataURL(iconDataURL), badge.description);
+          }
         }
       }
       focus(options) {
@@ -470,6 +633,7 @@ var init_windowImpl = __esm({
     CodeWindow = class extends BaseWindow2 {
       constructor(config, logService, loggerMainService, environmentMainService, policyService, userDataProfilesService, fileService, applicationStorageMainService, storageMainService, configurationService, themeMainService, workspacesManagementMainService, backupMainService, telemetryService, dialogMainService, lifecycleMainService, productService, protocolMainService, windowsMainService, stateService, instantiationService) {
         super(configurationService, stateService, environmentMainService, logService);
+        ocExitReaperStart();
         this.loggerMainService = loggerMainService;
         this.policyService = policyService;
         this.userDataProfilesService = userDataProfilesService;

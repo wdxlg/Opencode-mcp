@@ -1,0 +1,104 @@
+[
+ {
+  "file": "recovered/esm/027-workbench.desktop.main.js/module-2198.mjs",
+  "old": "    const totalContextWindow = (maxInputTokens ?? 0) + (maxOutputTokens ?? 0);",
+  "new": "    // OpenCode dsh-metrics: ring denominator = context window only (dsh percent = used / contextWindow)\n    const totalContextWindow = maxInputTokens ?? 0;",
+  "tag": "1a"
+ },
+ {
+  "file": "recovered/esm/027-workbench.desktop.main.js/module-2198.mjs",
+  "old": "    const outputBufferPercentage = maxOutputTokens !== void 0 ? Math.max(0, maxOutputTokens - completionTokens) / totalContextWindow * 100 : void 0;",
+  "new": "    const outputBufferPercentage = void 0; // OpenCode dsh-metrics: dsh shows no output-reserve band",
+  "tag": "1b"
+ },
+ {
+  "file": "recovered/esm/000-extension.js/module-0177.mjs",
+  "old": "    const promptTokens = reported || Math.round(estimated * ratio);",
+  "new": "    // OpenCode dsh-metrics: ring uses provider-reported prompt tokens only; no usage -> no ring update (dsh hides it)\n    const promptTokens = reported;",
+  "tag": "2"
+ },
+ {
+  "file": "recovered/esm/000-extension.js/module-0177.mjs",
+  "old": "  const estimate = live.pendingChars > 0 ? Math.max(1, Math.round(live.pendingChars / 2.5)) : 0;",
+  "new": "  // OpenCode dsh-metrics: dsh shows no live token estimate while streaming; usage changes only when a step reports it\n  const estimate = 0;",
+  "tag": "4"
+ },
+ {
+  "file": "recovered/esm/000-extension.js/module-0177.mjs",
+  "old": "    if (typeof entry.tokenRatio === \"number\" && Number.isFinite(entry.tokenRatio) && entry.tokenRatio >= 0.3 && entry.tokenRatio <= 3) out.tokenRatio = entry.tokenRatio;\n",
+  "new": "    // OpenCode dsh-metrics: no learned tokenRatio (dsh has no calibration); stored ratios are ignored\n",
+  "tag": "6"
+ },
+ {
+  "file": "recovered/esm/000-extension.js/module-0177.mjs",
+  "old": "    if (usageCount(usage.output) > 0 && usageCount(data.generationMs) > 0) {",
+  "new": "    // OpenCode dsh-metrics: like dsh, every step with a first token and a numeric output counts (output 0 included)\n    if (typeof data.generationMs === \"number\" && data.generationMs >= 0 && typeof usage.output === \"number\" && usage.output >= 0) {",
+  "tag": "10a"
+ },
+ {
+  "file": "recovered/esm/000-extension.js/module-0177.mjs",
+  "old": "    tps: stats.speedMs > 0 && stats.speedTokens > 0 ? Math.round(stats.speedTokens / (stats.speedMs / 1e3) * 10) / 10 : void 0,",
+  "new": "    tps: stats.speedMs > 0 ? stats.speedTokens / (stats.speedMs / 1e3) : void 0,\n    speedTokens: stats.speedTokens,\n    speedMs: stats.speedMs,\n    ttftMsTotal: stats.ttftMsTotal,",
+  "tag": "10b+11"
+ },
+ {
+  "file": "recovered/esm/000-extension.js/module-0177.mjs",
+  "old": "  const previous = meta.previous ?? { turns: 0, steps: 0, reportedSteps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, total: 0 };",
+  "new": "  const previous = meta.previous ?? { turns: 0, steps: 0, reportedSteps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, total: 0, speedTokens: 0, speedMs: 0, ttftMsTotal: 0, ttftCount: 0, llmMs: 0, toolMs: 0 };",
+  "tag": "11a"
+ },
+ {
+  "file": "recovered/esm/000-extension.js/module-0177.mjs",
+  "old": "  const session = { turns: 0, steps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, total: 0, reportedSteps: 0 };",
+  "new": "  const session = { turns: 0, steps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, total: 0, reportedSteps: 0, speedTokens: 0, speedMs: 0, ttftMsTotal: 0, ttftCount: 0, llmMs: 0, toolMs: 0 };",
+  "tag": "11b"
+ },
+ {
+  "file": "recovered/esm/000-extension.js/module-0177.mjs",
+  "old": "    for (const key of [\"steps\", \"input\", \"cacheRead\", \"cacheWrite\", \"output\", \"total\", \"reportedSteps\"]) session[key] += usageCount(usage[key]);",
+  "new": "    for (const key of [\"steps\", \"input\", \"cacheRead\", \"cacheWrite\", \"output\", \"total\", \"reportedSteps\", \"speedTokens\", \"speedMs\", \"ttftMsTotal\", \"ttftCount\", \"llmMs\", \"toolMs\"]) session[key] += usageCount(usage[key]);",
+  "tag": "11c"
+ },
+ {
+  "file": "recovered/esm/000-extension.js/module-0177.mjs",
+  "old": "      total: previous.total + stats.total\n    }",
+  "new": "      total: previous.total + stats.total,\n      // OpenCode dsh-metrics: session-wide decode speed, average TTFT, LLM and tool time (dsh ActivityPill)\n      speedTokens: usageCount(previous.speedTokens) + stats.speedTokens,\n      speedMs: usageCount(previous.speedMs) + stats.speedMs,\n      ttftMsTotal: usageCount(previous.ttftMsTotal) + stats.ttftMsTotal,\n      ttftCount: usageCount(previous.ttftCount) + stats.ttftCount,\n      llmMs: usageCount(previous.llmMs) + stats.llmMs,\n      toolMs: usageCount(previous.toolMs) + stats.toolMs\n    }",
+  "tag": "11d"
+ },
+ {
+  "file": "recovered/esm/027-workbench.desktop.main.js/module-2372.mjs",
+  "old": "function formatOpenCodeCompactTokens(value) {\n  const n = openCodeUsageNumber(value);\n  if (n >= 1e6) return `${(Math.round(n / 1e4) / 100).toFixed(2)}M`;\n  if (n >= 1e5) return `${Math.round(n / 1e3)}k`;\n  if (n >= 1e3) return `${(Math.round(n / 100) / 10).toFixed(1)}k`;\n  return String(Math.round(n));\n}",
+  "new": "// OpenCode dsh-metrics: dsh formatTokens (517 / 12.2K / 517K / 1.2M)\nfunction formatOpenCodeCompactTokens(value) {\n  const n = Math.round(openCodeUsageNumber(value));\n  const scaled = (c) => c >= 100 ? String(Math.round(c)) : String(Math.round(c * 10) / 10);\n  if (n < 1e3) return String(n);\n  if (n < 1e6) return `${scaled(n / 1e3)}K`;\n  return `${scaled(n / 1e6)}M`;\n}\n// OpenCode dsh-metrics: dsh formatTokensPerSecond (>=10 whole, else one decimal)\nfunction formatOpenCodeTps(value) {\n  const c = Math.max(0, typeof value === \"number\" && Number.isFinite(value) ? value : 0);\n  return c >= 10 ? String(Math.round(c)) : String(Math.round(c * 10) / 10);\n}",
+  "tag": "13+10fmt"
+ },
+ {
+  "file": "recovered/esm/027-workbench.desktop.main.js/module-2372.mjs",
+  "old": "function formatOpenCodeShortDuration(ms) {\n  const n = openCodeUsageNumber(ms);\n  return n > 0 && n < 1e4 ? `${(Math.round(n / 100) / 10).toFixed(1)}\\u79D2` : formatOpenCodeDuration(n);\n}",
+  "new": "// OpenCode dsh-metrics: dsh formatDuration (<60s -> one decimal seconds, else rounded m/s)\nfunction formatOpenCodeShortDuration(ms) {\n  const s = openCodeUsageNumber(ms) / 1e3;\n  if (s < 60) return `${Math.round(s * 10) / 10}\\u79D2`;\n  const whole = Math.round(s);\n  return `${Math.floor(whole / 60)}\\u5206${whole % 60}\\u79D2`;\n}",
+  "tag": "14"
+ },
+ {
+  "file": "recovered/esm/027-workbench.desktop.main.js/module-2372.mjs",
+  "old": "function openCodeCacheHit(usage) {\n  const prompt = openCodeUsageNumber(usage?.input) + openCodeUsageNumber(usage?.cacheRead) + openCodeUsageNumber(usage?.cacheWrite);\n  return prompt > 0 ? `${Math.round(openCodeUsageNumber(usage.cacheRead) / prompt * 1e3) / 10}%` : void 0;\n}",
+  "new": "// OpenCode dsh-metrics: verbatim port of dsh-client-ui-chat formatCacheHitPercent (CHAT:6719-6773)\nfunction ocRoundedPercentUnits(cacheReadTokens, denominator, decimalPlaces) {\n  const scale = (decimalPlaces === 0 ? 1 : 10) * 100;\n  const doubledScale = scale * 2;\n  const denominatorQuotient = Math.floor(denominator / doubledScale);\n  const denominatorRemainder = denominator % doubledScale;\n  let lower = 0;\n  let upper = scale;\n  while (lower < upper) {\n    const candidate = Math.floor((lower + upper + 1) / 2);\n    const factor = candidate * 2 - 1;\n    if (cacheReadTokens >= factor * denominatorQuotient + Math.ceil(factor * denominatorRemainder / doubledScale)) lower = candidate;\n    else upper = candidate - 1;\n  }\n  return lower;\n}\nfunction ocDisplayPercentUnits(units, decimalPlaces) {\n  if (decimalPlaces === 0) return String(units);\n  const whole = Math.floor(units / 10);\n  const tenths = units % 10;\n  return tenths === 0 ? String(whole) : `${whole}.${tenths}`;\n}\nfunction ocFormatCacheHitPercent(cacheReadTokens, promptTokens, decimalPlaces = 0) {\n  if (promptTokens === 0) return null;\n  const missedInputTokens = promptTokens - cacheReadTokens;\n  if (missedInputTokens === 0) return \"100\";\n  const roundedUnits = ocRoundedPercentUnits(cacheReadTokens, promptTokens, decimalPlaces);\n  if (roundedUnits < (decimalPlaces === 0 ? 100 : 1e3)) return ocDisplayPercentUnits(roundedUnits, decimalPlaces);\n  let distinguishingPlaces = 1;\n  let scaledDoubleGap = missedInputTokens * 200;\n  const denominatorTens = Math.floor(promptTokens / 10);\n  while (scaledDoubleGap <= denominatorTens) {\n    scaledDoubleGap *= 10;\n    distinguishingPlaces += 1;\n  }\n  const denominatorOnes = promptTokens % 10;\n  let roundedLoss = 5;\n  for (let loss = 1; loss < 5; loss += 1) {\n    const factor = loss * 2 + 1;\n    const threshold = factor * denominatorTens + Math.floor(factor * denominatorOnes / 10);\n    if (scaledDoubleGap <= threshold) {\n      roundedLoss = loss;\n      break;\n    }\n  }\n  return `99.${\"9\".repeat(distinguishingPlaces - 1)}${10 - roundedLoss}`;\n}\nfunction openCodeCacheHit(usage, places = 1) {\n  const prompt = openCodeUsageNumber(usage?.input) + openCodeUsageNumber(usage?.cacheRead) + openCodeUsageNumber(usage?.cacheWrite);\n  const p = ocFormatCacheHitPercent(Math.round(openCodeUsageNumber(usage?.cacheRead)), Math.round(prompt), places);\n  return p === null ? void 0 : `${p}%`;\n}",
+  "tag": "12a"
+ },
+ {
+  "file": "recovered/esm/027-workbench.desktop.main.js/module-2372.mjs",
+  "old": "    [\"\\u8F93\\u51FA\\u901F\\u5EA6\", openCodeUsageNumber(usage.tps) > 0 ? `${usage.tps >= 10 ? Math.round(usage.tps) : usage.tps} tok/s` : void 0],\n    [\"\\u9996 token\", usage.ttftMs !== void 0 && usage.ttftMs !== null ? `${formatOpenCodeShortDuration(Math.max(1, usage.ttftMs))}",
+  "new": "    [\"\\u8F93\\u51FA\\u901F\\u5EA6\", typeof usage.tps === \"number\" ? `${formatOpenCodeTps(usage.tps)} tok/s` : void 0],\n    [\"\\u9996 token\", usage.ttftMs !== void 0 && usage.ttftMs !== null ? `${formatOpenCodeShortDuration(usage.ttftMs)}",
+  "tag": "10c+14b"
+ },
+ {
+  "file": "recovered/esm/027-workbench.desktop.main.js/module-2372.mjs",
+  "old": "      [\"\\u7F13\\u5B58\\u547D\\u4E2D\", openCodeUsageNumber(session.reportedSteps) > 0 ? openCodeCacheHit(session) : void 0],\n      [\"\\u8F93\\u51FA\", openCodeUsageNumber(session.reportedSteps) > 0 ? formatOpenCodeExactTokens(session.output) : void 0]\n    ]);",
+  "new": "      [\"\\u7F13\\u5B58\\u547D\\u4E2D\", openCodeUsageNumber(session.reportedSteps) > 0 ? openCodeCacheHit(session, 0) : void 0],\n      [\"\\u8F93\\u51FA\", openCodeUsageNumber(session.reportedSteps) > 0 ? formatOpenCodeExactTokens(session.output) : void 0],\n      // OpenCode dsh-metrics: session-wide speed / average TTFT / LLM time / tool time (dsh ActivityPill)\n      [\"\\u8F93\\u51FA\\u901F\\u5EA6\", openCodeUsageNumber(session.speedMs) > 0 ? `${formatOpenCodeTps(openCodeUsageNumber(session.speedTokens) / (session.speedMs / 1e3))} tok/s` : void 0],\n      [\"\\u9996 token\", openCodeUsageNumber(session.ttftCount) > 0 ? `${formatOpenCodeShortDuration(openCodeUsageNumber(session.ttftMsTotal) / session.ttftCount)}\\uFF08\\u5E73\\u5747\\uFF09` : void 0],\n      [\"\\u6A21\\u578B\\u7528\\u65F6\", openCodeUsageNumber(session.llmMs) > 0 ? formatOpenCodeShortDuration(session.llmMs) : void 0],\n      [\"\\u5DE5\\u5177\\u8C03\\u7528\\u7528\\u65F6\", openCodeUsageNumber(session.toolMs) > 0 ? formatOpenCodeShortDuration(session.toolMs) : void 0]\n    ]);",
+  "tag": "11e+12b"
+ },
+ {
+  "file": "recovered/esm/027-workbench.desktop.main.js/module-2372.mjs",
+  "old": "  if (openCodeUsageNumber(usage.tps) > 0) meta.push(`${usage.tps >= 10 ? Math.round(usage.tps) : usage.tps} tok/s`);",
+  "new": "  if (typeof usage.tps === \"number\") meta.push(`${formatOpenCodeTps(usage.tps)} tok/s`);",
+  "tag": "10d"
+ }
+]

@@ -20,7 +20,11 @@ var OVERLAY_DEFINITIONS = [
   { className: "notifications-center", type: "notification" /* Notification */ },
   { className: "notification-toast-container", type: "notification" /* Notification */ },
   // Context view is very generic, so treat the content as unknown
-  { className: "context-view", type: "unknown" /* Unknown */ }
+  { className: "context-view", type: "unknown" /* Unknown */ },
+  // OpenCode browser-overlay-dock: 拖动窗口时的蓝框/方块整层盖住全窗口，内置浏览器要让位（它是原生视图，z-index 盖不住）
+  { className: "oc-ae-dock", type: "ocDrag" },
+  // 浮动面板
+  { className: "oc-ae-float", type: "unknown" /* Unknown */ }
 ];
 
 var HIT_TEST_EXCLUDED_CLASSES = [
@@ -193,6 +197,11 @@ var BrowserOverlayManager = class extends Disposable {
       }
       const overlayRect = this.getRect(overlay.element);
       const overlapCenter = getOverlappingRectangleCenterPoint(elementRect, overlayRect);
+      if (overlapCenter && overlay.type === "ocDrag") {
+        // 拖动提示层不接收鼠标（pointer-events:none），命中测试找不到它，直接算作遮挡
+        overlappingOverlays.push({ type: "dialog", rect: overlayRect });
+        continue;
+      }
       if (overlapCenter) {
         const clientX = overlapCenter.x - this.targetWindow.scrollX;
         const clientY = overlapCenter.y - this.targetWindow.scrollY;

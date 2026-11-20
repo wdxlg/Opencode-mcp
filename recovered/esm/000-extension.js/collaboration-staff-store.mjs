@@ -86,16 +86,20 @@ export function createStaffFacade(parent, staff) {
   facade.queueBlocked = (task, entry, state) => { const others=[...state.tasks,...parent.read().tasks];if(state.tasks.some(other=>other.id!==task.id&&other.owner&&other.staff.employeeId===task.staff.employeeId))return true;if(task.dependencies.some(id=>state.tasks.find(other=>other.id===id)?.staff.review?.decision!=='accept'))return true;if(entry.waitingWriter){const root=parent.workspace(task.workspaceId).root;return others.some(other=>other.owner&&other.attempts?.find(attempt=>attempt.id===other.activeAttemptId)?.workspace?.mode==='single-writer'&&other.workspaceId===task.workspaceId);}return false; };
   facade.authorizeWorkerEntries = (entries, resume) => staff.authorizeEntries(entries, resume);
   facade.workerInstructions = (task, owner) => staff.instructions(task, owner);
+  // member-custom: the employee record behind a team job (personal prompt, tool/write limits, model params, fallback model).
+  facade.memberForTask = task => { try { return task?.staff?.employeeId ? staff.employee(staff.store.read(), task.staff.employeeId) : null; } catch { return null; } };
   facade.allowNativeTool = (name, task) => staff.allowNativeTool(name, task);
   facade.nativeToolDefinition = (tool, task) => staff.nativeToolDefinition(tool, task);
   facade.nativeToolInput = (name, input, task, lease, callId) => staff.nativeToolInput(name, input, task, lease, callId);
   facade.waitForTeam = (task, owner, lease, signal) => staff.waitForTeam(task, owner, lease, signal);
   const originalHandle = parent.handleTool;
-  facade.handleTool = async (name, args, owner) => {
+  facade.handleTool = async (name, args, owner, extra = {}) => {
     if(name==='bridge_join_collaboration')return {content:[{type:'text',text:JSON.stringify(staff.infoFor(owner))}],structuredContent:staff.infoFor(owner)};
-    if(name==='bridge_update_task'&&args.status==='blocked'){const value=await facade.updateTask(args,owner);return {content:[{type:'text',text:JSON.stringify(value)}],structuredContent:value};}
+    if(name==='bridge_update_task'&&args.status==='blocked'){const filled=facade.collaboration.fillTaskHandles(name,args,owner);let value=await facade.updateTask(filled.args,owner);if(filled.normalized.length)value={...value,normalized:filled.normalized};return {content:[{type:'text',text:JSON.stringify(value)}],structuredContent:value};}
+    // Either handle kind: an ordinary collaboration task ID is resolved in the shared rules store.
+    if(name==='bridge_get_execution'&&typeof args?.task_id==='string'&&!args.task_id.startsWith(STAFF_TASK_PREFIX)&&parent.read().tasks.some(task=>task.id===args.task_id))return originalHandle.call(parent, name, args, owner, extra);
     if (name === 'bridge_create_task') fail('STAFF_ASSIGNMENT_REQUIRED', '团队任务必须用 bridge_delegate_task 指定员工与稳定请求键。');
-    const result = await originalHandle.call(facade, name, args, owner);
+    const result = await originalHandle.call(facade, name, args, owner, extra);
     if (name === 'bridge_get_collaboration') {
       const extra = staff.infoFor(owner), allowed = new Set(extra.runs.map(run => run.id)); result.structuredContent.tasks = result.structuredContent.tasks.filter(task => allowed.has(task.staff?.runId)); result.structuredContent.staff = extra; result.content = [{ type: 'text', text: JSON.stringify(result.structuredContent, null, 2) }];
     }

@@ -1,0 +1,16 @@
+import fs from "node:fs";
+const dir="recovered/esm/002-agent-host.js/", f=dir+"module-0029.mjs";
+const raw=fs.readFileSync(f,"utf8"), eol=raw.includes("\r\n")?"\r\n":"\n";
+const L=raw.split(/\r?\n/);
+const a=25,b=252;
+if(!L[a-1].startsWith("var CHAT_FILE_INPUT_SCHEMAS")||!L[b].startsWith("var MAX_PARALLEL_TOOL_CALLS")) throw Error("anchors moved");
+const names=["CHAT_FILE_INPUT_SCHEMAS","chatFileToolInputSchema","ANTHROPIC_API_VERSION","ANTHROPIC_DEFAULT_MAX_OUTPUT_TOKENS","ANTHROPIC_MIN_THINKING_BUDGET_TOKENS","ANTHROPIC_EFFORT_THINKING_BUDGETS","normalizeChatCompletionsUrl","isUnsupportedRouteError","normalizeResponsesUrl","normalizeAnthropicMessagesUrl","textContent","codexInstructions","toCodexResponsesInput","anthropicSystemPrompt","anthropicImageSource","parseToolCallArguments","toAnthropicMessages"];
+const head=["// split-0029-step01: 从 module-0029（src/openai-agent.ts）拆出的模型协议消息格式转换（Chat Completions / Codex Responses / Anthropic Messages）。","// 纯函数，无运行时状态；module-0029 原样 re-export 这些名字，对外接口不变。",'import { FILE_TOOL_DEFINITIONS } from "./module-0015.mjs";','import { normalizeOpenAIBaseUrl } from "./module-0030.mjs";',""];
+const out=[...head,...L.slice(a-1,b),"export { "+names.join(", ")+" };",""];
+fs.writeFileSync(dir+"agent-message-formats.mjs",out.join(eol));
+const imp='import { '+names.join(", ")+' } from "./agent-message-formats.mjs";';
+const rest=[...L.slice(0,a-1),"// split-0029-step01: 消息格式转换已移到 agent-message-formats.mjs",...L.slice(b)];
+const i=rest.findIndex(l=>l.startsWith('import { agentToolResultContent }'));
+rest.splice(i+1,0,imp);
+fs.writeFileSync(f,rest.join(eol));
+console.log("SPLIT_OK", out.length, rest.length);

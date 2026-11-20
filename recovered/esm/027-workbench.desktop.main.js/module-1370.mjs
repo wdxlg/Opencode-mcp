@@ -52,7 +52,7 @@ var accessibilityConfigurationNodeBase = Object.freeze({
 var soundFeatureBase = {
   "type": "string",
   "enum": ["auto", "on", "off"],
-  "default": "auto",
+  "default": "off",
   "enumDescriptions": [
     localize(7718, null),
     localize(7721, null),
@@ -66,7 +66,7 @@ var signalFeatureBase = {
   "tags": ["accessibility"],
   additionalProperties: false,
   default: {
-    sound: "auto",
+    sound: "off",
     announcement: "auto"
   }
 };
@@ -87,7 +87,7 @@ var defaultNoAnnouncement = {
   "tags": ["accessibility"],
   additionalProperties: false,
   "default": {
-    "sound": "auto"
+    "sound": "off"
   }
 };
 
@@ -205,7 +205,7 @@ var configuration = {
       "type": "number",
       "minimum": 0,
       "maximum": 100,
-      "default": 70,
+      "default": 0,
       "tags": ["accessibility"]
     },
     "accessibility.signalOptions.debouncePositionChanges": {
@@ -570,7 +570,7 @@ var configuration = {
       ...signalFeatureBase,
       "description": localize(7665, null),
       "default": {
-        "sound": "auto",
+        "sound": "off",
         "announcement": "off"
       },
       "properties": {
@@ -638,7 +638,7 @@ var configuration = {
         }
       },
       "default": {
-        "sound": "on"
+        "sound": "off"
       }
     },
     "accessibility.signals.voiceModeStarted": {
@@ -655,7 +655,7 @@ var configuration = {
         }
       },
       "default": {
-        "sound": "on",
+        "sound": "off",
         "announcement": "auto"
       }
     },
@@ -669,7 +669,7 @@ var configuration = {
         }
       },
       "default": {
-        "sound": "on"
+        "sound": "off"
       }
     },
     "accessibility.signals.voiceModeStopped": {
@@ -686,7 +686,7 @@ var configuration = {
         }
       },
       "default": {
-        "sound": "on",
+        "sound": "off",
         "announcement": "auto"
       }
     },
@@ -808,6 +808,7 @@ var configuration = {
           "description": localize(7602, null),
           "type": "string",
           "enum": ["auto", "on", "off"],
+          "default": "off",
           "enumDescriptions": [
             localize(7719, null),
             localize(7721, null),
@@ -820,7 +821,7 @@ var configuration = {
         }
       },
       default: {
-        "sound": "auto",
+        "sound": "off",
         "announcement": "auto"
       },
       tags: ["accessibility"]

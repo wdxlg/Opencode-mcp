@@ -5,7 +5,7 @@ import { __toESM, init_define_OPENCODE_BUILD_INFO } from "./module-0000.mjs";
 import { externalMcpTimeout } from "./module-0060.mjs";
 import { Client, SSEClientTransport, StreamableHTTPClientTransport } from "./module-0070.mjs";
 import { StdioClientTransport } from "./module-0156.mjs";
-import { managedStdioEnvironment } from "./module-0110.mjs";
+import { managedStdioEnvironment, windowsMcpDirectEnvironment } from "./module-0110.mjs";
 
 
 // extensions/opencode/src/external-mcp-connection.ts
@@ -49,7 +49,7 @@ async function connectExternalMcp(config2, onChanged, onClosed, bundledBinDir, f
         const stdio = new StdioClientTransport({
           command: config2.command,
           args: config2.args ?? [],
-          env: managedStdioEnvironment(config2.env, process.env, process.platform, bundledBinDir),
+          env: { ...managedStdioEnvironment(config2.env, process.env, process.platform, bundledBinDir), ...windowsMcpDirectEnvironment(config2.command, config2.args, config2.env, bundledBinDir) },
           cwd: config2.cwd ?? import_node_os6.default.homedir(),
           stderr: "pipe"
         });

@@ -663,7 +663,8 @@ var registry2 = Registry.as(Extensions4.Configuration);
       ["workbench.activityBar.location" /* ACTIVITY_BAR_LOCATION */]: {
         "type": "string",
         "enum": ["default", "top", "bottom", "hidden"],
-        "default": "default",
+        // OpenCode activitybar-top-step01: 活动栏默认放在侧栏顶部（图标一排显示在侧栏标题上）
+        "default": "top",
         "markdownDescription": localize(7024, null),
         "enumDescriptions": [
           localize(7170, null),
@@ -788,7 +789,7 @@ var registry2 = Registry.as(Extensions4.Configuration);
       },
       ["workbench.layoutControl.enabled" /* LAYOUT_ACTIONS */]: {
         "type": "boolean",
-        "default": true,
+        "default": false /* OpenCode-p13 */,
         "markdownDescription": isWeb ? localize(7065, null) : localize(7064, null, "`#window.customTitleBarVisibility#`", "`never`"),
         agentsWindow: { default: true, readOnly: true }
       },
@@ -935,7 +936,7 @@ var registry2 = Registry.as(Extensions4.Configuration);
           isWeb ? localize(7145, null) : localize(7144, null),
           isWeb ? localize(7147, null) : localize(7146, null)
         ],
-        "default": isWeb && !isStandalone() ? "keyboardOnly" : "never",
+        "default": isWeb && !isStandalone() ? "keyboardOnly" : "always",
         // on by default in web, unless PWA, never on desktop
         "markdownDescription": isWeb ? localize(7039, null) : localize(7038, null),
         "scope": 1 /* APPLICATION */

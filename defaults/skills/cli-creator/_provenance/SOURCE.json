@@ -1,0 +1,38 @@
+{
+  "id": "cli-creator",
+  "sourceName": "cli-creator",
+  "title": "命令行工具设计",
+  "category": "开发工具",
+  "repo": "openai/skills",
+  "commit": "49f948faa9258a0c61caceaf225e179651397431",
+  "sourcePath": "skills/.curated/cli-creator/",
+  "sourceUrl": "https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/cli-creator",
+  "license": "Apache-2.0",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "根据项目选Rust、Node或Python；原文PATH安装、外部API验证和测试都需要相应授权。原文Codex安装路径不是本机Skill目录。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "LICENSE.txt",
+      "upstreamSha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"
+    },
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "24058eabf0aafce6def3fb937ac93cbe3fa341c653c658dc589edb77f73d6152"
+    },
+    {
+      "path": "agents/openai.yaml",
+      "upstreamSha256": "356c648dcdd7e10d65df0c348175344b36f28c7da51e031010a7385124a89f4c"
+    },
+    {
+      "path": "references/agent-cli-patterns.md",
+      "upstreamSha256": "ac11612b780a80a97b15a5ffca23b21a182f854003911cce2363dd69b6126272"
+    }
+  ]
+}

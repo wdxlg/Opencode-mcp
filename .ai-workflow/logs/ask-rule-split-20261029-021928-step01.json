@@ -1,0 +1,85 @@
+{
+  "task_id": "ask-rule-split-20261029-021928-step01",
+  "status": "source_and_build_complete_function_unverified",
+  "completed_at": "2026-10-29T02:33:32+08:00",
+  "scope": "Source recovery project and source-local opencode only; no automatic client detection or pending-gate change.",
+  "decision": "User requested independent Bridge ask and general clarification/waiting rules; conservative conversion of unchanged built-ins and shared-library effect were disclosed.",
+  "pre_snapshot": "refs/heads/pre/ask-rule-split-20261029-021928-step01",
+  "baseline": "2722df0f9023bf85238d509a0ace5cb4a4d81021",
+  "source_commit": "e5dbacc0565b5b53516942a69d48ede99312d3a3",
+  "source_branch": "refs/heads/task/ask-rule-split-20261029-021928-step01",
+  "events": [
+    {
+      "phase": "analysis",
+      "result": "complete",
+      "actual_old_mcp_tools": 42,
+      "old_mcp_has_ask": false,
+      "target_source_has_ask": true
+    },
+    {
+      "phase": "implementation",
+      "result": "complete",
+      "rules": [
+        "需求澄清与交互式决策",
+        "Bridge 交互式提问"
+      ],
+      "migration": "exact unchanged bundled v1/v2/v3; preserve custom conflicts and enable flags",
+      "auto_client_detection": false,
+      "gate_changed": false
+    },
+    {
+      "phase": "static_checks",
+      "node_check": true,
+      "git_diff_check": true,
+      "shared_copy_equal": true,
+      "runtime_contains_identifiers": true,
+      "functional_evidence": false
+    },
+    {
+      "phase": "build",
+      "command": "npm run build",
+      "exit_code": 0,
+      "bundles": 28,
+      "standalone_files": 70,
+      "product_integrity_checks": 10,
+      "warning": "One existing CommonJS warning at module-0023.mjs:36",
+      "application_executed": false
+    },
+    {
+      "phase": "publish",
+      "destination": "E:/OpenCode-Source-Recovery-20261013/opencode",
+      "changed_files": 2,
+      "unchanged_files": 11018,
+      "removed_files": 0,
+      "hash_cache": "size and mtime for unchanged files",
+      "user_data_preserved": true,
+      "backup": ".update-backup/1793212195541-5d950674",
+      "manifest_source_commit": "2722df0f9023bf85238d509a0ace5cb4a4d81021",
+      "manifest_source_dirty": true
+    },
+    {
+      "phase": "sqlite",
+      "result": "recorded after consistent backup",
+      "backup": "backup/ask-rule-split-20261029-021928-step01/memory-before.sqlite",
+      "backup_sha256": "4d0cd64a0134a61096bac19030360f0e372c7e6de46a7d37780e4922d4798034"
+    },
+    {
+      "phase": "limitations",
+      "tests_run": false,
+      "first_launch_checked": false,
+      "migration_checked": false,
+      "gui_checked": false,
+      "arena_native_checked": false,
+      "bridge_pending_checked": false,
+      "user_acceptance": "not_run"
+    },
+    {
+      "phase": "recovered_errors",
+      "items": [
+        "Local patch script syntax error and wrong hunk were rejected without project writes; corrected.",
+        "First Git source commit attempt lacked author identity and wrote no commit; retry used per-command local agent identity.",
+        "Python schema read required a second soft interrupt and was cancelled with exit code 130; Node read-only schema query and SQLite transactional record succeeded."
+      ]
+    }
+  ]
+}

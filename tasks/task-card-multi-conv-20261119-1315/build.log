@@ -1,0 +1,56 @@
+see-now sources synchronized
+multica sources synchronized
+Shared source variants synchronized
+REA_BACKEND_PREPARED {"assets":7357,"retired":0,"source":"recovered/rea-backend","dependencyPackages":80,"previousManifestSha256":"3f9d48bca9afc2435be6166095ae148d66c6d8bcec4382297a56919bae3ef208","manifestSha256":"3f9d48bca9afc2435be6166095ae148d66c6d8bcec4382297a56919bae3ef208","productStarted":false}
+COMPILED {"id":"000-extension.js","status":"compiled","sourceModules":249,"bytes":5422960,"warnings":1}
+COMPILED {"id":"001-skill-archive-worker.js","status":"compiled","sourceModules":6,"bytes":23301,"warnings":1}
+COMPILED {"id":"002-agent-host.js","status":"compiled","sourceModules":67,"bytes":1077467,"warnings":0}
+COMPILED {"id":"003-mcp-server.js","status":"compiled","sourceModules":106,"bytes":1581443,"warnings":1}
+COMPILED {"id":"004-bootstrap-fork.js","status":"compiled","sourceModules":6,"bytes":38221,"warnings":0}
+COMPILED {"id":"005-cli.js","status":"compiled","sourceModules":61,"bytes":455080,"warnings":0}
+COMPILED {"id":"006-main.js","status":"compiled","sourceModules":400,"bytes":2732988,"warnings":0}
+COMPILED {"id":"007-workbench.js","status":"compiled","sourceModules":2,"bytes":48061,"warnings":0}
+COMPILED {"id":"008-sharedProcessMain.js","status":"compiled","sourceModules":305,"bytes":2204797,"warnings":0}
+COMPILED {"id":"009-cliProcessMain.js","status":"compiled","sourceModules":176,"bytes":1364728,"warnings":0}
+COMPILED {"id":"010-editorWebWorkerMain.js","status":"compiled","sourceModules":85,"bytes":675255,"warnings":0}
+COMPILED {"id":"011-agentHostMain.js","status":"compiled","sourceModules":588,"bytes":4859202,"warnings":0}
+COMPILED {"id":"012-diffWorkerMain.js","status":"compiled","sourceModules":40,"bytes":290871,"warnings":0}
+COMPILED {"id":"013-watcherMain.js","status":"compiled","sourceModules":52,"bytes":420440,"warnings":0}
+COMPILED {"id":"014-localTranscriptionMain.js","status":"compiled","sourceModules":42,"bytes":337487,"warnings":0}
+COMPILED {"id":"015-profileAnalysisWorkerMain.js","status":"compiled","sourceModules":45,"bytes":323968,"warnings":0}
+COMPILED {"id":"016-ptyHostMain.js","status":"compiled","sourceModules":91,"bytes":658339,"warnings":0}
+COMPILED {"id":"017-sessions.js","status":"compiled","sourceModules":2,"bytes":28694,"warnings":0}
+COMPILED {"id":"018-sessions.desktop.main.js","status":"compiled","sourceModules":4335,"bytes":39196003,"warnings":0}
+COMPILED {"id":"019-extensionHostProcess.js","status":"compiled","sourceModules":527,"bytes":4270635,"warnings":0}
+COMPILED {"id":"020-extensionHostWorkerMain.js","status":"compiled","sourceModules":456,"bytes":3731836,"warnings":0}
+COMPILED {"id":"021-telemetryApp.js","status":"compiled","sourceModules":53,"bytes":353960,"warnings":0}
+COMPILED {"id":"022-notebookWebWorkerMain.js","status":"compiled","sourceModules":65,"bytes":523870,"warnings":0}
+COMPILED {"id":"023-outputLinkComputerMain.js","status":"compiled","sourceModules":36,"bytes":281840,"warnings":0}
+COMPILED {"id":"024-languageDetectionWebWorkerMain.js","status":"compiled","sourceModules":39,"bytes":292605,"warnings":0}
+COMPILED {"id":"025-localFileSearchMain.js","status":"compiled","sourceModules":37,"bytes":302524,"warnings":0}
+COMPILED {"id":"026-textMateTokenizationWorker.workerMain.js","status":"compiled","sourceModules":82,"bytes":483189,"warnings":0}
+COMPILED {"id":"027-workbench.desktop.main.js","status":"compiled","sourceModules":4139,"bytes":38990406,"warnings":1}
+SOURCE_BUILD {"mode":"recovered-modular-javascript-build","compiler":"0.25.10","output":"E:\\OpenCode-Source-Recovery-20261013/generated/source-build","results":[{"id":"000-extension.js","status":"compiled","sourceModules":249,"bytes":5422960,"warnings":1},{"id":"001-skill-archive-worker.js","status":"compiled","sourceModules":6,"bytes":23301,"warnings":1},{"id":"002-agent-host.js","status":"compiled","sourceModules":67,"bytes":1077467,"warnings":0},{"id":"003-mcp-server.js","status":"compiled","sourceModules":106,"bytes":1581443,"warnings":1},{"id":"004-bootstrap-fork.js","status":"compiled","sourceModules":6,"bytes":38221,"warnings":0},{"id":"005-cli.js","status":"compiled","sourceModules":61,"bytes":455080,"warnings":0},{"id":"006-main.js","status":"compiled","sourceModules":400,"bytes":2732988,"warnings":0},{"id":"007-workbench.js","status":"compiled","sourceModules":2,"bytes":48061,"warnings":0},{"id":"008-sharedProcessMain.js","status":"compiled","sourceModules":305,"bytes":2204797,"warnings":0},{"id":"009-cliProcessMain.js","status":"compiled","sourceModules":176,"bytes":1364728,"warnings":0},{"id":"010-editorWebWorkerMain.js","status":"compiled","sourceModules":85,"bytes":675255,"warnings":0},{"id":"011-agentHostMain.js","status":"compiled","sourceModules":588,"bytes":4859202,"warnings":0},{"id":"012-diffWorkerMain.js","status":"compiled","sourceModules":40,"bytes":290871,"warnings":0},{"id":"013-watcherMain.js","status":"compiled","sourceModules":52,"bytes":420440,"warnings":0},{"id":"014-localTranscriptionMain.js","status":"compiled","sourceModules":42,"bytes":337487,"warnings":0},{"id":"015-profileAnalysisWorkerMain.js","status":"compiled","sourceModules":45,"bytes":323968,"warnings":0},{"id":"016-ptyHostMain.js","status":"compiled","sourceModules":91,"bytes":658339,"warnings":0},{"id":"017-sessions.js","status":"compiled","sourceModules":2,"bytes":28694,"warnings":0},{"id":"018-sessions.desktop.main.js","status":"compiled","sourceModules":4335,"bytes":39196003,"warnings":0},{"id":"019-extensionHostProcess.js","status":"compiled","sourceModules":527,"bytes":4270635,"warnings":0},{"id":"020-extensionHostWorkerMain.js","status":"compiled","sourceModules":456,"bytes":3731836,"warnings":0},{"id":"021-telemetryApp.js","status":"compiled","sourceModules":53,"bytes":353960,"warnings":0},{"id":"022-notebookWebWorkerMain.js","status":"compiled","sourceModules":65,"bytes":523870,"warnings":0},{"id":"023-outputLinkComputerMain.js","status":"compiled","sourceModules":36,"bytes":281840,"warnings":0},{"id":"024-languageDetectionWebWorkerMain.js","status":"compiled","sourceModules":39,"bytes":292605,"warnings":0},{"id":"025-localFileSearchMain.js","status":"compiled","sourceModules":37,"bytes":302524,"warnings":0},{"id":"026-textMateTokenizationWorker.workerMain.js","status":"compiled","sourceModules":82,"bytes":483189,"warnings":0},{"id":"027-workbench.desktop.main.js","status":"compiled","sourceModules":4139,"bytes":38990406,"warnings":1}],"complete":true,"originalTypeScriptRestored":false,"applicationExecuted":false}
+{"staticAssets":1029,"changed":31,"removed":31}
+STANDALONE_BUILD {"success":true,"files":71,"changed":71,"productChecksums":[{"path":"vs/base/parts/sandbox/electron-browser/preload.js","changed":true},{"path":"vs/workbench/workbench.desktop.main.js","changed":true},{"path":"vs/workbench/workbench.desktop.main.css","changed":true},{"path":"vs/workbench/api/node/extensionHostProcess.js","changed":true},{"path":"vs/code/electron-browser/workbench/workbench.html","changed":false},{"path":"vs/code/electron-browser/workbench/workbench.js","changed":true},{"path":"vs/sessions/sessions.desktop.main.js","changed":true},{"path":"vs/sessions/sessions.desktop.main.css","changed":true},{"path":"vs/sessions/electron-browser/sessions.html","changed":false},{"path":"vs/sessions/electron-browser/sessions.js","changed":true}],"integrityChecksRemainEnabled":true}
+DEFAULTS {"skills":27,"files":7772,"changed":7772,"removed":0}
+REA_BACKEND_ASSETS {"success":true,"architecture":"embedded-native-backend","version":"6.8.0","catalogTools":229,"nativeWorkflowTool":true,"managedFiles":7357,"backendSourceModules":1785,"necessaryDependencyPackages":80,"sourceAndStagedHashesMatch":true,"resolvedZodVersions":{"backend":"4.4.3","rootDependencies":"4.6.7"},"backendStaticCompile":true,"workerEntrypointsCompiled":2,"nodeRuntimeBundled":false,"reaServiceBundled":false,"externalEnginesBundled":false,"upstreamDeclaredEngines":{"node":"^22.23.4 || ^24.22.1 || >=26.12.1"},"buildNode":"v22.22.1","productHostCompatibility":"not runtime verified; Node22-target source port with scoped ambient defaults and Electron Node-worker mode","nativeBindingsValidated":false,"productStarted":false,"reverseTasksRun":false,"functionalTestsRun":false,"at":"2026-11-19T05:25:05.846Z"}
+{
+  "bundledSkills": 27,
+  "bundledDefaultFiles": 7772,
+  "editableStaticAssets": 1022,
+  "success": true,
+  "recoveredESModules": 12092,
+  "compiledBundles": 28,
+  "compiledStandaloneFiles": 71,
+  "compiledApplicationJavaScriptFiles": 99,
+  "productIntegrityChecks": 10,
+  "mode": "recovered-JavaScript-source-build",
+  "originalTypeScriptTypesRestored": false,
+  "nativeDependencies": "vendored",
+  "errors": [],
+  "verifiedAt": "2026-11-19T05:25:10.559Z"
+}
+RUNTIME_UPDATE {"success":true,"elapsedMs":15742,"hashedFiles":8013,"hashingMode":"sha256-with-size-mtime-cache","destination":"E:\\OpenCode-Source-Recovery-20261013\\opencode","changedFiles":5,"unchangedFiles":18387,"removedFiles":0,"userDataPreserved":true,"backup":"E:\\OpenCode-Source-Recovery-20261013/.update-backup/1795065910667-1ecef530","sourceCommit":"5b3a5944e79892abfa79d0cf5a9fcdeb3cbb3a68","sourceDirty":true,"at":"2026-11-19T05:25:26.409Z"}
+[update] published to E:\OpenCode-Source-Recovery-20261013\opencode; removed generated/source-build, .update-stage; kept the newest 2 rollback points in .update-backup
+BUILD_EXIT=0

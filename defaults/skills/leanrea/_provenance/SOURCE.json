@@ -1,0 +1,12 @@
+{
+  "name": "leanrea",
+  "source": "user-provided leanrea-main.zip",
+  "archiveSha256": "3cc768730c91ccd8d9da683f0932b03edc672a1895feae869b9b634887743c5b",
+  "license": "MIT",
+  "upstreamFiles": {
+    "leanrea/SKILL.md": "53581bd7fb1fae4352ab43252e67b84667b68895a68e372b99d302b58d9c782d",
+    "README.md": "f4e1cb71d5f051182f9046544ad1ba81e812183311c081b57d33afa0d740b84a",
+    "LICENSE": "f126681f66a89b4f610999a64f1a1fc6da98d221a39f65799a6d6bb6e051d922"
+  },
+  "localAdaptation": "Preserved upstream skill text; prepended OpenCode authorization, Windows, deletion and network boundaries. Benchmark scripts are not runtime dependencies and are not installed."
+}

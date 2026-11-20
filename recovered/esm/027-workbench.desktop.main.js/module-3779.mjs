@@ -58,7 +58,8 @@ import { Extensions3 } from "./module-0138.mjs";
       const nativeHostService = accessor.get(INativeHostService);
       const configurationService = accessor.get(IConfigurationService);
       const confirmBeforeClose = configurationService.getValue("window.confirmBeforeClose");
-      if (confirmBeforeClose === "always" || confirmBeforeClose === "keyboardOnly" && ModifierKeyEmitter.getInstance().isModifierPressed) {
+      // OpenCode: skip the confirmation in an automation-launched instance (OPENCODE_AUTOMATION_RUN=1)
+      if (globalThis.vscode?.process?.env?.OPENCODE_AUTOMATION_RUN !== "1" && (confirmBeforeClose === "always" || confirmBeforeClose === "keyboardOnly" && ModifierKeyEmitter.getInstance().isModifierPressed)) {
         const confirmed = await NativeWindow.confirmOnShutdown(accessor, 2 /* QUIT */);
         if (!confirmed) {
           return;

@@ -6,7 +6,7 @@ import { normalizeOpenAIBaseUrl } from "./module-0172.mjs";
 import { DEFAULT_REASONING_EFFORTS, REASONING_EFFORTS, THINKING_MODES, codexReasoningEfforts, codexReasoningFallback, genericReasoningPickerValues, resolveGenericReasoningOverride } from "./module-0176.mjs";
 import { DEEPSEEK_CONTEXT_WINDOW_TOKENS, DEEPSEEK_DEFAULT_REASONING_EFFORT, DEEPSEEK_MAX_OUTPUT_TOKENS, DEEPSEEK_REASONING_EFFORTS, isOfficialDeepSeekApiBaseUrl, normalizeOfficialDeepSeekApiBaseUrl, resolveDeepSeekThinkingEffort } from "./module-0173.mjs";
 import { getOpenCodeModelConfig } from "./module-0161.mjs";
-import { DEFAULT_API_CONTEXT_WINDOW, DEFAULT_API_MAX_OUTPUT_TOKENS, DEFAULT_CODEX_CONTEXT_WINDOW } from "./module-0174.mjs";
+import { DEFAULT_API_CONTEXT_WINDOW, DEFAULT_API_MAX_OUTPUT_TOKENS, DEFAULT_CODEX_CONTEXT_WINDOW, DSH_FALLBACK_CONTEXT_WINDOW, dshDefaultContextWindow, dshCatalogMaxOutputTokens } from "./module-0174.mjs";
 import { CODEX_API_BASE_URL, CODEX_BETA_HEADER, CODEX_CLIENT_VERSION, CODEX_ORIGINATOR, CODEX_USER_AGENT, codexAuthManager } from "./module-0162.mjs";
 import { MODEL_ID_SEPARATOR, deleteRuntimeModelsForNamespace, encodedModelId, normalizeProviderModelId } from "./module-0175.mjs";
 
@@ -65,7 +65,8 @@ var DEFAULT_IDLE_TIMEOUT_MS = 6e4;
 
 var DEFAULT_TOTAL_TIMEOUT_MS = 6e5;
 
-var DEFAULT_CONTEXT_WINDOW = 128e3;
+// OpenCode context-default-dsh: 与 dsh pi-ai 适配器回退值一致（原 128K）
+var DEFAULT_CONTEXT_WINDOW = DSH_FALLBACK_CONTEXT_WINDOW;
 
 var MODEL_DISCOVERY_TIMEOUT_MS = 3e4;
 
@@ -209,8 +210,19 @@ function providerFingerprint(config2, salt) {
   ])).digest("hex").slice(0, 16);
 }
 
+// OpenCode context-default-dsh: /models 发现与 dsh 一致（dsh-llm-pi-ai readListing/capacity）：
+// 窗口取 context_window / max_context_window / contextWindow / context_length / max_input_tokens / limit.context 中第一个正整数，
+// 输出上限取 max_output_tokens / maxOutputTokens / maxTokens / max_tokens / limit.output / top_provider.max_completion_tokens；
+// "models" 也可以是以模型 id 为键的对象。
+function ocDshCapacity(...candidates) {
+  for (const candidate of candidates) if (typeof candidate === "number" && Number.isInteger(candidate) && candidate > 0) return candidate;
+  return void 0;
+}
+function ocDshListingMap(models) {
+  return Object.entries(models).filter(([, raw]) => raw !== null && typeof raw === "object" && !Array.isArray(raw)).map(([key, raw]) => ({ ...raw, id: key || raw.id }));
+}
 function parseDiscoveredModels(payload, codex = false) {
-  const source = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.models) ? payload.models : Array.isArray(payload?.results) ? payload.results : [];
+  const source = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.models) ? payload.models : payload?.models && typeof payload.models === "object" ? ocDshListingMap(payload.models) : Array.isArray(payload?.results) ? payload.results : [];
   const models = [];
   const seen = /* @__PURE__ */ new Set();
   for (const item of source) {
@@ -264,8 +276,8 @@ function parseDiscoveredModels(payload, codex = false) {
       id,
       name: stringValue(item.display_name) || id,
       description: stringValue(item.description) || void 0,
-      contextWindow: optionalInteger(item.context_window ?? item.max_context_window, 1024, 1e7),
-      maxOutputTokens: optionalInteger(item.max_output_tokens, 1, 1e6),
+      contextWindow: optionalInteger(ocDshCapacity(item.context_window, item.max_context_window, item.contextWindow, item.context_length, item.max_input_tokens, item.limit?.context) ?? item.context_window ?? item.max_context_window, 1024, 1e7),
+      maxOutputTokens: optionalInteger(ocDshCapacity(item.max_output_tokens, item.maxOutputTokens, item.maxTokens, item.max_tokens, item.limit?.output, item.top_provider?.max_completion_tokens) ?? item.max_output_tokens, 1, 1e6),
       imageInput: inputModalities ? inputModalities.includes("image") : void 0,
       reasoningEfforts: supportedReasoning.length ? supportedReasoning : void 0,
       defaultReasoningEffort,
@@ -288,9 +300,31 @@ function isTransientStatus(status) {
   return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
 }
 
-async function delayForRetry(attempt, token) {
+// dsh-gap-fixes: provider-aware retry — exhausted quota/billing 429s fail fast, Retry-After is honoured (capped),
+// and backoff is exponential with jitter so parallel requests do not retry in lockstep.
+var RETRY_AFTER_CAP_MS = 2e4;
+function isQuotaExhausted(error2) {
+  const text2 = `${String(error2?.code ?? "")} ${error2 instanceof Error ? error2.message : String(error2 ?? "")}`;
+  return /insufficient[_ -]?quota|quota[_ -]?exceeded|exceeded your (?:current )?quota|billing|余额不足|额度(?:已)?用(?:完|尽)|欠费/i.test(text2);
+}
+function retryAfterMsFrom(response) {
+  try {
+    const raw = response?.headers?.get?.("retry-after-ms") ?? response?.headers?.get?.("retry-after");
+    if (!raw) return void 0;
+    const asNumber = Number(raw);
+    if (Number.isFinite(asNumber)) return Math.max(0, response.headers.get("retry-after-ms") ? asNumber : asNumber * 1e3);
+    const at = Date.parse(raw);
+    return Number.isFinite(at) ? Math.max(0, at - Date.now()) : void 0;
+  } catch {
+    return void 0;
+  }
+}
+async function delayForRetry(attempt, token, error2) {
   if (token.isCancellationRequested) throw new vscode16.CancellationError();
-  await new Promise((resolve) => setTimeout(resolve, Math.min(2e3, 250 * 2 ** attempt)));
+  const backoff = Math.min(8e3, 500 * 2 ** attempt);
+  const jittered = Math.round(backoff / 2 + Math.random() * backoff / 2);
+  const hinted = typeof error2?.retryAfterMs === "number" ? Math.min(RETRY_AFTER_CAP_MS, error2.retryAfterMs) : 0;
+  await new Promise((resolve) => setTimeout(resolve, Math.max(jittered, hinted)));
   if (token.isCancellationRequested) throw new vscode16.CancellationError();
 }
 
@@ -312,8 +346,8 @@ async function fetchJsonWithRetries(url2, init, token, timeoutMs, retries, label
       }
       if (!response.ok) {
         const message2 = payload?.error?.message ?? payload?.message ?? `${label} failed with HTTP ${response.status}`;
-        const error2 = Object.assign(new Error(String(message2)), { status: response.status, code: payload?.error?.code ?? payload?.code });
-        if (attempt < retries && isTransientStatus(response.status)) {
+        const error2 = Object.assign(new Error(String(message2)), { status: response.status, code: payload?.error?.code ?? payload?.code, retryAfterMs: retryAfterMsFrom(response) });
+        if (attempt < retries && isTransientStatus(response.status) && !isQuotaExhausted(error2)) {
           lastError = error2;
         } else {
           throw error2;
@@ -324,16 +358,193 @@ async function fetchJsonWithRetries(url2, init, token, timeoutMs, retries, label
     } catch (error2) {
       if (token.isCancellationRequested) throw new vscode16.CancellationError();
       const status = error2?.status;
-      if (typeof status === "number" && !isTransientStatus(status)) throw error2;
+      if (typeof status === "number" && (!isTransientStatus(status) || isQuotaExhausted(error2))) throw error2;
       lastError = error2;
       if (attempt >= retries) throw error2;
     } finally {
       clearTimeout(timeout);
       cancellation.dispose();
     }
-    await delayForRetry(attempt, token);
+    await delayForRetry(attempt, token, lastError);
   }
   throw lastError instanceof Error ? lastError : new Error(`${label} failed.`);
+}
+
+// Response cache (on by default).
+// Settings: "opencode.responseCache.enabled" (boolean, default false since it only hits byte-identical requests; set true to enable),
+//           "opencode.responseCache.ttlSeconds" (number, default 3600),
+//           "opencode.responseCache.maxEntries" (number, default 200).
+// Env overrides: OPENCODE_RESPONSE_CACHE=1|0, OPENCODE_RESPONSE_CACHE_TTL_SECONDS.
+// Key = sha256(url + hashed auth headers + exact JSON body), so model, tools, messages,
+// temperature and reasoning settings must all match byte-for-byte. In-memory only:
+// cleared when the extension host restarts. Only text answers to non-tool-result turns are cached.
+// Streaming paths (Chat Completions, Codex) record the reported text/thinking parts and replay them on a hit.
+var responseCache = /* @__PURE__ */ new Map();
+
+function responseCacheSettings() {
+  let enabled = false;
+  let ttlSeconds = 3600;
+  let maxEntries = 200;
+  try {
+    const section = vscode16.workspace.getConfiguration("opencode.responseCache");
+    enabled = section.get("enabled", false) === true;
+    ttlSeconds = Number(section.get("ttlSeconds", 3600));
+    maxEntries = Number(section.get("maxEntries", 200));
+  } catch {
+  }
+  const envEnabled = process.env.OPENCODE_RESPONSE_CACHE;
+  if (envEnabled === "1" || envEnabled === "true") enabled = true;
+  if (envEnabled === "0" || envEnabled === "false") enabled = false;
+  const envTtl = Number(process.env.OPENCODE_RESPONSE_CACHE_TTL_SECONDS);
+  if (Number.isFinite(envTtl) && envTtl > 0) ttlSeconds = envTtl;
+  return {
+    enabled,
+    ttlMs: Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds * 1e3 : 36e5,
+    maxEntries: Number.isFinite(maxEntries) && maxEntries >= 1 ? Math.min(Math.floor(maxEntries), 5e3) : 200
+  };
+}
+
+function responseCacheKey(url2, headers, body) {
+  const accountId = headers?.["ChatGPT-Account-ID"];
+  const authMaterial = !headers ? "" : accountId ? JSON.stringify(["account", accountId]) : JSON.stringify([headers.authorization ?? "", headers["x-api-key"] ?? ""]);
+  const authHash = (0, import_node_crypto24.createHash)("sha256").update(authMaterial).digest("hex");
+  return (0, import_node_crypto24.createHash)("sha256").update(url2).update("\n").update(authHash).update("\n").update(body).digest("hex");
+}
+
+function cloneCachedPayload(payload) {
+  return typeof structuredClone === "function" ? structuredClone(payload) : JSON.parse(JSON.stringify(payload));
+}
+
+function responseCacheGet(key) {
+  const hit = responseCache.get(key);
+  if (!hit) return void 0;
+  responseCache.delete(key);
+  if (hit.expiresAt <= Date.now()) return void 0;
+  responseCache.set(key, hit);
+  return hit;
+}
+
+function responseCacheSet(key, entry, settings) {
+  responseCache.set(key, { ...entry, expiresAt: Date.now() + settings.ttlMs });
+  while (responseCache.size > settings.maxEntries) {
+    responseCache.delete(responseCache.keys().next().value);
+  }
+}
+
+function isChatCompletionsRequestCacheable(messages) {
+  if (!Array.isArray(messages) || messages.length === 0) return false;
+  const last = messages[messages.length - 1];
+  return last?.role !== "tool" && !(Array.isArray(last?.tool_calls) && last.tool_calls.length);
+}
+
+function createRecordingProgress(progress) {
+  const parts = [];
+  let cacheable = true;
+  const TextPart = vscode16.LanguageModelTextPart;
+  const ThinkingPart = vscode16.LanguageModelThinkingPart;
+  return {
+    parts,
+    isCacheable: () => cacheable && parts.some((part) => part.kind === "text" && part.value.length > 0),
+    progress: {
+      // OpenCode p29: 输出被截断时不写入响应缓存
+      ocNoCache() {
+        cacheable = false;
+      },
+      report(part) {
+        try {
+          if (typeof TextPart === "function" && part instanceof TextPart && typeof part.value === "string") {
+            parts.push({ kind: "text", value: part.value });
+          } else if (typeof ThinkingPart === "function" && part instanceof ThinkingPart) {
+            parts.push({ kind: "thinking", value: cloneCachedPayload(part.value), id: part.id, metadata: part.metadata === void 0 ? void 0 : cloneCachedPayload(part.metadata) });
+          } else {
+            cacheable = false;
+          }
+        } catch {
+          cacheable = false;
+        }
+        progress.report(part);
+      }
+    }
+  };
+}
+
+function replayCachedParts(parts, progress) {
+  for (const part of parts) {
+    if (part.kind === "text") {
+      progress.report(new vscode16.LanguageModelTextPart(part.value));
+    } else if (part.kind === "thinking" && typeof vscode16.LanguageModelThinkingPart === "function") {
+      progress.report(new vscode16.LanguageModelThinkingPart(cloneCachedPayload(part.value), part.id, part.metadata === void 0 ? void 0 : cloneCachedPayload(part.metadata)));
+    }
+  }
+}
+
+async function runStreamWithResponseCache(cacheInput, progress, token, run) {
+  const settings = responseCacheSettings();
+  if (!settings.enabled || !cacheInput?.requestCacheable || typeof cacheInput.body !== "string") {
+    return run(progress);
+  }
+  const key = `stream:${responseCacheKey(cacheInput.url, cacheInput.headers, cacheInput.body)}`;
+  const hit = responseCacheGet(key);
+  if (hit && Array.isArray(hit.parts)) {
+    if (token?.isCancellationRequested) throw new vscode16.CancellationError();
+    replayCachedParts(hit.parts, progress);
+    return;
+  }
+  const recorder = createRecordingProgress(progress);
+  await run(recorder.progress);
+  try {
+    if (!token?.isCancellationRequested && recorder.isCacheable()) {
+      responseCacheSet(key, { parts: recorder.parts }, settings);
+    }
+  } catch {
+  }
+}
+
+function isResponsesRequestCacheable(input) {
+  if (!Array.isArray(input) || input.length === 0) return false;
+  const last = input[input.length - 1];
+  return last?.type !== "function_call_output" && last?.type !== "function_call";
+}
+
+function isResponsesPayloadCacheable(payload) {
+  if (!payload || payload.status === "failed" || payload.status === "incomplete" || payload.error) return false;
+  const output = Array.isArray(payload.output) ? payload.output : [];
+  if (output.some((item) => item?.type === "function_call")) return false;
+  return output.some((item) => item?.type === "message") || typeof payload.output_text === "string" && payload.output_text.length > 0;
+}
+
+function isAnthropicRequestCacheable(messages) {
+  if (!Array.isArray(messages) || messages.length === 0) return false;
+  const last = messages[messages.length - 1];
+  const content = Array.isArray(last?.content) ? last.content : [];
+  return !content.some((block) => block?.type === "tool_result");
+}
+
+function isAnthropicPayloadCacheable(payload) {
+  if (!payload || payload.type === "error" || payload.error) return false;
+  if (payload.stop_reason === "max_tokens") return false;
+  const content = Array.isArray(payload.content) ? payload.content : [];
+  if (content.some((block) => block?.type === "tool_use")) return false;
+  return content.some((block) => block?.type === "text" && typeof block.text === "string" && block.text.length > 0);
+}
+
+async function fetchJsonWithResponseCache(url2, init, token, timeoutMs, retries, label, cacheOptions) {
+  const settings = responseCacheSettings();
+  const body = typeof init?.body === "string" ? init.body : void 0;
+  if (!settings.enabled || !cacheOptions?.requestCacheable || body === void 0) {
+    return fetchJsonWithRetries(url2, init, token, timeoutMs, retries, label);
+  }
+  const key = responseCacheKey(url2, init.headers, body);
+  const hit = responseCacheGet(key);
+  if (hit && hit.payload !== void 0) return cloneCachedPayload(hit.payload);
+  const payload = await fetchJsonWithRetries(url2, init, token, timeoutMs, retries, label);
+  try {
+    if (cacheOptions.isPayloadCacheable(payload)) {
+      responseCacheSet(key, { payload: cloneCachedPayload(payload) }, settings);
+    }
+  } catch {
+  }
+  return payload;
 }
 
 async function fetchStreamWithRetries(url2, init, token, timeoutMs, retries, label) {
@@ -354,30 +565,77 @@ async function fetchStreamWithRetries(url2, init, token, timeoutMs, retries, lab
         payload = void 0;
       }
       const message2 = payload?.error?.message ?? payload?.message ?? `${label} failed with HTTP ${response.status}`;
-      const error2 = Object.assign(new Error(String(message2)), { status: response.status });
-      if (!isTransientStatus(response.status) || attempt >= retries) throw error2;
+      const error2 = Object.assign(new Error(String(message2)), { status: response.status, code: payload?.error?.code ?? payload?.code, retryAfterMs: retryAfterMsFrom(response) });
+      if (!isTransientStatus(response.status) || isQuotaExhausted(error2) || attempt >= retries) throw error2;
       lastError = error2;
     } catch (error2) {
       if (token.isCancellationRequested) throw new vscode16.CancellationError();
       const status = typeof error2 === "object" && error2 !== null && "status" in error2 ? Number(error2.status) : void 0;
-      if (status !== void 0 && Number.isFinite(status) && !isTransientStatus(status)) throw error2;
+      if (status !== void 0 && Number.isFinite(status) && (!isTransientStatus(status) || isQuotaExhausted(error2))) throw error2;
       lastError = error2;
       if (attempt >= retries) throw error2;
     } finally {
       clearTimeout(timeout);
       cancellation.dispose();
     }
-    await delayForRetry(attempt, token);
+    await delayForRetry(attempt, token, lastError);
   }
   throw lastError instanceof Error ? lastError : new Error(`${label} failed.`);
 }
 
+// OpenCode: 很多模型（DeepSeek-R1、QwQ、MiniMax、GLM 等经部分端点）把思考写在正文的 <think>…</think> 里，
+// 这里把它拆成思考块显示（流式分片时标签可能被切开，残缺前缀先暂存）。
+function ocCreateThinkSplitter(progress) {
+  const OPEN = "<think>", CLOSE = "</think>";
+  let inThink = false;
+  let pending = "";
+  const emit = (text, thinking) => {
+    if (!text) return;
+    progress.report(thinking ? new vscode16.LanguageModelThinkingPart(text) : new vscode16.LanguageModelTextPart(text));
+  };
+  const partialTail = (s, tag) => {
+    for (let n = Math.min(tag.length - 1, s.length); n > 0; n--) if (tag.startsWith(s.slice(s.length - n))) return n;
+    return 0;
+  };
+  return {
+    push(text) {
+      let s = pending + text;
+      pending = "";
+      while (s) {
+        const tag = inThink ? CLOSE : OPEN;
+        const idx = s.indexOf(tag);
+        if (idx >= 0) {
+          emit(s.slice(0, idx), inThink);
+          s = s.slice(idx + tag.length);
+          if (!inThink) s = s.replace(/^\r?\n/, "");
+          inThink = !inThink;
+          continue;
+        }
+        const keep = partialTail(s, tag);
+        emit(s.slice(0, s.length - keep), inThink);
+        pending = s.slice(s.length - keep);
+        break;
+      }
+    },
+    flush() {
+      emit(pending, inThink);
+      pending = "";
+    }
+  };
+}
+// OpenCode p29: 输出达到长度上限（finish_reason=length / stop_reason=max_tokens / incomplete: max_output_tokens）的标记，沿 __ocOuter 传到最外层的续写包装
+var OC_TRUNCATION_NOTICE = "\uff08\u8f93\u51fa\u8fbe\u5230\u957f\u5ea6\u4e0a\u9650\uff0c\u5df2\u622a\u65ad\uff09";
+function ocMarkTruncated(progress, reason) {
+  for (let p = progress, i = 0; p && typeof p === "object" && i < 8; p = p.__ocOuter, i += 1) p.__ocTruncated = reason || "length";
+}
 function emitChatCompletionMessage(message2, progress) {
   if (!message2) return;
   const reasoningText = typeof message2.reasoning_content === "string" ? message2.reasoning_content : typeof message2.reasoning === "string" ? message2.reasoning : void 0;
   if (reasoningText) progress.report(new vscode16.LanguageModelThinkingPart(reasoningText));
   if (typeof message2.content === "string" && message2.content) {
-    progress.report(new vscode16.LanguageModelTextPart(message2.content));
+    const ocThink = ocCreateThinkSplitter(progress);
+    ocThink.push(message2.content);
+    ocThink.flush();
   }
   for (const call of Array.isArray(message2.tool_calls) ? message2.tool_calls : []) {
     const name = call?.function?.name;
@@ -404,7 +662,8 @@ async function emitChatCompletionStream(response, progress, token) {
     }
     if (payload?.error) throw new Error(String(payload.error?.message ?? payload.error));
     emitChatCompletionMessage(payload?.choices?.[0]?.message, progress);
-    return;
+    // OpenCode p29: 返回截断原因
+    return payload?.choices?.[0]?.finish_reason === "length" ? "length" : void 0;
   }
   if (!response.body) throw new Error("Chat Completions endpoint returned an empty stream.");
   const reader = response.body.getReader();
@@ -414,10 +673,12 @@ async function emitChatCompletionStream(response, progress, token) {
   const decoder = new TextDecoder();
   let buffer = "";
   const toolCalls = /* @__PURE__ */ new Map();
+  const ocThink = ocCreateThinkSplitter(progress);
+  let ocFinishReason; // OpenCode p29: 记录 finish_reason
   const processEvent = (event) => {
     const data = event.split(/\r?\n/).filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n").trim();
     if (!data) return false;
-    if (data === "[DONE]") return true;
+    if (data === "[DONE]") { ocThink.flush(); return true; }
     let payload;
     try {
       payload = JSON.parse(data);
@@ -431,7 +692,11 @@ async function emitChatCompletionStream(response, progress, token) {
       const reasoningText = typeof delta.reasoning_content === "string" ? delta.reasoning_content : typeof delta.reasoning === "string" ? delta.reasoning : void 0;
       if (reasoningText) progress.report(new vscode16.LanguageModelThinkingPart(reasoningText));
       if (typeof delta.content === "string" && delta.content) {
-        progress.report(new vscode16.LanguageModelTextPart(delta.content));
+        ocThink.push(delta.content);
+      }
+      if (choice?.finish_reason) {
+        ocThink.flush();
+        ocFinishReason = choice.finish_reason;
       }
       for (const [fallbackIndex, call] of (Array.isArray(delta.tool_calls) ? delta.tool_calls : []).entries()) {
         const index = Number.isInteger(call?.index) ? call.index : fallbackIndex;
@@ -480,6 +745,7 @@ async function emitChatCompletionStream(response, progress, token) {
     }
     progress.report(new vscode16.LanguageModelToolCallPart(call.id ?? `tool-${Date.now()}-${index}`, call.name, input));
   }
+  return ocFinishReason === "length" ? "length" : void 0; // OpenCode p29
 }
 
 function textFromPart(part) {
@@ -706,6 +972,7 @@ async function emitResponsesStream(response, progress, token) {
   let buffer = "";
   let emittedText = false;
   let completed = false;
+  let ocTruncated = false; // OpenCode p29
   const callArguments = /* @__PURE__ */ new Map();
   const emittedCalls = /* @__PURE__ */ new Set();
   const emitCall = (key) => {
@@ -775,6 +1042,19 @@ async function emitResponsesStream(response, progress, token) {
       }
       case "response.incomplete": {
         const reason = payload?.response?.incomplete_details?.reason;
+        // OpenCode p29: 达到输出上限不再报错，保留已输出内容并交给续写
+        if (reason === "max_output_tokens" || reason === "max_tokens") {
+          completed = true;
+          ocTruncated = true;
+          if (!emittedText) {
+            const snapshotText = extractResponsesOutputText(payload?.response ?? payload);
+            if (snapshotText) {
+              emittedText = true;
+              progress.report(new vscode16.LanguageModelTextPart(snapshotText));
+            }
+          }
+          break;
+        }
         throw new Error(`Codex Responses request incomplete${typeof reason === "string" ? `: ${reason}` : "."}`);
       }
       case "error": {
@@ -815,10 +1095,60 @@ async function emitResponsesStream(response, progress, token) {
   }
   if (!completed) throw new Error("Codex Responses stream closed before response.completed.");
   for (const [key, call] of callArguments) emitCall(key);
+  return ocTruncated ? "max_output_tokens" : void 0; // OpenCode p29
 }
 
+// OpenCode context-compaction-dsh PART A: 输出上限与压缩预留 O 与 dsh 一致（Codex 不走这里）。
+// 输出上限：用户填写 > /models 发现（官方 DeepSeek 取 min(256000, 发现值)）> dsh 目录（端点 + 模型 id）> 32768；官方 DeepSeek 未发现时 256000。
+// 预留 O：用户填写或发现的值；官方 DeepSeek 默认 256000；其他 0（dsh 通用适配器只在配置了 maxTokens 时报告默认输出）。
+function ocDshOutputFields(base, rawModelId, discovered) {
+  if (base.maxOutputTokensExplicit === true && base.maxOutputTokens !== void 0) return { maxOutputTokens: base.maxOutputTokens, maxOutputTokensExplicit: true, outputReserveTokens: base.maxOutputTokens };
+  if (discovered !== void 0) {
+    const value = base.deepSeek ? Math.min(DEEPSEEK_MAX_OUTPUT_TOKENS, discovered) : discovered;
+    return { maxOutputTokens: value, maxOutputTokensExplicit: true, outputReserveTokens: value };
+  }
+  if (base.deepSeek) return { maxOutputTokens: DEEPSEEK_MAX_OUTPUT_TOKENS, maxOutputTokensExplicit: false, outputReserveTokens: DEEPSEEK_MAX_OUTPUT_TOKENS };
+  return { maxOutputTokens: dshCatalogMaxOutputTokens(rawModelId, base.baseUrl) ?? DEFAULT_API_MAX_OUTPUT_TOKENS, maxOutputTokensExplicit: false, outputReserveTokens: 0 };
+}
+// OpenCode context-compaction-dsh PART A: 与 dsh pi-ai 一致，请求的输出上限不超过「窗口 − 输入估算 − 4096」；Codex、官方 DeepSeek（已有自己的预留逻辑）不变。
+// 估算偏粗（图片会被高估），所以下限取 min(上限, 4096)，避免把输出压到个位数。
+function ocDshOutputCap(config2, maxTokens, payload) {
+  if (maxTokens === void 0 || config2.codex || config2.deepSeek || !(config2.contextWindow > 0)) return maxTokens;
+  return Math.min(maxTokens, Math.max(Math.min(maxTokens, 4096), config2.contextWindow - estimatedTokens(payload) - 4096));
+}
+
+// OpenCode: 提供商窗口里逐个模型的设置。没打开「推理等级」的模型不发送任何推理/思考参数（与 DSH 一致；部分端点收到 reasoning_effort 会返回 400）
+function ocApplyManagedModelMeta(config2, meta) {
+  const m = meta && typeof meta === "object" ? meta : {};
+  const next = { ...config2 };
+  if (Number(m.contextWindow) > 0) next.contextWindow = Math.floor(Number(m.contextWindow));
+  if (Number(m.maxTokens) > 0) {
+    next.maxOutputTokens = Math.floor(Number(m.maxTokens));
+    // OpenCode context-compaction-dsh: 提供商窗口里填写/发现的输出上限，压缩时预留
+    next.maxOutputTokensExplicit = true;
+    next.outputReserveTokens = next.maxOutputTokens;
+  }
+  if (m.image === false) next.imageInput = false;
+  if (next.deepSeek || next.codex) return next;
+  if (m.reasoning === true) {
+    const efforts = Array.isArray(m.efforts) ? m.efforts.filter((e) => REASONING_EFFORTS.includes(e)) : [];
+    if (efforts.length) {
+      next.reasoningEfforts = efforts;
+      next.exactReasoningEfforts = true;
+      next.reasoningEffort = efforts.includes(m.defaultEffort) ? m.defaultEffort : efforts.includes(next.reasoningEffort) ? next.reasoningEffort : efforts[0];
+    }
+    next.thinking = "enabled";
+    return next;
+  }
+  next.reasoningOff = true;
+  next.thinking = "disabled";
+  next.reasoningEffort = void 0;
+  next.reasoningEfforts = [];
+  return next;
+}
 function modelConfigurationSchema(config2) {
-  const reasoningOptions = config2.deepSeek || config2.codex ? [...config2.reasoningEfforts] : [.../* @__PURE__ */ new Set([...DEFAULT_REASONING_EFFORTS, ...config2.reasoningEfforts])];
+  if (config2.reasoningOff) return { properties: {} };
+  const reasoningOptions = config2.deepSeek || config2.codex || config2.exactReasoningEfforts ? [...config2.reasoningEfforts] : [.../* @__PURE__ */ new Set([...DEFAULT_REASONING_EFFORTS, ...config2.reasoningEfforts])];
   if (config2.deepSeek) {
     const defaultEffort = config2.thinking === "disabled" ? "disabled" : config2.reasoningEffort ?? DEEPSEEK_DEFAULT_REASONING_EFFORT;
     return {
@@ -889,6 +1219,13 @@ function inheritedEnum(value, allowed, fallback) {
 }
 
 function resolveRequestConfig(base, modelConfiguration) {
+  if (base.reasoningOff) {
+    const resolved = ocResolveRequestConfigInner(base, modelConfiguration);
+    return { ...resolved, thinking: "disabled", reasoningEffort: void 0, reasoningEfforts: [] };
+  }
+  return ocResolveRequestConfigInner(base, modelConfiguration);
+}
+function ocResolveRequestConfigInner(base, modelConfiguration) {
   const allowedReasoningEfforts = base.codex ? codexReasoningEfforts(base.reasoningEfforts) : base.reasoningEfforts;
   const fallbackEffort = base.codex ? codexReasoningFallback(base.reasoningEffort, allowedReasoningEfforts) : base.reasoningEffort;
   if (!modelConfiguration) return base.codex ? { ...base, reasoningEffort: fallbackEffort, reasoningEfforts: [...allowedReasoningEfforts] } : base;
@@ -915,6 +1252,9 @@ function resolveRequestConfig(base, modelConfiguration) {
     thinking: resolvedThinking,
     contextWindow: optionalInteger(modelConfiguration.contextSize ?? modelConfiguration.contextWindow, 1024, 1e7) ?? base.contextWindow,
     maxOutputTokens: optionalInteger(modelConfiguration.maxOutputTokens, 1, 1e6) ?? base.maxOutputTokens,
+    maxOutputTokensExplicit: optionalInteger(modelConfiguration.maxOutputTokens, 1, 1e6) !== void 0 || base.maxOutputTokensExplicit === true,
+    // OpenCode context-compaction-dsh PART A: 按模型填写的输出上限同时作为压缩预留 O
+    outputReserveTokens: optionalInteger(modelConfiguration.maxOutputTokens, 1, 1e6) ?? base.outputReserveTokens,
     firstTokenTimeoutMs: optionalInteger(modelConfiguration.firstTokenTimeoutMs, 1e3, 18e5) ?? base.firstTokenTimeoutMs,
     idleTimeoutMs: optionalInteger(modelConfiguration.idleTimeoutMs, 1e3, 18e5) ?? base.idleTimeoutMs,
     totalTimeoutMs: optionalInteger(modelConfiguration.totalTimeoutMs, 1e3, 18e5) ?? base.totalTimeoutMs,
@@ -952,6 +1292,90 @@ function safeExtraBody(value) {
   if (!value) return {};
   return Object.fromEntries(Object.entries(value).filter(([key]) => !PROTECTED_REQUEST_KEYS.has(key)));
 }
+
+// OpenCode: 模型分组——分组在模型选择器里是一个独立模型；对话时按排名选第一个可用的成员，失败的成员冷却一段时间后再用
+var OC_MODEL_GROUPS_KEY = "opencode.modelGroups.v1";
+var OC_GROUP_FAIL_COOLDOWN_MS = 5 * 60 * 1e3;
+function ocGroupHealth() {
+  return globalThis.__opencodeModelGroupHealth ??= /* @__PURE__ */ new Map();
+}
+function ocGroupMemberKey(providerId, model) {
+  return `${providerId}|${model}`;
+}
+function ocLoadModelGroups(context) {
+  const list = context?.globalState?.get(OC_MODEL_GROUPS_KEY, []);
+  return (Array.isArray(list) ? list : []).filter((g) => g && typeof g.id === "string" && Array.isArray(g.members));
+}
+function ocModelGroupDisplayName(group) {
+  return String(group.alias || group.name || "模型分组").trim();
+}
+// OpenCode: 分组成员的思考强度——成员保存了 effort 就用它；否则看模型名去掉组名关键词后的结尾（gpt-6-astra-low → low）
+var OC_GROUP_EFFORT_ALIASES = [["xhigh", ["xhigh", "extrahigh"]], ["minimal", ["minimal"]], ["medium", ["medium", "med", "mid"]], ["ultra", ["ultra"]], ["high", ["high"]], ["low", ["low"]], ["max", ["max"]], ["none", ["none", "nothink", "nothinking"]]];
+var OC_GROUP_EFFORT_ORDER = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"];
+var OC_GROUP_EFFORT_ANY = "any";
+function ocGroupNormName(value) {
+  let s = String(value || "").toLowerCase().trim();
+  for (const [a, b] of [["[", "]"], ["(", ")"], ["【", "】"], ["（", "）"]]) {
+    for (let i = s.indexOf(a); i >= 0; i = s.indexOf(a)) {
+      const j = s.indexOf(b, i + 1);
+      if (j < 0) break;
+      s = s.slice(0, i) + s.slice(j + 1);
+    }
+  }
+  s = s.slice(s.lastIndexOf("/") + 1);
+  for (const c of [":", "@"]) {
+    const k = s.indexOf(c);
+    if (k > 0) s = s.slice(0, k);
+  }
+  s = s.replace(/[ _.]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  s = s.replace(/-latest$/, "").replace(/-?20[0-9]{2}-?[01][0-9]-?[0-3][0-9]$/, "");
+  return s.replace(/[^a-z0-9]+/g, "");
+}
+function ocGroupMemberEffort(group, member) {
+  if (OC_GROUP_EFFORT_ORDER.includes(member?.effort)) return member.effort;
+  const key = ocGroupNormName(ocModelGroupDisplayName(group));
+  const name = ocGroupNormName(member?.model);
+  const at = key ? name.indexOf(key) : -1;
+  if (at < 0) return "";
+  const rest = name.slice(0, at) + name.slice(at + key.length);
+  if (!rest) return "";
+  for (const [effort, aliases] of OC_GROUP_EFFORT_ALIASES) for (const alias of aliases) if (rest.endsWith(alias)) return effort;
+  return "";
+}
+function ocGroupEfforts(group, members = group.members) {
+  const found = new Set(members.map((m) => ocGroupMemberEffort(group, m)).filter(Boolean));
+  return OC_GROUP_EFFORT_ORDER.filter((e) => found.has(e));
+}
+// 分组里有按名字区分强度的成员时，思考强度只列出这些强度，外加「无」（不按强度挑选，按排名用第一个可用的）
+function ocGroupConfigurationSchema(group, members, first) {
+  const efforts = ocGroupEfforts(group, members);
+  if (!efforts.length) return modelConfigurationSchema(first);
+  return {
+    properties: {
+      reasoningEffort: {
+        type: "string",
+        title: "Thinking Effort",
+        group: "navigation",
+        enum: [OC_GROUP_EFFORT_ANY, ...efforts],
+        enumItemLabels: ["无", ...efforts.map(reasoningEffortLabel)],
+        enumDescriptions: ["不按强度挑选：按排名使用分组里第一个可用的模型。", ...efforts.map((e) => `使用分组里名字对应「${reasoningEffortLabel(e)}」的模型。`)],
+        default: OC_GROUP_EFFORT_ANY
+      }
+    }
+  };
+}
+// 供原生对话与其他入口共用：记录成员失败 / 成功
+globalThis.__opencodeModelGroupMark ??= {
+  failed(key, reason) {
+    if (!key) return;
+    const prev = ocGroupHealth().get(key);
+    const failures = (prev?.failures ?? 0) + 1;
+    ocGroupHealth().set(key, { until: Date.now() + Math.min(OC_GROUP_FAIL_COOLDOWN_MS * failures, 30 * 60 * 1e3), failures, reason: String(reason ?? "").slice(0, 200), at: Date.now() });
+  },
+  succeeded(key) {
+    if (key) ocGroupHealth().delete(key);
+  }
+};
 
 var OpenCodeLanguageModelProvider = class {
   constructor(context, providerMode = "api") {
@@ -996,8 +1420,11 @@ var OpenCodeLanguageModelProvider = class {
       idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
       totalTimeoutMs: DEFAULT_TOTAL_TIMEOUT_MS,
       retries: 0,
-      contextWindow: deepSeek ? DEEPSEEK_CONTEXT_WINDOW_TOKENS : DEFAULT_CONTEXT_WINDOW,
-      maxOutputTokens: deepSeek ? DEEPSEEK_MAX_OUTPUT_TOKENS : void 0,
+      // OpenCode context-default-dsh: dsh 目录（按端点 + 模型 id）> 回退（官方 DeepSeek 1e6，其他 262144）
+      contextWindow: dshDefaultContextWindow(modelOverride || legacy.model, baseUrl),
+      // OpenCode context-compaction-dsh PART A: 官方 DeepSeek 256000（预留同值）；其他按 dsh 目录 ?? 32768，预留 0
+      maxOutputTokens: deepSeek ? DEEPSEEK_MAX_OUTPUT_TOKENS : dshCatalogMaxOutputTokens(modelOverride || legacy.model, baseUrl) ?? DEFAULT_API_MAX_OUTPUT_TOKENS,
+      outputReserveTokens: deepSeek ? DEEPSEEK_MAX_OUTPUT_TOKENS : 0,
       thinking: "enabled",
       reasoningEffort: deepSeek ? DEEPSEEK_DEFAULT_REASONING_EFFORT : "medium",
       reasoningEfforts: deepSeek ? [...DEEPSEEK_REASONING_EFFORTS] : [...DEFAULT_REASONING_EFFORTS],
@@ -1025,8 +1452,14 @@ var OpenCodeLanguageModelProvider = class {
       idleTimeoutMs: integerValue(configuration.idleTimeoutMs, Math.min(DEFAULT_IDLE_TIMEOUT_MS, legacyTimeoutMs), 1e3, 18e5),
       totalTimeoutMs: integerValue(configuration.totalTimeoutMs, Math.max(DEFAULT_TOTAL_TIMEOUT_MS, legacyTimeoutMs), 1e3, 18e5),
       retries: integerValue(configuration.retries, 2, 0, 5),
-      contextWindow: integerValue(configuration.contextWindow, DEFAULT_API_CONTEXT_WINDOW, 1024, 1e7),
-      maxOutputTokens: optionalInteger(configuration.maxOutputTokens, 1, 1e6) ?? DEFAULT_API_MAX_OUTPUT_TOKENS,
+      // OpenCode context-default-dsh: 用户在配置里填的窗口优先；否则官方 DeepSeek 1e6、其他 262144（与 dsh 回退一致），具体模型再按 dsh 目录细化（见 dshDefaultContextWindow 的调用处）
+      contextWindow: integerValue(configuration.contextWindow, deepSeek ? DEEPSEEK_CONTEXT_WINDOW_TOKENS : DEFAULT_API_CONTEXT_WINDOW, 1024, 1e7),
+      // OpenCode context-compaction-dsh PART A: 用户填写 > 官方 DeepSeek 256000 > 32768（具体模型再按 dsh 目录细化，见 ocDshOutputFields）
+      maxOutputTokens: optionalInteger(configuration.maxOutputTokens, 1, 1e6) ?? (deepSeek ? DEEPSEEK_MAX_OUTPUT_TOKENS : DEFAULT_API_MAX_OUTPUT_TOKENS),
+      // OpenCode context-compaction-dsh: 只有手动填写的输出上限才算「已知」，压缩时预留；默认 32K 不预留（与 dsh 一致）
+      maxOutputTokensExplicit: optionalInteger(configuration.maxOutputTokens, 1, 1e6) !== void 0,
+      // 压缩预留 O：用户填写值；官方 DeepSeek 默认 256000；其他 0
+      outputReserveTokens: optionalInteger(configuration.maxOutputTokens, 1, 1e6) ?? (deepSeek ? DEEPSEEK_MAX_OUTPUT_TOKENS : 0),
       description: stringValue(configuration.description) || void 0,
       thinking: enumValue(configuration.thinking, THINKING_MODES) ?? "enabled",
       reasoningEffort,
@@ -1109,7 +1542,63 @@ var OpenCodeLanguageModelProvider = class {
     }
     return models;
   }
+  // OpenCode: 模型分组 id → 分组 id（由 provideManagedProviderModels 填充）
+  modelGroupIds = /* @__PURE__ */ new Map();
+  groupMemberRuntimeId(member) {
+    return encodedModelId("managed-" + String(member.providerId).replace(/[^A-Za-z0-9_-]/g, "-"), String(member.model));
+  }
+  lookupModelGroupId(modelId) {
+    return this.modelGroupIds.get(modelId) ?? this.modelGroupIds.get(normalizeProviderModelId(modelId, "opencode"));
+  }
+  // 按排名返回第一个可用（已配置且不在冷却中）的成员；全部冷却时用最早恢复的那个
+  async resolveModelGroup(modelId, modelConfiguration) {
+    let groupId = this.lookupModelGroupId(modelId);
+    if (!groupId) {
+      if (!/(^|\/)group-[^/]*::/.test(modelId)) return void 0;
+      await this.provideManagedProviderModels();
+      groupId = this.lookupModelGroupId(modelId);
+      if (!groupId) return null;
+    }
+    const group = ocLoadModelGroups(this.context).find((g) => g.id === groupId);
+    if (!group) return null;
+    if (group.members.some((m) => !this.runtimeModels.has(this.groupMemberRuntimeId(m)))) await this.provideManagedProviderModels();
+    const now = Date.now();
+    const efforts = ocGroupEfforts(group);
+    const wanted = efforts.length ? String(modelConfiguration?.reasoningEffort ?? "") : "";
+    const byEffort = efforts.includes(wanted);
+    let candidates = [];
+    group.members.forEach((member, rank) => {
+      const config2 = this.runtimeModels.get(this.groupMemberRuntimeId(member));
+      if (!config2) return;
+      const key = ocGroupMemberKey(member.providerId, member.model);
+      const health = ocGroupHealth().get(key);
+      candidates.push({ config2, key, rank, effort: efforts.length ? ocGroupMemberEffort(group, member) : "", cooling: health && health.until > now ? health.until : 0 });
+    });
+    // 选了具体强度：只用名字对应该强度的成员（模型本身就是该强度，不再额外发送 reasoning 参数）
+    if (byEffort) candidates = candidates.filter((c) => c.effort === wanted);
+    if (!candidates.length) return null;
+    const pick = candidates.find((c) => !c.cooling) ?? [...candidates].sort((a, b) => a.cooling - b.cooling)[0];
+    if (efforts.length && modelConfiguration) {
+      modelConfiguration = { ...modelConfiguration };
+      delete modelConfiguration.reasoningEffort;
+    }
+    return resolveRequestConfig({
+      ...pick.config2,
+      groupId: group.id,
+      groupName: String(group.name || ""),
+      groupDisplayName: ocModelGroupDisplayName(group),
+      groupMemberKey: pick.key,
+      groupMemberRank: pick.rank + 1,
+      groupMemberCount: candidates.length,
+      groupEffort: byEffort ? wanted : void 0,
+      groupEffortMode: efforts.length > 0
+    }, modelConfiguration);
+  }
   async resolveRuntimeModel(modelId, modelConfiguration) {
+    if (modelId && this.providerMode === "api") {
+      const grouped = await this.resolveModelGroup(modelId, modelConfiguration);
+      if (grouped !== void 0) return grouped ?? void 0;
+    }
     let resolved;
     if (modelId) {
       const normalizedId = normalizeProviderModelId(modelId, this.providerMode === "codex" ? "opencode-codex" : "opencode");
@@ -1128,10 +1617,92 @@ var OpenCodeLanguageModelProvider = class {
     }
     return resolveRequestConfig({ ...resolved }, modelConfiguration);
   }
+  // OpenCode: 把提供商管理（globalState opencode.providers.v1 + SecretStorage 密钥）中的模型按供应商列出
+  async provideManagedProviderModels() {
+    const list = this.context.globalState.get("opencode.providers.v1", []);
+    const providers = (Array.isArray(list) ? list : []).filter((p) => p && p.id && stringValue(p.baseUrl) && Array.isArray(p.models) && p.models.length);
+    const cfg = vscode16.workspace.getConfiguration("opencode");
+    const curBase = String(cfg.get("model.baseUrl", "") || "").trim().replace(/\/+$/, "");
+    const curModel = String(cfg.get("model.name", "") || "").trim();
+    const out = [];
+    let defaultIndex = -1;
+    for (const p of providers) {
+      const namespace = "managed-" + String(p.id).replace(/[^A-Za-z0-9_-]/g, "-");
+      deleteRuntimeModelsForNamespace(this.runtimeModels, namespace);
+      let apiKey = "";
+      try { apiKey = await this.context.secrets.get(`opencode.provider.${p.id}.apiKey`) || ""; } catch {}
+      const base = this.configuredRuntimeBase({ baseUrl: p.baseUrl, apiKey, protocol: p.protocol });
+      const groupName = String(p.name || p.baseUrl).trim();
+      const sameBase = String(p.baseUrl).trim().replace(/\/+$/, "") === curBase;
+      const metaMap = p.modelMeta && typeof p.modelMeta === "object" ? p.modelMeta : {};
+      for (const rawModelId of [...new Set(p.models.map((m) => String(m || "").trim()).filter(Boolean))]) {
+        const id = encodedModelId(namespace, rawModelId);
+        // OpenCode context-default-dsh: 未在模型设置里填窗口时按 dsh 目录（端点 + 模型 id）取值，查不到用 dsh 回退值；用户填写的值（metaMap）仍优先
+        const config2 = ocApplyManagedModelMeta({ ...base, model: rawModelId, providerKey: namespace, imageInput: true, contextWindow: dshDefaultContextWindow(rawModelId, base.baseUrl), ...ocDshOutputFields(base, rawModelId) }, metaMap[rawModelId]);
+        this.runtimeModels.set(id, config2);
+        if (defaultIndex < 0 && sameBase && rawModelId === curModel) defaultIndex = out.length;
+        out.push({
+          id,
+          name: String(metaMap[rawModelId]?.name || "").trim() || rawModelId,
+          family: rawModelId,
+          version: "configured",
+          tooltip: `${rawModelId} \xB7 ${groupName}`,
+          detail: groupName,
+          maxInputTokens: config2.contextWindow,
+          maxOutputTokens: config2.maxOutputTokens ?? Math.min(32768, Math.max(4096, Math.floor(config2.contextWindow / 4))),
+          capabilities: { toolCalling: true, imageInput: config2.imageInput !== false },
+          configurationSchema: modelConfigurationSchema(config2),
+          isBYOK: true,
+          isDefault: false,
+          isUserSelectable: true,
+          _opencodeRuntimeConfig: config2,
+          _opencodeProviderOrder: out.length,
+          _opencodeProviderGroup: groupName
+        });
+      }
+    }
+    if (out.length) out[defaultIndex < 0 ? 0 : defaultIndex].isDefault = true;
+    // OpenCode: 模型分组作为独立模型列在最前面
+    this.modelGroupIds = /* @__PURE__ */ new Map();
+    const groupEntries = [];
+    for (const group of ocLoadModelGroups(this.context)) {
+      const members = group.members.filter((m) => this.runtimeModels.has(this.groupMemberRuntimeId(m)));
+      if (!members.length) continue;
+      const display = ocModelGroupDisplayName(group);
+      const id = encodedModelId("group-" + String(group.id).replace(/[^A-Za-z0-9_-]/g, "-"), display);
+      const first = this.runtimeModels.get(this.groupMemberRuntimeId(members[0]));
+      this.modelGroupIds.set(id, group.id);
+      groupEntries.push({
+        id,
+        name: display,
+        family: display,
+        version: "group",
+        tooltip: `${display} \xB7 分组「${group.name || display}」\xB7 ${members.length} 个模型，按排名自动选用可用的`,
+        detail: `分组${group.vendor ? ` \xB7 ${group.vendor}` : ""} \xB7 ${members.length} 个模型`,
+        maxInputTokens: first.contextWindow,
+        maxOutputTokens: first.maxOutputTokens ?? Math.min(32768, Math.max(4096, Math.floor(first.contextWindow / 4))),
+        capabilities: { toolCalling: true, imageInput: true },
+        configurationSchema: ocGroupConfigurationSchema(group, members, first),
+        isBYOK: true,
+        isDefault: false,
+        isUserSelectable: true,
+        _opencodeProviderOrder: -1,
+        _opencodeProviderGroup: "模型分组"
+      });
+    }
+    out.unshift(...groupEntries);
+    return out;
+  }
   async provideLanguageModelChatInformation(options, token) {
+    // OpenCode: 记录每个模型所属供应商（与对话框模型下拉的分组一致），团队协作的模型选择按它分组
+    const list = await this._ocProvideLanguageModelChatInformation(options, token);
+    try { const reg = globalThis.__ocModelGroups ??= new Map(); for (const m of list || []) reg.set(m.id, String(m._opencodeProviderGroup || m.detail || "")); } catch {}
+    return list;
+  }
+  async _ocProvideLanguageModelChatInformation(options, token) {
     const configuration = options?.configuration;
     if (this.providerMode === "api" && (!configuration || !stringValue(configuration.baseUrl))) {
-      return [];
+      return this.provideManagedProviderModels(); // OpenCode: 提供商管理窗口中的供应商与模型
     }
     const base = this.providerMode === "codex" ? this.codexRuntimeBase() : this.configuredRuntimeBase(configuration);
     const providerKey = providerFingerprint(base, await this.getProviderFingerprintSalt());
@@ -1176,8 +1747,10 @@ var OpenCodeLanguageModelProvider = class {
         ...base,
         model: rawModelId,
         providerKey,
-        contextWindow: discoveredModel.contextWindow ?? base.contextWindow,
-        maxOutputTokens: discoveredModel.maxOutputTokens ?? base.maxOutputTokens,
+        // OpenCode context-default-dsh: 发现值 > 用户在配置里填的窗口 > dsh 目录（端点 + 模型 id）> dsh 回退值
+        contextWindow: discoveredModel.contextWindow ?? (!base.codex && optionalInteger(configuration?.contextWindow, 1024, 1e7) !== void 0 ? base.contextWindow : dshDefaultContextWindow(rawModelId, base.baseUrl)),
+        // OpenCode context-compaction-dsh PART A: Codex 不变；其他见 ocDshOutputFields（用户 > 发现 > dsh 目录 > 32768）
+        ...base.codex ? { maxOutputTokens: discoveredModel.maxOutputTokens ?? base.maxOutputTokens, maxOutputTokensExplicit: discoveredModel.maxOutputTokens !== void 0 || base.maxOutputTokensExplicit === true } : ocDshOutputFields(base, rawModelId, discoveredModel.maxOutputTokens),
         reasoningEffort,
         reasoningEfforts,
         serviceTier: serviceTiers?.length ? discoveredModel.defaultServiceTier ?? "default" : void 0,
@@ -1216,6 +1789,8 @@ var OpenCodeLanguageModelProvider = class {
     return Math.max(1, Math.ceil(text2.length / 4));
   }
   async provideLanguageModelChatResponse(model, messages2, options, progress, token) {
+    const ocOff = globalThis.__ocDisabledTools;
+    if (ocOff?.size && Array.isArray(options?.tools)) options = { ...options, tools: options.tools.filter((t) => !ocOff.has(t?.name)) }; // OpenCode: 工具窗口中禁用的工具不发给模型
     const baseConfig = model?._opencodeRuntimeConfig ?? await this.resolveRuntimeModel(typeof model?.id === "string" ? model.id : void 0);
     if (!baseConfig) {
       throw new Error("The selected OpenCode API provider is no longer available. Refresh the provider or select another model.");
@@ -1258,7 +1833,7 @@ var OpenCodeLanguageModelProvider = class {
           ...extra2,
           model: config2.model,
           input: toResponsesInput(messages2),
-          ...config2.maxOutputTokens !== void 0 ? { max_output_tokens: config2.maxOutputTokens } : {},
+          ...config2.maxOutputTokens !== void 0 ? { max_output_tokens: ocDshOutputCap(config2, config2.maxOutputTokens, { input: toResponsesInput(messages2), tools: responseTools }) } : {},
           ...Object.keys(reasoning).length ? { reasoning } : {},
           ...config2.verbosity || extraText ? { text: { ...extraText ?? {}, ...config2.verbosity ? { verbosity: config2.verbosity } : {} } } : {},
           ...config2.temperature !== void 0 ? { temperature: config2.temperature } : {},
@@ -1275,17 +1850,20 @@ var OpenCodeLanguageModelProvider = class {
           ...config2.requestMetadata ? { metadata: config2.requestMetadata } : {},
           ...responseTools.length ? { tools: responseTools, tool_choice: toolChoice } : {}
         };
-        const payload = await fetchJsonWithRetries(
+        const payload = await fetchJsonWithResponseCache(
           normalizeResponsesUrl(config2.baseUrl),
           { method: "POST", headers, body: JSON.stringify(body2) },
           token,
           config2.timeoutMs,
           config2.retries,
-          "Responses endpoint"
+          "Responses endpoint",
+          { requestCacheable: isResponsesRequestCacheable(body2.input), isPayloadCacheable: isResponsesPayloadCacheable }
         );
         if (payload?.status === "failed") {
           throw new Error(payload?.error?.message ?? "OpenCode Responses API request failed.");
         }
+        // OpenCode p29: incomplete（max_output_tokens）标记截断
+        if (payload?.status === "incomplete" && /max_output_tokens|max_tokens/.test(String(payload?.incomplete_details?.reason ?? ""))) ocMarkTruncated(progress, "max_output_tokens");
         let emittedText = false;
         for (const item of Array.isArray(payload?.output) ? payload.output : []) {
           if (item?.type === "reasoning") {
@@ -1337,7 +1915,7 @@ var OpenCodeLanguageModelProvider = class {
         description: tool.description ?? "",
         input_schema: tool.inputSchema ?? { type: "object", properties: {} }
       }));
-      const maxOutputTokens = config2.maxOutputTokens ?? 8192;
+      const maxOutputTokens = ocDshOutputCap(config2, config2.maxOutputTokens ?? 8192, { messages: toAnthropicChatMessages(messages2).messages, tools: anthropicTools });
       const effort = config2.thinking !== "disabled" && config2.reasoningEffort && config2.reasoningEffort !== "none" && config2.reasoningEffort !== "minimal" ? config2.reasoningEffort : void 0;
       const thinkingBudget = effort ? Math.max(1024, Math.min(ANTHROPIC_EFFORT_THINKING_BUDGETS[effort] ?? 8192, maxOutputTokens - 1024)) : 0;
       const extra2 = safeExtraBody(config2.extraBody);
@@ -1349,17 +1927,20 @@ var OpenCodeLanguageModelProvider = class {
         ...thinkingBudget >= 1024 && thinkingBudget < maxOutputTokens ? { thinking: { type: "enabled", budget_tokens: thinkingBudget } } : {},
         ...anthropicTools.length ? { tools: anthropicTools, tool_choice: { type: toolChoice === "required" ? "any" : "auto" } } : {}
       };
-      const payload = await fetchJsonWithRetries(
+      const payload = await fetchJsonWithResponseCache(
         normalizeAnthropicMessagesUrl(config2.baseUrl),
         { method: "POST", headers, body: JSON.stringify(body2) },
         token,
         config2.timeoutMs,
         config2.retries,
-        "Anthropic Messages endpoint"
+        "Anthropic Messages endpoint",
+        { requestCacheable: isAnthropicRequestCacheable(body2.messages), isPayloadCacheable: isAnthropicPayloadCacheable }
       );
       if (payload?.type === "error" || payload?.error) {
         throw new Error(String(payload?.error?.message ?? "OpenCode Anthropic Messages request failed."));
       }
+      // OpenCode p29: stop_reason=max_tokens 标记截断
+      if (payload?.stop_reason === "max_tokens") ocMarkTruncated(progress, "max_tokens");
       for (const block of Array.isArray(payload?.content) ? payload.content : []) {
         if (!block || typeof block !== "object") continue;
         if (block.type === "thinking" && typeof block.thinking === "string" && block.thinking) {
@@ -1395,7 +1976,7 @@ var OpenCodeLanguageModelProvider = class {
     if (availableOutputTokens !== void 0 && availableOutputTokens < 1) {
       throw new Error("The DeepSeek request exceeds the configured context window after reserving response space.");
     }
-    const requestMaxOutputTokens = config2.maxOutputTokens !== void 0 ? availableOutputTokens === void 0 ? config2.maxOutputTokens : Math.min(config2.maxOutputTokens, availableOutputTokens) : void 0;
+    const requestMaxOutputTokens = config2.maxOutputTokens !== void 0 ? availableOutputTokens === void 0 ? ocDshOutputCap(config2, config2.maxOutputTokens, { messages: chatMessages, tools: chatTools }) : Math.min(config2.maxOutputTokens, availableOutputTokens) : void 0;
     const body = {
       ...extra,
       model: config2.model,
@@ -1413,15 +1994,31 @@ var OpenCodeLanguageModelProvider = class {
       ...chatTools.length ? { tools: chatTools, ...!deepSeekThinking ? { tool_choice: toolChoice } : {} } : {},
       stream: true
     };
-    const response = await fetchStreamWithRetries(
-      normalizeChatCompletionsUrl(config2.baseUrl),
-      { method: "POST", headers, body: JSON.stringify(body) },
+    const chatUrl = normalizeChatCompletionsUrl(config2.baseUrl);
+    const chatBody = JSON.stringify(body);
+    await runStreamWithResponseCache(
+      { url: chatUrl, headers, body: chatBody, requestCacheable: isChatCompletionsRequestCacheable(body.messages) },
+      progress,
       token,
-      config2.timeoutMs,
-      config2.retries,
-      "Chat Completions endpoint"
+      async (targetProgress) => {
+        // max-tokens-fallback: 服务端声明的输出上限小于 max_tokens 时去掉 max_tokens 重试一次
+        const sendChat = (b) => fetchStreamWithRetries(chatUrl, { method: "POST", headers, body: b }, token, config2.timeoutMs, config2.retries, "Chat Completions endpoint");
+        let response;
+        try {
+          response = await sendChat(chatBody);
+        } catch (error) {
+          if (body.max_tokens === void 0 || !/max_tokens|max_output_tokens|output limit/i.test(String(error?.message ?? error))) throw error;
+          const { max_tokens: _dropped, ...rest } = body;
+          response = await sendChat(JSON.stringify(rest));
+        }
+        // OpenCode p29: finish_reason=length 时标记截断（且不缓存）
+        const ocFinish = await emitChatCompletionStream(response, targetProgress, token);
+        if (ocFinish) {
+          targetProgress.ocNoCache?.();
+          ocMarkTruncated(progress, ocFinish);
+        }
+      }
     );
-    await emitChatCompletionStream(response, progress, token);
   }
   async provideCodexChatResponse(config2, messages2, options, progress, token) {
     const auth2 = await codexAuthManager.getRequestContext();
@@ -1476,21 +2073,96 @@ var OpenCodeLanguageModelProvider = class {
       config2.retries,
       "Codex Responses endpoint"
     );
-    let response;
-    try {
-      response = await attempt();
-    } catch (error2) {
-      const status = typeof error2 === "object" && error2 !== null && "status" in error2 ? Number(error2.status) : void 0;
-      if (status !== 401) throw error2;
-      const refreshedAuth = await codexAuthManager.forceRefresh();
-      headers.authorization = `Bearer ${refreshedAuth.accessToken}`;
-      headers["ChatGPT-Account-ID"] = refreshedAuth.accountId;
-      response = await attempt();
-    }
-    await emitResponsesStream(response, progress, token);
+    await runStreamWithResponseCache(
+      { url: url2, headers, body: JSON.stringify(body), requestCacheable: isResponsesRequestCacheable(body.input) },
+      progress,
+      token,
+      async (targetProgress) => {
+        let response;
+        try {
+          response = await attempt();
+        } catch (error2) {
+          const status = typeof error2 === "object" && error2 !== null && "status" in error2 ? Number(error2.status) : void 0;
+          if (status !== 401) throw error2;
+          const refreshedAuth = await codexAuthManager.forceRefresh();
+          headers.authorization = `Bearer ${refreshedAuth.accessToken}`;
+          headers["ChatGPT-Account-ID"] = refreshedAuth.accountId;
+          response = await attempt();
+        }
+        // OpenCode p29: incomplete（max_output_tokens）时标记截断（且不缓存）
+        const ocFinish = await emitResponsesStream(response, targetProgress, token);
+        if (ocFinish) {
+          targetProgress.ocNoCache?.();
+          ocMarkTruncated(progress, ocFinish);
+        }
+      }
+    );
   }
   dispose() {
     this.changeEmitter.dispose();
+  }
+};
+// OpenCode: 通过 VS Code 语言模型接口使用分组时，成员在输出前失败就换下一个
+var ocProvideChatResponseOriginal = OpenCodeLanguageModelProvider.prototype.provideLanguageModelChatResponse;
+OpenCodeLanguageModelProvider.prototype.provideLanguageModelChatResponse = async function(model, messages2, options, progress, token) {
+  const modelId = typeof model?.id === "string" ? model.id : "";
+  if (!modelId || this.providerMode !== "api" || model?._opencodeRuntimeConfig || !(this.lookupModelGroupId(modelId) || /(^|\/)group-[^/]*::/.test(modelId))) {
+    return ocProvideChatResponseOriginal.call(this, model, messages2, options, progress, token);
+  }
+  const tried = /* @__PURE__ */ new Set();
+  const requestedConfiguration = objectValue(options?.modelConfiguration);
+  for (; ; ) {
+    const config2 = await this.resolveRuntimeModel(modelId, requestedConfiguration);
+    if (!config2) throw new Error("模型分组里没有可用的模型。请在「模型提供商」里检查分组成员。");
+    // 按名字区分强度的分组：强度已经由所选成员决定，不再把强度参数发给该成员
+    if (config2.groupEffortMode && requestedConfiguration) {
+      const withoutEffort = { ...requestedConfiguration };
+      delete withoutEffort.reasoningEffort;
+      options = { ...options, modelConfiguration: withoutEffort };
+    }
+    if (tried.has(config2.groupMemberKey)) throw new Error("模型分组里的模型都失败了。");
+    tried.add(config2.groupMemberKey);
+    let emitted = false;
+    const watched = { __ocOuter: progress, report: (part) => { // OpenCode p29: __ocOuter 传递截断标记
+      emitted = true;
+      progress.report(part);
+    } };
+    try {
+      await ocProvideChatResponseOriginal.call(this, { ...model, _opencodeRuntimeConfig: config2 }, messages2, options, watched, token);
+      globalThis.__opencodeModelGroupMark.succeeded(config2.groupMemberKey);
+      return;
+    } catch (error2) {
+      if (token?.isCancellationRequested) throw error2;
+      globalThis.__opencodeModelGroupMark.failed(config2.groupMemberKey, error2 instanceof Error ? error2.message : String(error2));
+      if (emitted || tried.size >= config2.groupMemberCount) throw error2;
+    }
+  }
+};
+// OpenCode p29: 输出达到长度上限时自动续写（最多 3 次）：把已输出的正文作为 assistant 消息，再请模型从断点继续；
+// 仍被截断、已产生工具调用或没有正文可续时，在输出末尾显示「（输出达到长度上限，已截断）」
+var OC_MAX_CONTINUATIONS = 3;
+var OC_CONTINUE_PROMPT = "Your previous reply was cut off because it hit the output length limit. Continue exactly where it stopped: do not repeat anything already written, do not restart, and do not add any preamble or commentary. If you stopped inside a code block, continue inside that code block.";
+var ocProvideChatResponseGrouped = OpenCodeLanguageModelProvider.prototype.provideLanguageModelChatResponse;
+OpenCodeLanguageModelProvider.prototype.provideLanguageModelChatResponse = async function(model, messages2, options, progress, token) {
+  let partialText = "";
+  for (let round = 0; ; round += 1) {
+    let roundText = "";
+    let sawToolCall = false;
+    const tracker = {
+      report: (part) => {
+        if (part instanceof vscode16.LanguageModelTextPart && typeof part.value === "string") roundText += part.value;
+        else if (part instanceof vscode16.LanguageModelToolCallPart) sawToolCall = true;
+        progress.report(part);
+      }
+    };
+    const history = round === 0 ? messages2 : [...messages2, vscode16.LanguageModelChatMessage.Assistant(partialText), vscode16.LanguageModelChatMessage.User(OC_CONTINUE_PROMPT)];
+    await ocProvideChatResponseGrouped.call(this, model, history, options, tracker, token);
+    if (!tracker.__ocTruncated) return;
+    partialText += roundText;
+    if (round >= OC_MAX_CONTINUATIONS || sawToolCall || !roundText.trim() || token?.isCancellationRequested) {
+      if (!token?.isCancellationRequested) progress.report(new vscode16.LanguageModelTextPart(`\n\n${OC_TRUNCATION_NOTICE}`));
+      return;
+    }
   }
 };
 export { normalizeChatCompletionsUrl, normalizeResponsesUrl, normalizeAnthropicMessagesUrl, normalizeAnthropicModelsUrl, stringValue, integerValue, optionalInteger, optionalNumber, optionalBoolean, enumValue, reasoningEffortValues, reasoningEffortOptions, reasoningEffortLabel, reasoningEffortDescription, objectValue, stringRecordValue, stringArrayValue, normalizeApiBaseUrl, normalizeModelsUrl, parseManualModelIds, providerFingerprint, parseDiscoveredModels, isUnsupportedRouteError, isTransientStatus, delayForRetry, fetchJsonWithRetries, fetchStreamWithRetries, emitChatCompletionMessage, emitChatCompletionStream, textFromPart, thinkingTextFromPart, estimatedTokens, imageFromPart, responsesImageFromPart, toOpenAIMessages, anthropicSourceFromImageUrl, toAnthropicChatMessages, toResponsesInput, toCodexResponsesInput, codexReasoningEffort, extractResponsesOutputText, emitResponsesStream, modelConfigurationSchema, inheritedEnum, resolveRequestConfig, safeExtraBody, import_node_crypto24, vscode16, ANTHROPIC_API_VERSION, ANTHROPIC_EFFORT_THINKING_BUDGETS, DEFAULT_TIMEOUT_MS2, DEFAULT_FIRST_TOKEN_TIMEOUT_MS, DEFAULT_IDLE_TIMEOUT_MS, DEFAULT_TOTAL_TIMEOUT_MS, DEFAULT_CONTEXT_WINDOW, MODEL_DISCOVERY_TIMEOUT_MS, PROVIDER_FINGERPRINT_SALT_SECRET, PROTECTED_REQUEST_KEYS, OpenCodeLanguageModelProvider };

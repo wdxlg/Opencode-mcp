@@ -1,4 +1,6 @@
 import { createAssistantSourceRegistry } from "./assistant-source-registry.mjs";
+import { SHADOW_CHECKPOINT_TOOL } from "./shadow-checkpoints.mjs";
+import { SPEC_MODE_TOOL } from "./spec-mode.mjs";
 // Recovered JavaScript implementation; original TS types are not recovered.
 // Artifact: resources/app/extensions/opencode/dist/extension.js
 // Original module marker: extensions/opencode/src/bridge-server.ts
@@ -7,8 +9,11 @@ import { createWindowsBridgeRouteIdentity } from "./module-0116.mjs";
 import { ExternalMcpRegistry } from "./module-0154.mjs";
 import { BridgeToolDispatcher } from "./module-0143.mjs";
 import { importGlobalSkillWithPrompt, listInstalledSkillsForAgent } from "./module-0024.mjs";
+import { appendBundledLeanrea, bundledLeanreaReadRoot } from './bundled-leanrea.mjs';
+import { TunnelProxyManager } from './tunnel-proxy.mjs';
+import { ReaBackendTools } from './rea-integration.mjs';
 import { hasExecutableOnPath, runProvisionCommand } from "./module-0160.mjs";
-import { BRIDGE_SERVER_INSTRUCTIONS, BRIDGE_TOOL_CONCURRENCY_SETTING, BRIDGE_TOOL_DEFINITIONS, CHAT_BRIDGE_CONTROL_TOOL_NAMES, resolveBridgeToolConcurrency } from "./module-0140.mjs";
+import { BRIDGE_SERVER_INSTRUCTIONS, BRIDGE_TOOL_CONCURRENCY_SETTING, BRIDGE_TOOL_DEFINITIONS, CHAT_BRIDGE_CONTROL_TOOL_NAMES, pickOcRecommendedAnswer, readOcChatPermissionSettings, resolveBridgeToolConcurrency } from "./module-0140.mjs";
 import { BridgeMcpTransport } from "./module-0119.mjs";
 import { customToolsFingerprint, listEnabledCustomTools, loadCustomTools, toStatusEntries } from "./module-0053.mjs";
 import { diagnoseGlobalSkills } from "./module-0027.mjs";
@@ -61,7 +66,7 @@ function cloudflareConnectionEvent(line) {
       if (!record4 || typeof record4 !== "object") return void 0;
       const text2 = record4.message ?? record4.msg;
       if (typeof text2 !== "string") return void 0;
-      message2 = text2;
+      message2 = typeof record4.error === "string" ? `${text2} error=${record4.error}` : text2;
       index = record4.connIndex;
     } catch {
       return void 0;
@@ -72,15 +77,36 @@ function cloudflareConnectionEvent(line) {
   }
   if (typeof index !== "number" || !Number.isInteger(index) || index < 0 || index > 255) return void 0;
   if (cloudflaredTunnelConnectionRegistered(message2)) return { type: "registered", index };
+  // Quick Tunnel removed on Cloudflare's side (seen 2026-11-10 10:50 CST after a network blip): cloudflared keeps
+  // retrying "Register tunnel error from server side error=Unauthorized: Tunnel not found" forever and never exits.
+  // The old trycloudflare address cannot come back, so this is a distinct event that requires a new tunnel.
+  if (/\btunnel not found\b/i.test(message2)) return { type: "gone", index, reason: "tunnel-not-found" };
+  // Named Tunnel (token) whose credentials stopped being accepted while cloudflared keeps running: same treatment.
+  if (/\b(?:unauthorized|invalid tunnel (?:token|secret|credentials)|failed to (?:parse|validate) token|authentication failed)\b/i.test(message2) && /\b(?:register tunnel error|error=|failed to)/i.test(message2)) return { type: "gone", index, reason: "unauthorized" };
   if (/\b(?:unregistered tunnel connection|connection unregistered|serve tunnel error|failed to serve (?:quic|http2) connection|connection terminated)\b/i.test(message2)) {
     return { type: "disconnected", index };
   }
   return void 0;
 }
 // extensions/opencode/src/bridge-cloudflare-recovery.ts
+// Waiting for cloudflared to re-register is only useful while its tunnel still exists. "gone" restarts at once; a
+// disconnect with no registration within CLOUDFLARE_RECOVERY_DEADLINE_MS also restarts (options.restart/schedule).
+var CLOUDFLARE_RECOVERY_DEADLINE_MS = 9e4;
 function createCloudflareRecoveryObserver(options) {
   const connections = /* @__PURE__ */ new Set();
   let disposed = false;
+  let cancelDeadline;
+  const clearDeadline = () => {
+    cancelDeadline?.();
+    cancelDeadline = void 0;
+  };
+  const restart = (reason) => {
+    if (disposed || !options.restart || !options.isActive()) return;
+    disposed = true;
+    clearDeadline();
+    connections.clear();
+    options.restart(reason);
+  };
   return {
     isConnected() {
       return !disposed && connections.size > 0;
@@ -91,14 +117,27 @@ function createCloudflareRecoveryObserver(options) {
       if (!event) return;
       if (event.type === "registered") {
         connections.add(event.index);
+        clearDeadline();
         if (options.isReconnecting()) options.recovered();
+      } else if (event.type === "gone") {
+        connections.delete(event.index);
+        if (options.isRunning() || options.isReconnecting()) restart(event.reason ?? "tunnel-not-found");
       } else {
         const removed = connections.delete(event.index);
-        if (removed && connections.size === 0 && options.isRunning()) options.disconnected();
+        if (removed && connections.size === 0 && options.isRunning()) {
+          options.disconnected();
+          if (options.schedule && options.restart && !cancelDeadline) {
+            cancelDeadline = options.schedule(() => {
+              cancelDeadline = void 0;
+              if (!disposed && connections.size === 0 && options.isReconnecting()) restart("deadline");
+            }, options.deadlineMs ?? CLOUDFLARE_RECOVERY_DEADLINE_MS);
+          }
+        }
       }
     },
     dispose() {
       disposed = true;
+      clearDeadline();
       connections.clear();
     }
   };
@@ -107,6 +146,24 @@ function createCloudflareRecoveryObserver(options) {
 
 var NGROK_RECOVERY_DEADLINE_MS = 6e4;
 var NGROK_RECOVERY_STABLE_MS = 3e4;
+// A running ngrok agent can report session errors that never heal by waiting (revoked/invalid authtoken, the reserved
+// endpoint taken by another agent, account limits). Returns the ERR_NGROK code (or a short label), else undefined.
+function ngrokFatalSessionError(line) {
+  let event;
+  try {
+    event = JSON.parse(line);
+  } catch {
+    return void 0;
+  }
+  if (!event || typeof event !== "object") return void 0;
+  const level = String(event.lvl ?? event.level ?? "").toLowerCase();
+  const text2 = [event.msg, event.err, event.error].filter((value) => typeof value === "string").join(" ");
+  if (!text2 || !/^(?:eror|error|crit|fatal)$/.test(level) && !/ERR_NGROK_/i.test(text2)) return void 0;
+  const code = text2.match(/ERR_NGROK_(?:105|107|108|121|334|4018|3820|9009)\b/i)?.[0].toUpperCase();
+  if (code) return code;
+  if (/\b(?:authentication failed|invalid authtoken|authtoken[^"]{0,64}(?:revoked|invalid)|endpoint\b[^"]{0,256}\bis already online)\b/i.test(text2)) return "fatal-session-error";
+  return void 0;
+}
 function createNgrokRecoveryObserver(options) {
   let confirmed = false;
   let disposed = false;
@@ -139,7 +196,7 @@ function createNgrokRecoveryObserver(options) {
     deadlineExpired = true;
     if (!active()) return;
     dispose();
-    options.restart();
+    options.restart("deadline");
   };
   const armDeadline = () => {
     if (deadlineExpired) {
@@ -187,6 +244,12 @@ function createNgrokRecoveryObserver(options) {
   return {
     observe(line) {
       if (disposed || !options.isActive()) return;
+      const fatal = ngrokFatalSessionError(line);
+      if (fatal && (options.isRunning() || options.isReconnecting())) {
+        dispose();
+        options.restart(`fatal:${fatal}`);
+        return;
+      }
       const signal = ngrokSessionStatusLine(line, options.domain);
       if (signal === "online") {
         confirmed = true;
@@ -206,6 +269,77 @@ function createNgrokRecoveryObserver(options) {
     },
     dispose
   };
+}
+// extensions/opencode/src/bridge-tunnel-recovery.ts
+// Recovery shared by every Bridge tunnel mode (cloudflare = Quick Tunnel, cloudflare-named = token Named Tunnel,
+// ngrok = reserved domain): fatal error -> restart now; no re-register before a deadline -> restart; restart = stop
+// only the owned tunnel process and re-enter beginTunnelRecovery (capped backoff); the local MCP server and its
+// sessions never stop. Named Tunnel and ngrok keep their fixed hostname (same token / same --url); only the Quick
+// Tunnel gets a new address.
+var TUNNEL_RECOVERY_BACKOFF_MS = [1e3, 2e3, 4e3, 8e3, 15e3, 3e4, 6e4];
+var TUNNEL_RECOVERY_MAX_DELAY_MS = 6e4;
+var QUICK_TUNNEL_RECOVERY_RETRY_MS = 6e4;
+var TUNNEL_RECOVERY_AUTH_FAILURE_LIMIT = 3;
+function tunnelHasFixedAddress(provider) {
+  return provider === "ngrok" || provider === "cloudflare-named" || provider === "tailscale";
+}
+var QUICK_TUNNEL_RATE_LIMIT_COOLDOWN_MS = 15 * 60e3;
+var QUICK_TUNNEL_SLOW_RETRY_MS = 5 * 60e3;
+var QUICK_TUNNEL_FAST_RETRY_ATTEMPTS = 10;
+var QUICK_TUNNEL_RATE_LIMIT_PATTERN = /status 429|error code: 1015|Too Many Requests/i;
+function tunnelRecoveryDelayMs(provider, attempt, rateLimited = false) {
+  // trycloudflare.com answered 429 / error 1015: every further request extends the ban.
+  if (rateLimited) return QUICK_TUNNEL_RATE_LIMIT_COOLDOWN_MS;
+  if (attempt <= 0) return TUNNEL_RECOVERY_BACKOFF_MS[0];
+  // trycloudflare.com rate-limits new Quick Tunnels: one minute apart at first, then five
+  // minutes during a long outage (a whole morning at one per minute tripped error 1015).
+  if (provider === "cloudflare") return attempt < QUICK_TUNNEL_FAST_RETRY_ATTEMPTS ? QUICK_TUNNEL_RECOVERY_RETRY_MS : QUICK_TUNNEL_SLOW_RETRY_MS;
+  return Math.min(TUNNEL_RECOVERY_BACKOFF_MS[Math.min(attempt, TUNNEL_RECOVERY_BACKOFF_MS.length - 1)], TUNNEL_RECOVERY_MAX_DELAY_MS);
+}
+function namedTunnelAuthFailure(error2) {
+  const message2 = error2 instanceof Error ? error2.message : String(error2 ?? "");
+  return /Named Tunnel authentication failed|invalid tunnel token|failed to parse token/i.test(message2);
+}
+/** Whether the reconnect loop should give up after `failedAttempt` failures (only for failures retrying cannot fix). */
+function tunnelRecoveryShouldStop(provider, error2, failedAttempt) {
+  if (provider === "ngrok") return isNonRetryableNgrokFailure(error2) && !mayRetryNgrokReplacement(error2, failedAttempt);
+  if (provider === "cloudflare-named") return namedTunnelAuthFailure(error2) && failedAttempt >= TUNNEL_RECOVERY_AUTH_FAILURE_LIMIT;
+  return false;
+}
+function tunnelRestartMessage(provider, reason) {
+  if (provider === "tailscale") return `Tailscale Funnel stopped (${String(reason ?? "unknown")}); restarting tailscale funnel for the same ts.net address.`;
+  const where = provider === "cloudflare" ? "for a new Quick Tunnel address" : provider === "cloudflare-named" ? "with the same Named Tunnel token and hostname" : "for the same reserved ngrok domain";
+  const client = provider === "ngrok" ? "the owned ngrok agent" : "cloudflared";
+  if (reason === "tunnel-not-found") return provider === "cloudflare" ? `Cloudflare reports this Quick Tunnel no longer exists (Tunnel not found); its address cannot recover. Restarting cloudflared ${where}.` : `Cloudflare reports this Named Tunnel was not found; restarting cloudflared ${where}. If it keeps failing, check the tunnel still exists in the Cloudflare dashboard.`;
+  if (reason === "unauthorized") return `Cloudflare rejected the tunnel connector (Unauthorized); restarting cloudflared ${where}.`;
+  if (typeof reason === "string" && reason.startsWith("fatal:")) return `ngrok reported a session error that does not heal by waiting (${reason.slice(6)}); restarting ${client} ${where}.`;
+  if (provider === "ngrok") return "ngrok did not recover stably within 60 seconds; cleaning up the owned agent before restarting.";
+  return `Cloudflare edge connections did not re-register within ${CLOUDFLARE_RECOVERY_DEADLINE_MS / 1e3} seconds; restarting cloudflared ${where}.`;
+}
+function tunnelRecoveredMessage(provider, publicUrl, previousDomain, domain) {
+  if (provider === "cloudflare") return `[bridge] cloudflare tunnel recovered: ${publicUrl} (new Quick Tunnel address; remote MCP clients must use this address and initialize again)`;
+  const same = !previousDomain || previousDomain === domain;
+  return `[bridge] ${provider} tunnel recovered: ${publicUrl} (${same ? "fixed address unchanged; MCP clients reconnect to the same URL" : "WARNING: fixed address changed"})`;
+}
+/** Stop only the owned tunnel process and hand over to beginTunnelRecovery. `server` is the BridgeManager. */
+function restartOwnedTunnel(server, generation, provider, reason) {
+  server.lastError = tunnelRestartMessage(provider, reason);
+  server.state = "starting";
+  if (!tunnelHasFixedAddress(provider)) server.domain = "";
+  server.ngrokSessionOffline = false;
+  server.cloudflareSessionOffline = false;
+  server.revision += 1;
+  server.logDuringShutdown(`[bridge] ${server.lastError}`);
+  const current = () => generation === server.tunnelGeneration && !server.stoppingResources && !server.disposed;
+  return Promise.resolve().then(() => server.stopTunnelProcess()).then(() => {
+    if (current() && server.mcpTransport.isListening()) server.beginTunnelRecovery();
+  }).catch((error2) => {
+    if (!current()) return;
+    server.state = "error";
+    server.lastError = error2 instanceof Error ? error2.message : String(error2);
+    server.recordStartFailure(error2, "reconnect");
+    server.revision += 1;
+  });
 }
 // src/device-file-roots.ts
 
@@ -228,6 +362,10 @@ var CLOUDFLARE_NAMED_DOMAIN_STATE_KEY = "opencode.bridge.cloudflareNamedDomain";
 var CLOUDFLARE_NAMED_TOKEN_SECRET = "opencode.bridge.cloudflareNamedTunnelToken";
 var CLOUDFLARE_NAMED_LOCAL_PORT_SETTING = "bridge.cloudflareNamedLocalPort";
 var TUNNEL_PROVIDER_SETTING = "bridge.tunnelProvider";
+var TAILSCALE_PATH_SETTING = "bridge.tailscalePath";
+var TAILSCALE_SOCKET_SETTING = "bridge.tailscaleSocket";
+var TAILSCALE_DOMAIN_STATE_KEY = "opencode.bridge.tailscaleDomain";
+var TAILSCALE_PORTABLE_SOCKET = "\\\\.\\pipe\\tailscale-ai";
 var CUSTOM_INSTRUCTIONS_SETTING = "bridge.customInstructions";
 var BRIDGE_SKILLS_ENABLED_SETTING = "bridge.skillsEnabled";
 var BRIDGE_WORKSPACE_SCOPE_SETTING = "bridge.workspaceScope";
@@ -326,6 +464,7 @@ function cancellationFromAbortSignal(signal) {
     }
   };
 }
+var TAILSCALED_PROXY_STATE_KEY = "opencode.bridge.tailscaledProxySignature";
 var BridgeManager = class {
   constructor(context, output2, ideToolBroker, externalCatalog, automation) {
     this.context = context;
@@ -337,6 +476,21 @@ var BridgeManager = class {
     automation?.setSourceIdentityProvider(owner=>this.assistantSources.sourceForOwner(owner),id=>this.assistantSources.sourceById(id));
     context.subscriptions.push({dispose:()=>this.assistantSources.dispose()});
     this.routeIdentity = createWindowsBridgeRouteIdentity(context);
+    // tunnel-proxy-step01: 隧道代理（内置 mihomo，只给 cloudflared / tailscaled 用）。
+    this.tunnelProxy = new TunnelProxyManager({
+      corePath: import_node_path27.default.join(context.extensionPath, "proxy-core", process.platform === "win32" ? "mihomo.exe" : "mihomo"),
+      storagePath: import_node_path27.default.join(context.globalStorageUri.fsPath, "tunnel-proxy"),
+      log: (message2) => this.output.appendLine(message2),
+      resolveSystemProxy: () => this.systemTunnelProxyUrl()
+    });
+    if (this.tunnelProxy.tunnelProxyMode() === "node") void this.tunnelProxy.ensureForTunnels().catch((error2) => this.output.appendLine(`[tunnel-proxy] ${error2 instanceof Error ? error2.message : String(error2)}`));
+    this.tunnelProxyHealthTimer = setInterval(() => {
+      if (this.tunnelProxy.tunnelProxyMode() === "node") void this.tunnelProxy.ensureForTunnels().catch(() => void 0);
+    }, 30e3);
+    this.tunnelProxyHealthTimer.unref?.();
+    context.subscriptions.push({ dispose: () => { clearInterval(this.tunnelProxyHealthTimer); void this.tunnelProxy.dispose(); } });
+    this.nativeRea = new ReaBackendTools({extensionPath:context.extensionPath,storagePath:context.globalStorageUri.fsPath,trusted:()=>vscode9.workspace.isTrusted,log:message=>this.output.appendLine(message)});
+    context.subscriptions.push({dispose:()=>{void this.nativeRea.dispose().catch(()=>this.output.appendLine('[rea-native] cleanup incomplete during extension disposal'));}});
     if (externalCatalog) {
       this.externalRegistry = new ExternalMcpRegistry({
         trusted: () => vscode9.workspace.isTrusted,
@@ -362,6 +516,8 @@ var BridgeManager = class {
       this.externalTrustTimer = setInterval(() => {
         if (trusted !== vscode9.workspace.isTrusted) {
           trusted = vscode9.workspace.isTrusted;
+          if (!trusted) void this.nativeRea.closeAll().catch(()=>this.output.appendLine('[rea-native] cleanup incomplete after trust change'));
+          this.mcpTransport?.notifyToolsChanged();
           void this.externalRegistry?.stopAll();
           if (trusted) void this.refreshExternalMcp();
         }
@@ -370,10 +526,14 @@ var BridgeManager = class {
     }
     this.dispatcher = new BridgeToolDispatcher({
       automation,
+      // 建议7：影子 git 检查点（默认关闭）。
+      checkpointsEnabled: () => this.checkpointsEnabled(),
+      // 建议12：Spec 模式（默认关闭）。
+      specModeEnabled: () => this.specModeEnabled(),
       invokeIdeTool: async (name, args, signal, ownerId) => {
         const cancellation = cancellationFromAbortSignal(signal);
         try {
-          const roots = name === "list_directory" ? this.fileToolRoots() : undefined;
+          const roots = name === "list_directory" ? this.fileToolRoots(name) : undefined;
           const scopedRoots = roots ? automation?.collaboration?.fileToolRoots(ownerId, roots) || roots : undefined;
           return await this.ideToolBroker.invokeDirect(name, args, cancellation.token, ownerId, scopedRoots);
         } finally {
@@ -381,17 +541,26 @@ var BridgeManager = class {
         }
       },
       workspaceRoots: () => this.workspaceRoots(),
-      fileToolRoots: () => this.fileToolRoots(),
+      fileToolRoots: (toolName) => this.fileToolRoots(toolName),
       isWorkspaceTrusted: () => vscode9.workspace.isTrusted,
       skillsEnabled: () => this.skillsEnabled(),
       listSkills: () => {
+        let listing, sharedListingFailed = false;
         try {
-          return listInstalledSkillsForAgent();
+          listing = listInstalledSkillsForAgent();
         } catch {
-          return { directory: "", enabled: true, skills: [] };
+          sharedListingFailed = true;
+          listing = { directory: "", enabled: this.skillsEnabled(), skills: [] };
         }
+        const result = appendBundledLeanrea(listing, context.extensionPath);
+        if (sharedListingFailed) for (const skill of result.skills) if (skill.scope === "bundled") {
+          skill.reason = "共享 Skill 清单读取失败；无法判断用户同名 Skill 是否存在。";
+          skill.reasonCode = "SHARED_SKILL_LIST_FAILED";
+        }
+        return result;
       },
       externalMcp: this.externalRegistry,
+      nativeRea: this.nativeRea,
       configureMcp: externalCatalog ? {
         catalog: externalCatalog,
         locations: () => externalCatalog.locations(),
@@ -410,25 +579,26 @@ var BridgeManager = class {
       } : void 0,
       log: (message2) => this.output.appendLine(message2)
     }, resolveBridgeToolConcurrency(vscode9.workspace.getConfiguration("opencode").get(BRIDGE_TOOL_CONCURRENCY_SETTING)));
-    // Keep a complete task history for this workspace across extension-host restarts.
-    // The durable files live in the extension's user-data directory, outside the project.
+    // Tasks are scoped to the current OpenCode session; startup clears legacy persisted task files.
     try {
       this.dispatcher.taskStore.configurePersistence(
         context.globalStorageUri.fsPath,
         vscode9.workspace.workspaceFolders?.[0]?.uri.fsPath
       );
     } catch (error) {
-      this.output.appendLine(`[bridge] task history unavailable (original file preserved): ${error.message}`);
+      this.output.appendLine(`[bridge] task startup reset warning: ${error.message}`);
     }
     this.mcpTransport = new BridgeMcpTransport({
       resolveAssistantSource: request => this.assistantSources.resolveRequest(request, this.getStatus().publicUrl),
       recordAssistantConnection: binding => this.assistantSources.recordConnection(binding).catch(() => this.output.appendLine('[bridge] Connection receipt unavailable; no inferred reconnect reminder.')),
       bindAssistantSource: (owner,binding) => this.assistantSources.bindOwner(owner,binding),
       dispatchToolCall: (name, args, extra) => this.dispatcher.dispatch(name, args, extra),
+      // 建议11：bridge_ask_user 同时走 MCP elicitation（默认关闭）。
+      elicitationEnabled: () => vscode9.workspace.getConfiguration("opencode").get("bridge.elicitation", false) === true,
       beginRemoteConversation: (ownerId) => this.dispatcher.beginRemoteConversation(ownerId),
       endRemoteConversation: (ownerId) => this.dispatcher.endRemoteConversation(ownerId),
-      releaseCommandOwner: (ownerId) => this.ideToolBroker.releaseCommandOwner(ownerId),
-      serverInstructions: () => this.composeServerInstructions(),
+      releaseCommandOwner: (ownerId) => { this.ideToolBroker.releaseCommandOwner(ownerId); void this.nativeRea.closeOwner(ownerId).catch(()=>this.output.appendLine('[rea-native] caller cleanup incomplete; ownership retained')); },
+      serverInstructions: (ownerId) => this.composeServerInstructions(ownerId),
       log: (message2) => this.output.appendLine(message2),
       diag: (message2) => this.output.appendLine("[bridge-mcp] " + message2),
       listCustomTools: () => {
@@ -446,6 +616,11 @@ var BridgeManager = class {
       if (kind === 'rules' || kind === 'roles' || kind === 'collaboration-switch') this.mcpTransport.notifyToolsChanged();
     });
     if (unsubscribeAutomation) context.subscriptions.push({ dispose: unsubscribeAutomation });
+    // Push a notifications/message to the recipient's stateful MCP sessions when a collaboration message arrives.
+    const unsubscribeInbox = automation?.onMessage?.((message) => {
+      try { this.mcpTransport.notifyInbox?.(message, (owner) => automation.agentIdFor(owner)); } catch {}
+    });
+    if (unsubscribeInbox) context.subscriptions.push({ dispose: unsubscribeInbox });
   }
   context;
   output;
@@ -480,6 +655,10 @@ var BridgeManager = class {
   edgeRelay;
   edgeRelayProxy;
   ngrokExecutable = "ngrok";
+  // OpenCode: Tailscale Funnel 隧道（固定 ts.net 地址）
+  tailscaleExecutable = "";
+  tailscaleSocket = "";
+  tailscaleDomain = "";
   revision = 0;
   customToolsRevision = 0;
   lastCustomToolsFingerprint = "";
@@ -510,15 +689,238 @@ var BridgeManager = class {
   currentLocalPort() {
     return this.mcpTransport.snapshot().localPort;
   }
-  async dispatchChatTool(name, args, ownerId, signal) {
+  async dispatchChatTool(name, args, ownerId, signal, toolInvocationToken, nativeSession) {
     if (!CHAT_BRIDGE_CONTROL_TOOL_NAMES.has(name) || !ownerId.startsWith("native-chat:")) {
       return { text: `Chat control tool unavailable: ${name}`, isError: true };
     }
-    const result = await this.dispatcher.dispatch(name, args, { signal, commandOwnerId: ownerId, taskOwnerId: ownerId });
+    if (name === "bridge_ask_user" && args && typeof args === "object" && args.mode !== "check") {
+      // OpenCode: 原生对话优先在对话内部用内置问题卡片（vscode_askQuestions）提问，不依赖任务卡、不弹顶部输入框
+      // 全自动模式下内置问题卡片由工作台直接以推荐项作答（module-2067）；卡片不可用时在这里直接作答，不挂起等待
+      if (toolInvocationToken) {
+        const inline = await this.askInNativeChatInline(args, toolInvocationToken, signal);
+        if (inline) return inline;
+      }
+      if (this.isFullAutoPermissionMode()) return this.answerWithRecommendedOptions(args);
+      // 任务板只认 recommended_option_id：把选项上的 recommended=true 换算过去
+      const withRecommendedId = (item) => {
+        const marked = item && item.recommended_option_id === void 0 && Array.isArray(item.options) ? item.options.find((option) => option?.recommended === true && option.id !== void 0) : void 0;
+        return marked ? { ...item, recommended_option_id: marked.id } : item;
+      };
+      const normalized = Array.isArray(args.questions) ? { ...args, questions: args.questions.map(withRecommendedId) } : withRecommendedId(args);
+      return this.askInNativeChat(normalized, ownerId, signal);
+    }
+    if (name === "bridge_ask_user" && args?.mode === "check" && toolInvocationToken && !args.task_id && !args.batch_id && !args.question_id) {
+      return { text: "本对话的提问已在对话内直接作答，回答已随 bridge_ask_user 的结果返回，无需再 check。", isError: false };
+    }
+    const result = await this.dispatcher.dispatch(name, args, { signal, commandOwnerId: ownerId, taskOwnerId: ownerId, ...(nativeSession?.sessionId ? { ocSession: nativeSession } : {}) });
     return {
       text: result.content.filter((block) => block.type === "text").map((block) => block.text).join("\n"),
       isError: result.isError === true
     };
+  }
+  isFullAutoPermissionMode() {
+    try {
+      return readOcChatPermissionSettings((key, fallback) => vscode9.workspace.getConfiguration("opencode").get(key, fallback)).mode === "fullAuto";
+    } catch {
+      return false;
+    }
+  }
+  /** 全自动：不等待用户，直接采用推荐项作答（无推荐取第一项；无选项回答「请按你推荐的方案继续」），并在输出与通知里留下可见记录。 */
+  answerWithRecommendedOptions(args) {
+    const source = Array.isArray(args?.questions) && args.questions.length > 0 ? args.questions
+      : typeof args?.question === "string" && args.question.trim() ? [{ question: args.question, options: args.options, recommended_option_id: args.recommended_option_id }] : [];
+    if (source.length === 0) return { text: "全自动：没有可作答的问题，请按你推荐的方案继续。", isError: false };
+    const lines = [];
+    const structured = [];
+    source.forEach((item, index) => {
+      const text = String(item?.question ?? "").trim();
+      const pick = pickOcRecommendedAnswer(item);
+      const what = pick.custom !== void 0 ? `自定义回答：${pick.custom}` : `「${pick.label}」${pick.optionId !== void 0 ? `（option_id=${pick.optionId}）` : ""}${pick.fallback === "first" ? "（未标推荐项，取第一项）" : "（推荐项）"}`;
+      lines.push(`${index + 1}. ${text}\n   回答：${what}`);
+      structured.push({ question: text, option_ids: pick.optionId !== void 0 ? [pick.optionId] : [], labels: pick.label !== void 0 ? [pick.label] : [], custom: pick.custom ?? null, skipped: false, auto: true });
+    });
+    const record = `全自动：已自动采用推荐项作答 ${source.length} 题`;
+    this.output.appendLine(`[native-chat] ${record}\n${lines.join("\n")}`);
+    void vscode9.window.showInformationMessage(`OpenCode ${record}（${structured.map((item) => item.custom ?? item.labels.join("、")).join("；").slice(0, 160)}）`);
+    return { text: `${record}（用户开启了「全自动」，不等待用户作答；用户之后会查看）：\n${lines.join("\n")}\n\nanswers_json: ${JSON.stringify(structured)}\n\n继续执行，不要就同一问题再次提问。`, isError: false };
+  }
+  /** Native Chat: ask inside the conversation with the built-in question carousel. Returns
+   * undefined when the carousel is unavailable so the caller falls back to the task-board path. */
+  async askInNativeChatInline(args, toolInvocationToken, signal) {
+    const source = Array.isArray(args.questions) && args.questions.length > 0 ? args.questions
+      : typeof args.question === "string" && args.question.trim() ? [{
+        question: args.question,
+        options: args.options,
+        recommendation: args.recommendation,
+        recommended_option_id: args.recommended_option_id,
+        allow_custom: args.allow_custom
+      }] : [];
+    if (source.length === 0) return void 0;
+    const usedHeaders = new Set();
+    const plans = source.map((item, index) => {
+      const text = String(item?.question ?? "").trim();
+      const oneLine = text.replace(/\s+/g, " ");
+      let header = (source.length > 1 ? `${index + 1}. ` : "") + (oneLine.length > 46 ? oneLine.slice(0, 45) + "…" : oneLine);
+      if (!header) header = `问题 ${index + 1}`;
+      while (usedHeaders.has(header)) header = header.slice(0, 44) + `#${index + 1}`;
+      usedHeaders.add(header);
+      const usedLabels = new Set();
+      const options = (Array.isArray(item?.options) ? item.options : []).map((option) => {
+        let label = String(option?.label ?? option?.id ?? "").trim() || String(option?.id ?? "选项");
+        while (usedLabels.has(label)) label += " ";
+        usedLabels.add(label);
+        return { id: option?.id, label, description: option?.description || void 0, recommended: option?.recommended === true || option?.id !== void 0 && option.id === item?.recommended_option_id };
+      });
+      const details = [];
+      if (oneLine.length > 46 || source.length > 1) details.push(text);
+      if (item?.recommendation) details.push(`建议：${item.recommendation}`);
+      return {
+        header,
+        text,
+        options,
+        carousel: {
+          header,
+          question: oneLine.length > 46 ? oneLine.slice(0, 197) + (oneLine.length > 197 ? "…" : "") : oneLine,
+          ...details.length ? { message: details.join("\n\n") } : {},
+          ...options.length ? { options: options.map((option) => ({ label: option.label, ...option.description ? { description: option.description } : {}, ...option.recommended ? { recommended: true } : {} })) } : {},
+          allowFreeformInput: item?.allow_custom !== false || options.length === 0
+        }
+      };
+    });
+    const cts = new vscode9.CancellationTokenSource();
+    const onAbort = () => cts.cancel();
+    if (signal?.aborted) cts.cancel();
+    signal?.addEventListener("abort", onAbort, { once: true });
+    let result;
+    try {
+      result = await vscode9.lm.invokeTool("vscode_askQuestions", { input: { questions: plans.map((plan) => plan.carousel) }, toolInvocationToken }, cts.token);
+    } catch (error2) {
+      if (signal?.aborted || cts.token.isCancellationRequested) return { text: "提问已取消：本次回复被停止，用户没有作答。", isError: true };
+      this.output.appendLine(`[native-chat] inline ask unavailable, falling back to task board: ${error2 instanceof Error ? error2.message : String(error2)}`);
+      return void 0;
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+      cts.dispose();
+    }
+    const raw = (result?.content ?? []).map((part) => typeof part?.value === "string" ? part.value : "").join("");
+    let answers = {};
+    try { answers = JSON.parse(raw)?.answers ?? {}; } catch { return { text: `用户已在对话内作答：${raw}`, isError: false }; }
+    const lines = [];
+    const structured = [];
+    let answered = 0;
+    plans.forEach((plan, index) => {
+      const answer = answers[plan.header];
+      const selected = Array.isArray(answer?.selected) ? answer.selected.map(String) : [];
+      const picked = selected.map((label) => plan.options.find((option) => option.label === label || option.label.trim() === label.trim())).filter(Boolean);
+      const freeText = typeof answer?.freeText === "string" && answer.freeText.trim() ? answer.freeText.trim() : "";
+      const skipped = !answer || answer.skipped === true || (!picked.length && !selected.length && !freeText);
+      if (!skipped) answered++;
+      const parts = [];
+      if (picked.length) parts.push(picked.map((option) => `「${option.label.trim()}」${option.id ? `（option_id=${option.id}）` : ""}`).join("、"));
+      else if (selected.length) parts.push(selected.map((label) => `「${label}」`).join("、"));
+      if (freeText) parts.push(`自定义回答：${freeText}`);
+      lines.push(`${index + 1}. ${plan.text}\n   回答：${skipped ? "未作答（用户跳过）" : parts.join("；")}`);
+      structured.push({ question: plan.text, option_ids: picked.map((option) => option.id).filter(Boolean), labels: picked.length ? picked.map((option) => option.label.trim()) : selected, custom: freeText || null, skipped });
+    });
+    const header = answered === 0 ? "用户没有回答这些问题（全部跳过）。不要再追问同一问题；按最稳妥的方式继续，或在最终回复里说明需要用户补充什么。"
+      : answered < plans.length ? `用户已在对话内回答 ${answered}/${plans.length} 题，其余跳过：` : "用户已在对话内回答：";
+    return { text: `${header}\n${lines.join("\n")}\n\nanswers_json: ${JSON.stringify(structured)}`, isError: false };
+  }
+  /** Native Chat: register the question(s) on the task card, ask them right away in the editor
+   * (quick pick per question), and keep the tool call open until every answer is in. Answers given
+   * on the task board still count; whichever arrives first wins. */
+  async askInNativeChat(args, ownerId, signal) {
+    const toText = (result) => ({
+      text: result.content.filter((block) => block.type === "text").map((block) => block.text).join("\n"),
+      isError: result.isError === true
+    });
+    const context = { signal, commandOwnerId: ownerId, taskOwnerId: ownerId };
+    const submitted = await this.dispatcher.dispatch("bridge_ask_user", { ...args, wait_seconds: 0 }, context);
+    const state = submitted.structuredContent;
+    if (submitted.isError || !state?.task_id || state.status === "answered" || !(state.batch_id || state.question_id)) {
+      return toText(submitted);
+    }
+    const prompts = new AbortController();
+    const stopPrompts = () => prompts.abort();
+    signal?.addEventListener("abort", stopPrompts, { once: true });
+    void this.promptNativeChatQuestions(state.task_id, prompts.signal).catch((error2) => {
+      this.output.appendLine(`[native-chat] ask prompt failed: ${error2 instanceof Error ? error2.message : String(error2)}`);
+    });
+    try {
+      const checkArgs = state.batch_id ? { mode: "check", task_id: state.task_id, batch_id: state.batch_id }
+        : { mode: "check", task_id: state.task_id, question_id: state.question_id };
+      return toText(await this.dispatcher.dispatch("bridge_ask_user", checkArgs, context));
+    } finally {
+      prompts.abort();
+      signal?.removeEventListener("abort", stopPrompts);
+    }
+  }
+  async promptNativeChatQuestions(taskId, signal) {
+    const pendingQuestions = () => (this.dispatcher.taskStore.tasks.get(taskId)?.questions ?? []).filter((question) => question.status === "pending");
+    const total = pendingQuestions().length;
+    let index = 0;
+    while (!signal.aborted) {
+      const question = pendingQuestions()[0];
+      if (!question) return;
+      index++;
+      const answer = await this.pickNativeChatAnswer(question, index, Math.max(total, index), signal);
+      if (!answer || signal.aborted) return;
+      try {
+        this.dispatcher.answerTaskQuestion(taskId, question.id, answer.optionId, answer.custom);
+      } catch (error2) {
+        // Already answered on the task board or no longer pending: move on to the next question.
+        this.output.appendLine(`[native-chat] ask answer skipped: ${error2 instanceof Error ? error2.message : String(error2)}`);
+      }
+    }
+  }
+  pickNativeChatAnswer(question, index, total, signal) {
+    return new Promise((resolve) => {
+      let settled = false;
+      const disposables = [];
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        signal.removeEventListener("abort", onAbort);
+        for (const item of disposables) item.dispose();
+        resolve(value);
+      };
+      const onAbort = () => { picker.hide(); finish(void 0); };
+      const picker = vscode9.window.createQuickPick();
+      disposables.push(picker);
+      picker.title = `OpenCode 需要你决定（${index}/${total}）`;
+      picker.placeholder = question.text.replace(/\s+/g, " ").slice(0, 300);
+      picker.ignoreFocusOut = true;
+      picker.matchOnDescription = true;
+      picker.matchOnDetail = true;
+      const items = question.options.map((option) => ({
+        label: option.label,
+        description: option.id === question.recommendedOptionId ? "推荐" : "",
+        detail: option.description || void 0,
+        optionId: option.id
+      }));
+      if (question.allowCustom) items.push({ label: "$(edit) 自定义回答…", alwaysShow: true, custom: true });
+      picker.items = items;
+      const recommended = items.find((item) => item.optionId && item.optionId === question.recommendedOptionId);
+      if (recommended) picker.activeItems = [recommended];
+      disposables.push(picker.onDidAccept(async () => {
+        const selected = picker.selectedItems[0];
+        if (!selected) return;
+        if (!selected.custom) {
+          picker.hide();
+          finish({ optionId: selected.optionId });
+          return;
+        }
+        settled = true;
+        picker.hide();
+        const custom = await vscode9.window.showInputBox({ title: picker.title, prompt: question.text.slice(0, 1000), ignoreFocusOut: true });
+        settled = false;
+        finish(custom && custom.trim() ? { optionId: void 0, custom: custom.trim() } : void 0);
+      }));
+      disposables.push(picker.onDidHide(() => finish(void 0)));
+      if (signal.aborted) { finish(void 0); return; }
+      signal.addEventListener("abort", onAbort, { once: true });
+      picker.show();
+    });
   }
   /** Show a task as soon as Chat Code begins, without starting the network Bridge. */
   ensureNativeChatTask(ownerId, model) {
@@ -541,9 +943,17 @@ var BridgeManager = class {
   assistantSourceEnabled() { return this.automation?.isCollaborationEnabled()===true; }
   setAssistantPublisherContext(value) { this.assistantPublisherContext={windowId:value.windowId,workspaceId:value.workspaceId}; }
   assistantConnectionHistory(value) { return this.assistantSources.connectionHistory(value); }
+  checkpointsEnabled() {
+    try { return vscode9.workspace.getConfiguration("opencode").get("bridge.checkpoints", false) === true; } catch { return false; }
+  }
+  specModeEnabled() {
+    try { return vscode9.workspace.getConfiguration("opencode").get("bridge.specMode", false) === true; } catch { return false; }
+  }
   availableBuiltinToolDefinitions() {
-    try { return this.automation ? this.automation.filterAvailableTools(BRIDGE_TOOL_DEFINITIONS) : BRIDGE_TOOL_DEFINITIONS; }
-    catch { return BRIDGE_TOOL_DEFINITIONS.filter(tool => !this.automation?.hasTool(tool.name) || ['bridge_get_effective_rules','bridge_acknowledge_rules'].includes(tool.name)); }
+    // 建议7：检查点工具只在 opencode.bridge.checkpoints 开启时出现。
+    const tools = [...BRIDGE_TOOL_DEFINITIONS, ...this.checkpointsEnabled() ? [SHADOW_CHECKPOINT_TOOL] : [], ...this.specModeEnabled() ? [SPEC_MODE_TOOL] : [], ...this.nativeRea.definitionsForHost()];
+    try { return this.automation ? this.automation.filterAvailableTools(tools) : tools; }
+    catch { return tools.filter(tool => !this.automation?.hasTool(tool.name) || ['start','bridge_get_effective_rules','bridge_acknowledge_rules'].includes(tool.name)); }
   }
   async nativeWorkerToolDefinitions() {
     const builtins = this.availableBuiltinToolDefinitions();
@@ -599,6 +1009,7 @@ var BridgeManager = class {
       localPort: this.currentLocalPort(),
       tunnelInstalled: this.tunnelInstalled,
       tunnelVersion: this.tunnelVersion,
+      tailscaleDomain: this.tailscaleDomain || void 0,
       tunnelConfigValid: this.tunnelConfigValid,
       lastError: this.lastError,
       startFailure: this.startFailure,
@@ -617,7 +1028,19 @@ var BridgeManager = class {
     };
   }
   getConcurrencyStatus() { return this.dispatcher.concurrencySnapshot(); }
+  /**
+   * The Bridge panel polls getStatus every 350 ms. Re-scanning every global Skill directory (dozens of
+   * SKILL.md reads, synchronous) on each poll blocked the extension host and made task cards appear late,
+   * so the status list is cached briefly; importing or diagnosing Skills refreshes it immediately.
+   */
   snapshotCustomTools() {
+    const now = Date.now();
+    if (this.customToolsSnapshot && now - this.customToolsSnapshotAt < 5e3) return this.customToolsSnapshot;
+    this.customToolsSnapshot = this.scanCustomToolsForStatus();
+    this.customToolsSnapshotAt = now;
+    return this.customToolsSnapshot;
+  }
+  scanCustomToolsForStatus() {
     let tools;
     try {
       tools = loadCustomTools(this.customToolRoots(), (message2) => this.output.appendLine(message2), { skillsEnabled: this.skillsEnabled() });
@@ -633,9 +1056,11 @@ var BridgeManager = class {
   }
   async importSkill(source) {
     const result = await importGlobalSkillWithPrompt(source);
+    this.customToolsSnapshotAt = 0;
     return { status: this.getStatus(), result };
   }
   async diagnoseSkills() {
+    this.customToolsSnapshotAt = 0;
     const log = (message2) => this.output.appendLine(message2);
     const skillsEnabled = this.skillsEnabled();
     const tools = loadCustomTools(this.customToolRoots(), log, { skillsEnabled });
@@ -722,11 +1147,11 @@ var BridgeManager = class {
     }
   }
   configuredDomainForProvider(provider) {
-    return provider === "ngrok" ? this.configuredDomain : provider === "cloudflare-named" ? this.configuredNamedDomain : "";
+    return provider === "ngrok" ? this.configuredDomain : provider === "cloudflare-named" ? this.configuredNamedDomain : provider === "tailscale" ? (this.tailscaleDomain || this.context.globalState.get(TAILSCALE_DOMAIN_STATE_KEY, "")) : "";
   }
   readTunnelProvider() {
     const provider = vscode9.workspace.getConfiguration("opencode").get(TUNNEL_PROVIDER_SETTING, "cloudflare");
-    return provider === "ngrok" || provider === "cloudflare-named" ? provider : "cloudflare";
+    return provider === "ngrok" || provider === "cloudflare-named" || provider === "tailscale" ? provider : "cloudflare";
   }
   readCustomInstructions() {
     return this.automation ? this.automation.effective().text : vscode9.workspace.getConfiguration("opencode").get(CUSTOM_INSTRUCTIONS_SETTING, "").trim();
@@ -740,8 +1165,8 @@ var BridgeManager = class {
    * built-in tool and task-coordination rules) and composed per session, so edits apply
    * to the next remote connection without restarting the Bridge.
    */
-  composeServerInstructions() {
-    const custom = this.automation ? this.automation.describe() : this.readCustomInstructions();
+  composeServerInstructions(ownerId) {
+    const custom = this.automation ? this.automation.describe(ownerId) : this.readCustomInstructions();
     const builtIn = `${BRIDGE_SERVER_INSTRUCTIONS}
 
 ${bridgeWorkspaceScopeInstructions(this.readWorkspaceScope())}`;
@@ -867,8 +1292,8 @@ ${custom}` : builtIn;
     if (this.state === "running" || this.state === "starting") {
       throw new Error("Stop the Bridge before changing its tunnel provider.");
     }
-    if (provider !== "cloudflare" && provider !== "cloudflare-named" && provider !== "ngrok") {
-      throw new Error("Bridge tunnel provider must be cloudflare, cloudflare-named, or ngrok.");
+    if (provider !== "cloudflare" && provider !== "cloudflare-named" && provider !== "ngrok" && provider !== "tailscale") {
+      throw new Error("Bridge tunnel provider must be cloudflare, cloudflare-named, ngrok, or tailscale.");
     }
     this.tunnelProvider = provider;
     this.domain = this.configuredDomainForProvider(provider);
@@ -888,7 +1313,8 @@ ${custom}` : builtIn;
   }
   async checkTunnel() {
     this.tunnelProvider = this.readTunnelProvider();
-    const status = this.tunnelProvider === "ngrok" ? await this.checkNgrok() : this.tunnelProvider === "cloudflare-named" ? await this.checkNamedTunnel() : await this.checkCloudflared();
+    await this.tunnelProxy?.ensureForTunnels();
+    const status = this.tunnelProvider === "tailscale" ? await this.checkTailscale() : this.tunnelProvider === "ngrok" ? await this.checkNgrok() : this.tunnelProvider === "cloudflare-named" ? await this.checkNamedTunnel() : await this.checkCloudflared();
     return this.resolveTunnelClientFailure(status);
   }
   /** 隧道检测通过后，此前「缺隧道程序 / 配置不完整」一类的启动失败已不成立，不再继续显示。 */
@@ -943,6 +1369,16 @@ ${custom}` : builtIn;
     const removed = this.dispatcher.clearTasks(requests, allowAttention);
     this.output.appendLine(`[bridge] locally confirmed task cleanup: ${removed} record(s); activity log retained`);
     return this.getStatus();
+  }
+  deleteTaskDisplay(taskId) {
+    const deleted = this.dispatcher.deleteTaskDisplay(taskId);
+    if (deleted) this.output.appendLine(`[bridge] locally hidden task display: ${taskId}; memory and checkpoint retained`);
+    return this.getStatus();
+  }
+  forkTask(taskId) {
+    const task = this.dispatcher.forkTask(taskId);
+    this.output.appendLine(`[bridge] forked task ${taskId} -> ${task.id} for handoff; memory copied`);
+    return task;
   }
   /** A local task-card interaction, never exposed through MCP as an answer submitter. */
   answerTaskQuestion(taskId, questionId, optionId, customText) {
@@ -1097,6 +1533,281 @@ ${custom}` : builtIn;
     }
     this.tunnelConfigValid = true;
     this.lastError = void 0;
+    return this.getStatus();
+  }
+  // OpenCode: Tailscale Funnel。找 tailscale.exe（设置 > Program Files > E:\ai工作区\tailscale\bin），
+  // 免安装版（同目录有 tailscaled.exe）自动用 \\.\pipe\tailscale-ai 并在需要时以用户态拉起 tailscaled。
+  tailscaleExecutableCandidates() {
+    const configured = String(vscode9.workspace.getConfiguration("opencode").get(TAILSCALE_PATH_SETTING, "") || "").trim();
+    const candidates = [configured, this.tailscaleExecutable];
+    if (process.platform === "win32") {
+      if (process.env.ProgramFiles) candidates.push(import_node_path27.default.join(process.env.ProgramFiles, "Tailscale", "tailscale.exe"));
+      candidates.push("E:\\ai\u5DE5\u4F5C\u533A\\tailscale\\bin\\tailscale.exe");
+    }
+    candidates.push("tailscale");
+    return [...new Set(candidates.filter(Boolean))];
+  }
+  tailscaleSocketFor(executable) {
+    const configured = String(vscode9.workspace.getConfiguration("opencode").get(TAILSCALE_SOCKET_SETTING, "") || "").trim();
+    if (configured) return configured;
+    if (process.platform !== "win32" || !import_node_path27.default.isAbsolute(executable)) return "";
+    const portable = (0, import_node_fs21.existsSync)(import_node_path27.default.join(import_node_path27.default.dirname(executable), "tailscaled.exe"));
+    const programFiles = process.env.ProgramFiles ? import_node_path27.default.join(process.env.ProgramFiles, "Tailscale").toLowerCase() : "";
+    return portable && !(programFiles && executable.toLowerCase().startsWith(programFiles)) ? TAILSCALE_PORTABLE_SOCKET : "";
+  }
+  tailscaleArgs(...rest) {
+    return this.tailscaleSocket ? [`--socket=${this.tailscaleSocket}`, ...rest] : rest;
+  }
+  async readTailscaleStatus() {
+    try {
+      const result = await execFileAsync2(this.tailscaleExecutable, this.tailscaleArgs("status", "--json"), { windowsHide: true, timeout: 15e3, maxBuffer: 16 * 1024 * 1024 });
+      return JSON.parse(String(result.stdout || "{}"));
+    } catch (error2) {
+      const stdout = String(error2?.stdout ?? "").trim();
+      if (stdout.startsWith("{")) {
+        try {
+          return JSON.parse(stdout);
+        } catch {
+        }
+      }
+      throw error2;
+    }
+  }
+  /**
+   * tailscaled-proxy-step01: portable tailscaled reaches DERP / control plane through the same
+   * configured or system HTTP proxy the Cloudflare connector uses. On networks where direct
+   * international routes are slow this raises Funnel throughput several-fold. Direct UDP cannot
+   * traverse an HTTP proxy, so peer traffic is pinned to DERP (TS_DEBUG_ALWAYS_USE_DERP) only
+   * when a proxy was resolved. With no proxy, or http.proxySupport=off, behaviour is unchanged.
+   * Values the user already set in the environment are kept.
+   */
+  tailscaledProcessEnvironment(quiet = false) {
+    const env10 = { ...process.env };
+    const tunnelProxyMode = this.tunnelProxy?.tunnelProxyMode() ?? "system";
+    if (tunnelProxyMode !== "system") {
+      this.applyTunnelProxyOverride(env10);
+      if (env10.HTTPS_PROXY && env10.TS_DEBUG_ALWAYS_USE_DERP === void 0) env10.TS_DEBUG_ALWAYS_USE_DERP = "true";
+      if (!quiet) this.output.appendLine(`[bridge] portable tailscaled proxy: ${env10.HTTPS_PROXY ? "built-in tunnel proxy node, relayed via DERP" : "direct (tunnel proxy set to direct)"}.`);
+      return env10;
+    }
+    try {
+      const httpConfiguration = vscode9.workspace.getConfiguration("http");
+      if (httpConfiguration.get("proxySupport") === "off") return env10;
+      const configuredProxy = httpConfiguration.get("proxy")?.trim();
+      // ts-direct-default: an auto-detected system / inherited proxy is NOT forced onto tailscaled.
+      // Routing Funnel's DERP relay through a local system proxy (v2rayN/mihomo) made inbound TLS
+      // handshakes end with EOF, so remote MCP clients could not connect. Only an explicit
+      // http.proxy (or the tunnel proxy "node" mode) sends tailscaled through a proxy now.
+      if (!configuredProxy) {
+        for (const key of Object.keys(env10)) {
+          if (/^(https?|all)_proxy$/i.test(key)) delete env10[key];
+        }
+        if (!quiet) this.output.appendLine("[bridge] portable tailscaled proxy: direct (no explicit http.proxy; system proxy not forced on Funnel).");
+        return env10;
+      }
+      const proxyUrl = resolveExtensionHostProxy(new URL("https://controlplane.tailscale.com/"), configuredProxy);
+      if (!proxyUrl) return env10;
+      const forceConfiguredProxy = Boolean(configuredProxy);
+      const hasAllProxy = Boolean(env10.ALL_PROXY || env10.all_proxy);
+      if (forceConfiguredProxy || !env10.HTTPS_PROXY && !env10.https_proxy && !hasAllProxy) env10.HTTPS_PROXY = proxyUrl;
+      if (forceConfiguredProxy || !env10.HTTP_PROXY && !env10.http_proxy && !hasAllProxy) env10.HTTP_PROXY = proxyUrl;
+      if (!env10.NO_PROXY && !env10.no_proxy) env10.NO_PROXY = "localhost,127.0.0.1,::1";
+      if (env10.TS_DEBUG_ALWAYS_USE_DERP === void 0) env10.TS_DEBUG_ALWAYS_USE_DERP = "true";
+      if (!quiet) this.output.appendLine("[bridge] portable tailscaled will use the configured/system HTTP proxy and relay via DERP.");
+    } catch (error2) {
+      if (!quiet) this.output.appendLine(`[bridge] tailscaled proxy resolution failed; starting direct: ${error2 instanceof Error ? error2.message : String(error2)}`);
+    }
+    return env10;
+  }
+  /** 免安装版：tailscaled 没在跑时，以用户态网络在后台拉起（状态目录在 bin 的上一级 state）。 */
+  async startPortableTailscaled() {
+    if (!this.tailscaleSocket || !import_node_path27.default.isAbsolute(this.tailscaleExecutable)) return false;
+    const bin = import_node_path27.default.dirname(this.tailscaleExecutable);
+    const daemon = import_node_path27.default.join(bin, "tailscaled.exe");
+    if (!(0, import_node_fs21.existsSync)(daemon)) return false;
+    const stateDir = import_node_path27.default.join(import_node_path27.default.dirname(bin), "state");
+    await (0, import_promises12.mkdir)(stateDir, { recursive: true });
+    this.output.appendLine(`[bridge] starting portable tailscaled (userspace networking, socket ${this.tailscaleSocket}).`);
+    const tailscaledEnv = this.tailscaledProcessEnvironment();
+    await this.context.globalState.update(TAILSCALED_PROXY_STATE_KEY, this.tailscaledProxySignature(tailscaledEnv));
+    const child = (0, import_node_child_process7.spawn)(daemon, ["--tun=userspace-networking", `--statedir=${stateDir}`, `--socket=${this.tailscaleSocket}`, "--port=0", "--windows-mode=dev"], { detached: true, stdio: "ignore", windowsHide: true, cwd: import_node_path27.default.dirname(bin), env: tailscaledEnv });
+    child.on("error", (error2) => this.output.appendLine(`[bridge] tailscaled failed to start: ${error2.message}`));
+    child.unref();
+    for (let i = 0; i < 20; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      try {
+        await this.readTailscaleStatus();
+        return true;
+      } catch {
+      }
+    }
+    return false;
+  }
+  async checkTailscale() {
+    let lastError;
+    this.tunnelInstalled = false;
+    for (const executable of this.tailscaleExecutableCandidates()) {
+      try {
+        const socket = this.tailscaleSocketFor(executable);
+        const version2 = await execFileAsync2(executable, ["version"], { windowsHide: true, timeout: 1e4 });
+        this.tailscaleExecutable = executable;
+        this.tailscaleSocket = socket;
+        this.tunnelInstalled = true;
+        this.tunnelVersion = `tailscale ${String(version2.stdout || version2.stderr).trim().split(/\r?\n/)[0] || ""}`.trim();
+        lastError = void 0;
+        break;
+      } catch (error2) {
+        lastError = error2;
+      }
+    }
+    if (!this.tunnelInstalled) {
+      this.tunnelConfigValid = false;
+      this.tunnelVersion = void 0;
+      this.lastError = `\u672A\u627E\u5230 tailscale.exe\uFF1A${lastError instanceof Error ? lastError.message : String(lastError ?? "not installed")}\u3002\u53EF\u5728\u8BBE\u7F6E opencode.bridge.tailscalePath \u91CC\u6307\u5B9A\u8DEF\u5F84\u3002`;
+      return this.getStatus();
+    }
+    await this.restartPortableTailscaledIfProxyChanged();
+    let status2;
+    try {
+      status2 = await this.readTailscaleStatus();
+    } catch (error2) {
+      if (await this.startPortableTailscaled()) {
+        try {
+          status2 = await this.readTailscaleStatus();
+        } catch (error3) {
+          lastError = error3;
+        }
+      } else {
+        lastError = error2;
+      }
+    }
+    if (!status2) {
+      this.tunnelConfigValid = false;
+      this.lastError = `Tailscale \u540E\u53F0\u670D\u52A1\u6CA1\u6709\u8FD0\u884C\uFF1A${lastError instanceof Error ? lastError.message : String(lastError ?? "")}`;
+      return this.getStatus();
+    }
+    const backendState = String(status2.BackendState ?? "");
+    if (backendState !== "Running") {
+      this.tunnelConfigValid = false;
+      const authUrl = typeof status2.AuthURL === "string" && status2.AuthURL ? status2.AuthURL : "";
+      this.lastError = `Tailscale \u672A\u767B\u5F55\uFF08${backendState || "unknown"}\uFF09\u3002${authUrl ? `\u6253\u5F00 ${authUrl} \u767B\u5F55\u540E\u518D\u542F\u52A8 Bridge\u3002` : "\u8FD0\u884C tailscale up \u767B\u5F55\u540E\u518D\u542F\u52A8 Bridge\u3002"}`;
+      return this.getStatus();
+    }
+    const domain = String(status2.Self?.DNSName ?? "").replace(/\.$/, "").trim().toLowerCase();
+    if (!domain) {
+      this.tunnelConfigValid = false;
+      this.lastError = "Tailscale \u5DF2\u767B\u5F55\uFF0C\u4F46\u6CA1\u6709\u62FF\u5230 ts.net \u4E3B\u673A\u540D\uFF0C\u8BF7\u5728\u7BA1\u7406\u540E\u53F0\u5F00\u542F MagicDNS \u548C HTTPS\u3002";
+      return this.getStatus();
+    }
+    this.tailscaleDomain = domain;
+    if (this.tunnelProvider === "tailscale") this.domain = domain;
+    await this.context.globalState.update(TAILSCALE_DOMAIN_STATE_KEY, domain);
+    // OpenCode: Funnel 要求 tailnet 已开 HTTPS 证书且本机有 funnel 能力；缺了就给出官方的开启链接。
+    const selfCaps = [...Object.keys(status2.Self?.CapMap ?? {}), ...(Array.isArray(status2.Self?.Capabilities) ? status2.Self.Capabilities : [])].map((cap) => String(cap).toLowerCase());
+    const hasFunnel = selfCaps.some((cap) => cap.includes("tailscale.com/cap/funnel"));
+    const hasHttps = (Array.isArray(status2.CertDomains) && status2.CertDomains.length > 0) || selfCaps.some((cap) => cap.includes("tailscale.com/cap/https"));
+    if (!hasFunnel || !hasHttps) {
+      const nodeId = String(status2.Self?.ID ?? "").trim();
+      this.tailscaleEnableUrl = `https://login.tailscale.com/f/funnel${nodeId ? `?node=${encodeURIComponent(nodeId)}` : ""}`;
+      this.tunnelConfigValid = false;
+      this.lastError = `Tailscale \u5DF2\u767B\u5F55\uFF08${domain}\uFF09\uFF0C\u4F46\u8FD9\u4E2A tailnet \u8FD8\u6CA1\u5F00\u542F ${hasHttps ? "" : "HTTPS \u8BC1\u4E66\u548C "}Funnel\u3002\u70B9\u300C\u4E00\u952E\u8FDE\u63A5\u300D\u4F1A\u6253\u5F00\u5B98\u65B9\u5F00\u542F\u9875\uFF0C\u70B9\u540C\u610F\u540E\u8FD9\u91CC\u81EA\u52A8\u53D8\u4E3A\u300C\u5DF2\u8FDE\u63A5\u300D\u3002`;
+      return this.getStatus();
+    }
+    this.tailscaleEnableUrl = "";
+    this.tunnelConfigValid = true;
+    this.lastError = void 0;
+    return this.getStatus();
+  }
+  /**
+   * OpenCode: Bridge 页「一键连接」。未登录时走 tailscale login（或 Stopped 时 tailscale up），
+   * 拿到登录链接就在浏览器打开，然后每 2 秒查一次状态，直到 Running（最多 5 分钟）。
+   */
+  async connectTailscale() {
+    if (this.state === "running" || this.state === "starting") throw new Error("\u8BF7\u5148\u505C\u6B62 Bridge \u518D\u8FDE\u63A5 Tailscale\u3002");
+    this.tunnelProvider = this.readTunnelProvider();
+    if (this.tunnelProvider !== "tailscale") throw new Error("\u5F53\u524D\u96A7\u9053\u6A21\u5F0F\u4E0D\u662F Tailscale Funnel\u3002");
+    await this.checkTailscale();
+    if (!this.tunnelInstalled || this.tunnelConfigValid) return this.getStatus();
+    let status0;
+    try {
+      status0 = await this.readTailscaleStatus();
+    } catch {
+      return this.getStatus();
+    }
+    const backendState = String(status0.BackendState ?? "");
+    const opened = /* @__PURE__ */ new Set();
+    const openAuthUrl = (url) => {
+      if (!url || opened.has(url)) return;
+      opened.add(url);
+      this.output.appendLine(`[bridge] tailscale login URL opened in the browser: ${url}`);
+      void vscode9.env.openExternal(vscode9.Uri.parse(url));
+    };
+    let child;
+    let childOutput = "";
+    let childExited = false;
+    let reachedRunning = backendState === "Running";
+    if (reachedRunning) {
+      if (this.tailscaleEnableUrl) openAuthUrl(this.tailscaleEnableUrl);
+    } else if (typeof status0.AuthURL === "string" && status0.AuthURL) {
+      openAuthUrl(status0.AuthURL);
+    } else {
+      const args = this.tailscaleArgs("up", "--unattended", "--timeout=300s");
+      this.output.appendLine(`[bridge] one-click connect: tailscale ${args.join(" ")}`);
+      child = (0, import_node_child_process7.spawn)(this.tailscaleExecutable, args, { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+      const onData = (chunk) => {
+        childOutput += String(chunk);
+        if (childOutput.length > 2e4) childOutput = childOutput.slice(-2e4);
+        const url = childOutput.match(/https:\/\/login\.tailscale\.com\/[^\s"']+/i)?.[0];
+        if (url) openAuthUrl(url);
+      };
+      child.stdout?.on("data", onData);
+      child.stderr?.on("data", onData);
+      child.on("error", (error2) => {
+        childExited = true;
+        childOutput += `
+${error2.message}`;
+      });
+      child.on("exit", () => {
+        childExited = true;
+      });
+    }
+    const deadline = Date.now() + 3e5;
+    let running = false;
+    try {
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 2e3));
+        try {
+          const current = await this.readTailscaleStatus();
+          if (typeof current.AuthURL === "string" && current.AuthURL) openAuthUrl(current.AuthURL);
+          if (String(current.BackendState ?? "") === "Running") {
+            reachedRunning = true;
+            await this.checkTailscale();
+            if (this.tunnelConfigValid) {
+              running = true;
+              break;
+            }
+            if (this.tailscaleEnableUrl) openAuthUrl(this.tailscaleEnableUrl);
+          }
+        } catch {
+        }
+        if (childExited && !opened.size && !running && !reachedRunning) {
+          // login/up 已退出却没给出登录链接：多半是报错，按原文提示。
+          break;
+        }
+      }
+    } finally {
+      if (child && !childExited) {
+        try {
+          child.kill();
+        } catch {
+        }
+      }
+    }
+    await this.checkTailscale();
+    if (!running && !this.tunnelConfigValid && !reachedRunning) {
+      const detail = childOutput.trim().slice(-600);
+      this.lastError = Date.now() >= deadline ? "Tailscale \u767B\u5F55\u7B49\u5F85\u8D85\u65F6\uFF085 \u5206\u949F\uFF09\uFF0C\u53EF\u518D\u70B9\u4E00\u6B21\u300C\u4E00\u952E\u8FDE\u63A5\u300D\u3002" : `Tailscale \u8FDE\u63A5\u5931\u8D25${detail ? `\uFF1A${detail}` : "\u3002"}`;
+    }
     return this.getStatus();
   }
   cloudflaredExecutableCandidates() {
@@ -1254,7 +1965,7 @@ ${custom}` : builtIn;
   /** Tunnel binary image name for orphan identity verification (e.g. `ngrok.exe`). */
   currentTunnelImage() {
     const isCloudflare = this.tunnelProvider === "cloudflare" || this.tunnelProvider === "cloudflare-named";
-    const image = import_node_path27.default.basename(isCloudflare ? this.cloudflaredExecutable : this.ngrokExecutable);
+    const image = import_node_path27.default.basename(isCloudflare ? this.cloudflaredExecutable : this.tunnelProvider === "tailscale" ? this.tailscaleExecutable || "tailscale" : this.ngrokExecutable);
     return process.platform === "win32" && !image.toLowerCase().endsWith(".exe") ? `${image}.exe` : image;
   }
   /** Remember our tunnel child for the next holder's reclaim (singleton scopes only). */
@@ -1371,6 +2082,8 @@ ${custom}` : builtIn;
         this.restoreConfiguredNamedDomain();
         this.namedTunnelLocalPort = this.readNamedTunnelLocalPort();
         this.domain = this.configuredNamedDomain;
+      } else if (this.tunnelProvider === "tailscale") {
+        this.domain = this.configuredDomainForProvider("tailscale");
       } else {
         this.domain = "";
       }
@@ -1380,7 +2093,9 @@ ${custom}` : builtIn;
       stage = "tunnel-client";
       const tunnel = await this.checkTunnel();
       checkCancelled();
+      if (!tunnel.tunnelInstalled && this.tunnelProvider === "tailscale") throw new Error(this.lastError ?? "tailscale.exe was not found.");
       if (!tunnel.tunnelInstalled) throw new BridgeStartError(this.tunnelProvider === "ngrok" ? "ngrok-missing" : "cloudflared-missing", this.lastError ?? `${this.tunnelProvider} tunnel client is not installed.`);
+      if (!tunnel.tunnelConfigValid && this.tunnelProvider === "tailscale") throw new Error(this.lastError ?? "Tailscale is not ready.");
       if (!tunnel.tunnelConfigValid) throw new BridgeStartError(this.tunnelConfigFailureCode(), this.lastError ?? `${this.tunnelProvider} tunnel configuration is invalid.`);
       stage = "lease";
       await this.acquireTunnelLeaseOrFallbackToCloudflare();
@@ -1427,8 +2142,55 @@ ${custom}` : builtIn;
     if (payload?.ok !== true) throw new Error("Bridge local HTTP health check did not confirm readiness.");
     this.output.appendLine(`[bridge] local health verified: ${url2}`);
   }
+  /** 原有的系统代理解析：http.proxySupport / http.proxy / 环境变量 / Windows 系统代理。 */
+  systemTunnelProxyUrl(target = "https://www.cloudflare.com/") {
+    const httpConfiguration = vscode9.workspace.getConfiguration("http");
+    if (httpConfiguration.get("proxySupport") === "off") return void 0;
+    return resolveExtensionHostProxy(new URL(target), httpConfiguration.get("proxy")?.trim()) || void 0;
+  }
+  /** tunnel-proxy-step01：隧道程序实际使用的代理。system 沿用原逻辑；direct 不用代理；node 用内置 mihomo 的本机端口。 */
+  tunnelProxyUrl(target) {
+    const mode = this.tunnelProxy?.tunnelProxyMode() ?? "system";
+    if (mode === "direct") return void 0;
+    if (mode === "node") return this.tunnelProxy.nodeProxyUrl();
+    return this.systemTunnelProxyUrl(target);
+  }
+  /** direct / node 模式：去掉继承的代理变量；node 模式再指向内置 mihomo。 */
+  applyTunnelProxyOverride(env10) {
+    for (const key of Object.keys(env10)) {
+      if (/^(https?|all)_proxy$/i.test(key)) delete env10[key];
+    }
+    const proxyUrl = this.tunnelProxyUrl();
+    if (proxyUrl) {
+      env10.HTTPS_PROXY = proxyUrl;
+      env10.HTTP_PROXY = proxyUrl;
+      if (!env10.NO_PROXY && !env10.no_proxy) env10.NO_PROXY = "localhost,127.0.0.1,::1";
+    }
+    return env10;
+  }
+  tailscaledProxySignature(env10 = this.tailscaledProcessEnvironment(true)) {
+    return `${env10.HTTPS_PROXY ?? env10.https_proxy ?? env10.ALL_PROXY ?? env10.all_proxy ?? ""}|${env10.TS_DEBUG_ALWAYS_USE_DERP ?? ""}`;
+  }
+  /** 隧道代理变了（模式、系统代理地址）而免安装版 tailscaled 还在用旧代理：先结束它，随后按新代理重新拉起。Funnel 运行中不动。 */
+  async restartPortableTailscaledIfProxyChanged() {
+    if (process.platform !== "win32" || this.tunnelProcess || !this.tailscaleSocket || !import_node_path27.default.isAbsolute(this.tailscaleExecutable ?? "")) return;
+    const daemon = import_node_path27.default.join(import_node_path27.default.dirname(this.tailscaleExecutable), "tailscaled.exe");
+    if (!(0, import_node_fs21.existsSync)(daemon)) return;
+    const wanted = this.tailscaledProxySignature();
+    if (this.context.globalState.get(TAILSCALED_PROXY_STATE_KEY) === wanted) return;
+    try {
+      await this.readTailscaleStatus();
+    } catch {
+      return;
+    }
+    this.output.appendLine("[bridge] tunnel proxy changed; restarting portable tailscaled so it uses the new proxy.");
+    const escaped = daemon.replace(/'/g, "''");
+    await execFileAsync2("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", `Get-CimInstance Win32_Process -Filter "Name='tailscaled.exe'" | Where-Object { $_.ExecutablePath -eq '${escaped}' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { windowsHide: true, timeout: 15e3 }).catch((error2) => this.output.appendLine(`[bridge] could not stop portable tailscaled: ${error2 instanceof Error ? error2.message : String(error2)}`));
+    await new Promise((resolve) => setTimeout(resolve, 800));
+  }
   tunnelProcessEnvironment() {
     const env10 = { ...process.env };
+    if (this.tunnelProvider === "tailscale") return env10;
     if (this.tunnelProvider === "ngrok") {
       return this.ngrokProcessEnvironment(env10);
     }
@@ -1444,6 +2206,10 @@ ${custom}` : builtIn;
         if (forceConfiguredProxy || !env10.HTTP_PROXY && !env10.http_proxy && !hasAllProxy) env10.HTTP_PROXY = proxyUrl;
         this.output.appendLine("[bridge] tunnel process will use configured/system HTTP proxy settings.");
       }
+    }
+    if ((this.tunnelProxy?.tunnelProxyMode() ?? "system") !== "system") {
+      this.applyTunnelProxyOverride(env10);
+      this.output.appendLine(`[bridge] tunnel process proxy: ${env10.HTTPS_PROXY ? "built-in tunnel proxy node" : "direct (tunnel proxy set to direct)"}.`);
     }
     if (this.tunnelProvider === "cloudflare-named") env10.TUNNEL_TOKEN = this.namedTunnelToken;
     return env10;
@@ -1480,13 +2246,13 @@ ${custom}` : builtIn;
   }
   /** HTTP proxy for the Cloudflare edge: http.proxy, else the system proxy; none when proxy support is off. */
   cloudflareEdgeProxyUrl() {
-    const httpConfiguration = vscode9.workspace.getConfiguration("http");
-    if (httpConfiguration.get("proxySupport") === "off") return void 0;
-    return resolveExtensionHostProxy(new URL("https://region1.v2.argotunnel.com/"), httpConfiguration.get("proxy")?.trim()) || void 0;
+    return this.tunnelProxyUrl("https://region1.v2.argotunnel.com/");
   }
   /** T1: write the Bridge's own cloudflared config. T2: pick this attempt's route and run the relay for the proxy route. */
   async prepareQuickTunnelAttempt() {
-    const setting = normalizeEdgeRouteSetting(vscode9.workspace.getConfiguration("opencode").get(CLOUDFLARE_EDGE_ROUTE_SETTING));
+    await this.tunnelProxy?.ensureForTunnels();
+    const tunnelProxyMode = this.tunnelProxy?.tunnelProxyMode() ?? "system";
+    const setting = tunnelProxyMode === "node" ? "proxy" : tunnelProxyMode === "direct" ? "direct" : normalizeEdgeRouteSetting(vscode9.workspace.getConfiguration("opencode").get(CLOUDFLARE_EDGE_ROUTE_SETTING));
     const proxyUrl = this.cloudflareEdgeProxyUrl();
     this.quickTunnelRoute = chooseQuickTunnelRoute({ setting, proxyAvailable: Boolean(proxyUrl), directFailed: this.quickTunnelDirectFailed, proxyWorked: this.quickTunnelProxyWorked });
     const deadline2 = quickTunnelEdgeTimeoutMs({ setting, route: this.quickTunnelRoute, proxyAvailable: Boolean(proxyUrl) });
@@ -1496,6 +2262,8 @@ ${custom}` : builtIn;
     await (0, import_promises12.mkdir)(import_node_path27.default.dirname(configFile), { recursive: true });
     if (await (0, import_promises12.readFile)(configFile, "utf8").catch(() => "") !== QUICK_TUNNEL_CONFIG_TEXT) await (0, import_promises12.writeFile)(configFile, QUICK_TUNNEL_CONFIG_TEXT, "utf8");
     this.quickTunnelConfigFile = configFile;
+    this.quickTunnelPre = void 0;
+    this.quickTunnelPre = await this.provisionQuickTunnel(configFile);
     if (this.quickTunnelRoute === "direct") {
       await this.closeEdgeRelay();
       this.output.appendLine(`[bridge] quick tunnel: own cloudflared config, direct route (QUIC, falling back to HTTP/2)${this.quickTunnelProxyFallback ? `; the HTTP proxy route follows if no edge connection registers within ${Math.round(this.quickTunnelProbeMs / 1e3)} seconds` : ""}.`);
@@ -1508,6 +2276,51 @@ ${custom}` : builtIn;
       this.edgeRelayProxy = proxyUrl;
     }
     this.output.appendLine(`[bridge] quick tunnel: own cloudflared config, HTTP/2 through the local relay 127.0.0.1:${this.edgeRelay.port} and the HTTP proxy (CONNECT to the Cloudflare edge on port 7844).`);
+  }
+  /**
+   * Ask trycloudflare.com for the Quick Tunnel ourselves: cloudflared's own request ignores HTTP proxies, so once this IP
+   * is rate-limited (429 / error 1015) every start fails. Try direct first, then through the tunnel HTTP proxy; cloudflared
+   * then runs with the returned credentials and still connects to the edge on the chosen route.
+   */
+  async provisionQuickTunnel(configFile) {
+    const api = "https://api.trycloudflare.com/tunnel";
+    const proxyUrl = this.tunnelProxyUrl(api);
+    const routes = [void 0];
+    if (proxyUrl) routes.push(proxyUrl);
+    let limited = false;
+    let lastError = "";
+    for (const via of routes) {
+      const args = via ? ["-x", via] : ["--noproxy", "*"];
+      args.push("-s", "-m", "25", "-X", "POST", "-w", "\n%{http_code}", api);
+      let out = "";
+      try {
+        out = String((await execFileAsync2(process.platform === "win32" ? "curl.exe" : "curl", args, { windowsHide: true, timeout: 3e4, cwd: import_node_os7.default.tmpdir() })).stdout ?? "");
+      } catch (error2) {
+        lastError = error2 instanceof Error ? error2.message.split("\n")[0] : String(error2);
+        continue;
+      }
+      const nl = out.lastIndexOf("\n");
+      const code = Number(out.slice(nl + 1).trim());
+      const body = nl >= 0 ? out.slice(0, nl) : "";
+      if (code === 429 || code !== 200 && /1015/.test(body)) {
+        limited = true;
+        this.output.appendLine(`[bridge] quick tunnel API ${via ? "through the HTTP proxy" : "direct"}: rate limited (429 / error 1015).`);
+        continue;
+      }
+      let result;
+      try { result = JSON.parse(body)?.result; } catch { result = void 0; }
+      if (code !== 200 || !result?.id || !result?.secret || !result?.hostname) {
+        lastError = `HTTP ${code}`;
+        continue;
+      }
+      const credsFile = import_node_path27.default.join(import_node_path27.default.dirname(configFile), "quick-tunnel-credentials.json");
+      await (0, import_promises12.writeFile)(credsFile, JSON.stringify({ AccountTag: result.account_tag, TunnelSecret: result.secret, TunnelID: result.id }), { encoding: "utf8", mode: 384 });
+      this.output.appendLine(`[bridge] quick tunnel requested ${via ? "through the HTTP proxy" : "directly"}; cloudflared runs with its credentials.`);
+      return { host: String(result.hostname).toLowerCase(), id: String(result.id), credsFile };
+    }
+    if (limited) throw new Error("quick tunnel provisioning failed with status 429: error code: 1015 (direct and through the HTTP proxy)");
+    if (lastError) this.output.appendLine(`[bridge] quick tunnel pre-request unavailable (${lastError}); cloudflared requests it itself.`);
+    return void 0;
   }
   async closeEdgeRelay() {
     const relay = this.edgeRelay;
@@ -1529,9 +2342,11 @@ ${custom}` : builtIn;
     }
     if (!this.currentLocalPort()) throw new Error("Bridge local HTTP port is unavailable.");
     const isCloudflare = this.tunnelProvider === "cloudflare" || this.tunnelProvider === "cloudflare-named";
-    const command = isCloudflare ? this.cloudflaredExecutable : this.ngrokExecutable;
-    const commandLabel = isCloudflare ? "cloudflared" : "ngrok";
-    const args = this.tunnelProvider === "cloudflare" ? quickTunnelArgs({ localPort: Number(this.currentLocalPort()), configFile: this.quickTunnelConfigFile, route: this.quickTunnelRoute, relayPort: this.edgeRelay?.port }) : this.tunnelProvider === "cloudflare-named" ? ["tunnel", "run"] : ["http", String(this.currentLocalPort()), "--url", `https://${this.configuredDomain}`, "--log=stdout", "--log-format=json"];
+    const isTailscale = this.tunnelProvider === "tailscale";
+    const command = isCloudflare ? this.cloudflaredExecutable : isTailscale ? this.tailscaleExecutable : this.ngrokExecutable;
+    const commandLabel = isCloudflare ? "cloudflared" : isTailscale ? "tailscale" : "ngrok";
+    const args = isTailscale ? this.tailscaleArgs("funnel", String(this.currentLocalPort())) : this.tunnelProvider === "cloudflare" ? quickTunnelArgs({ localPort: Number(this.currentLocalPort()), configFile: this.quickTunnelConfigFile, route: this.quickTunnelRoute, relayPort: this.edgeRelay?.port }) : this.tunnelProvider === "cloudflare-named" ? ["tunnel", "run"] : ["http", String(this.currentLocalPort()), "--url", `https://${this.configuredDomain}`, "--log=stdout", "--log-format=json"];
+    if (this.tunnelProvider === "cloudflare" && this.quickTunnelPre) args.push("run", "--credentials-file", this.quickTunnelPre.credsFile, this.quickTunnelPre.id);
     const child = (0, import_node_child_process7.spawn)(command, args, {
       windowsHide: true,
       stdio: ["pipe", "pipe", "pipe"],
@@ -1541,6 +2356,8 @@ ${custom}` : builtIn;
     this.ngrokSessionOffline = false;
     this.cloudflareSessionOffline = false;
     this.recordOwnedTunnel(child.pid);
+    __ocChildTree.add(child.pid);
+    child.once("exit", () => __ocChildTree.delete(child.pid));
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
     let stdoutTail = "";
@@ -1565,22 +2382,11 @@ ${custom}` : builtIn;
         this.lastError = void 0;
         this.startFailure = void 0;
         this.revision += 1;
+        this.output.appendLine("[bridge] ngrok session reconnected in place; reserved domain unchanged.");
       },
       probe: async () => (await this.requestPublicHealth(PUBLIC_HEALTH_REQUEST_TIMEOUT_MS * 3, target)).ok,
-      restart: () => {
-        this.lastError = "ngrok did not recover stably within 60 seconds; cleaning up the owned agent before restarting.";
-        this.state = "starting";
-        this.revision += 1;
-        this.logDuringShutdown(`[bridge] ${this.lastError}`);
-        void this.stopTunnelProcess().then(() => {
-          if (generation === this.tunnelGeneration && !this.stoppingResources && !this.disposed && this.mcpTransport.isListening()) this.beginTunnelRecovery();
-        }).catch((error2) => {
-          if (generation !== this.tunnelGeneration || this.stoppingResources || this.disposed) return;
-          this.state = "error";
-          this.lastError = error2 instanceof Error ? error2.message : String(error2);
-          this.recordStartFailure(error2, "reconnect");
-          this.revision += 1;
-        });
+      restart: (reason) => {
+        void restartOwnedTunnel(this, generation, "ngrok", reason ?? "deadline");
       },
       schedule: (callback, ms) => {
         const timer = setTimeout(callback, ms);
@@ -1601,7 +2407,8 @@ ${custom}` : builtIn;
       if (stdout) stdoutTail = tail.slice(-16e3);
       else stderrTail = tail.slice(-16e3);
     };
-    const cloudflareRecovery = this.tunnelProvider === "cloudflare" ? createCloudflareRecoveryObserver({
+    const cloudflareProvider = this.tunnelProvider;
+    const cloudflareRecovery = isCloudflare ? createCloudflareRecoveryObserver({
       isActive: () => this.tunnelProcess === child && generation === this.tunnelGeneration && !this.stoppingResources && !this.disposed && !this.stopTunnelProcessInFlight && child.exitCode === null && child.signalCode === null && this.mcpTransport.isListening(),
       isRunning: () => this.state === "running",
       isReconnecting: () => this.cloudflareSessionOffline,
@@ -1618,6 +2425,17 @@ ${custom}` : builtIn;
         this.lastError = void 0;
         this.startFailure = void 0;
         this.revision += 1;
+        this.output.appendLine(`[bridge] ${cloudflareProvider} edge connection re-registered; tunnel recovered in place (address unchanged).`);
+      },
+      // The owned cloudflared stays alive but its tunnel is gone/unauthorized (or never re-registered): stop it and
+      // start again through the shared recovery loop (Quick Tunnel: new address; Named Tunnel: same token/hostname).
+      restart: (reason) => {
+        void restartOwnedTunnel(this, generation, cloudflareProvider, reason);
+      },
+      schedule: (callback, ms) => {
+        const timer = setTimeout(callback, ms);
+        timer.unref?.();
+        return () => clearTimeout(timer);
       }
     }) : void 0;
     const cancelCloudflare = () => cloudflareRecovery?.dispose();
@@ -1634,7 +2452,7 @@ ${custom}` : builtIn;
     const seenFailures = /* @__PURE__ */ new Set();
     let suppressionNoted = false;
     const forwardCloudflared = (chunk, stdout) => {
-      if (this.tunnelProvider !== "cloudflare") {
+      if (!isCloudflare) {
         this.output.append(`[${commandLabel}] ${String(chunk)}`);
         return;
       }
@@ -1689,7 +2507,7 @@ ${custom}` : builtIn;
       if (!this.stoppingResources && this.mcpTransport.isListening() && (this.state === "running" || this.ngrokSessionOffline || this.cloudflareSessionOffline)) {
         this.ngrokSessionOffline = false;
         this.cloudflareSessionOffline = false;
-        if (this.tunnelProvider === "cloudflare") this.domain = "";
+        if (!tunnelHasFixedAddress(this.tunnelProvider)) this.domain = "";
         this.state = "starting";
         this.revision += 1;
         const generation2 = this.tunnelGeneration;
@@ -1717,7 +2535,7 @@ ${custom}` : builtIn;
         const message2 = `${commandLabel} exited unexpectedly (code=${String(code)}, signal=${String(signal)}); reconnecting without stopping the local MCP server.`;
         this.logDuringShutdown(`[bridge] ${message2}`);
         this.lastError = message2;
-        if (this.tunnelProvider === "cloudflare") this.domain = "";
+        if (!tunnelHasFixedAddress(this.tunnelProvider)) this.domain = "";
         this.state = "starting";
         this.revision += 1;
         this.beginTunnelRecovery();
@@ -1760,7 +2578,7 @@ ${custom}` : builtIn;
             finish(new Error(`cloudflared Quick Tunnel API TLS certificate verification failed. ${output2.trim().slice(-4e3)}`));
             return;
           }
-          const matches = output2.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/ig);
+          const matches = this.quickTunnelPre ? [`https://${this.quickTunnelPre.host}`] : output2.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/ig);
           const tunnelUrl = matches?.find((candidate) => new URL(candidate).hostname.toLowerCase() !== "api.trycloudflare.com");
           if (tunnelUrl) {
             quickTunnelHostname = new URL(tunnelUrl).hostname.toLowerCase();
@@ -1770,6 +2588,24 @@ ${custom}` : builtIn;
           if (quickTunnelUrlReceived && quickTunnelEdgeRegistered) {
             if (this.tunnelProcess === child && !this.stoppingResources && this.domain !== quickTunnelHostname) {
               this.domain = quickTunnelHostname;
+              this.revision += 1;
+            }
+            finish();
+          }
+          return;
+        }
+        if (this.tunnelProvider === "tailscale") {
+          const enableUrl = output2.match(/https:\/\/login\.tailscale\.com\/[^\s"']+/i)?.[0];
+          if (enableUrl || lower.includes("funnel is not enabled") || lower.includes("not available") || lower.includes("needslogin") || lower.includes("access denied")) {
+            finish(new Error(`Tailscale Funnel \u6CA1\u6709\u5F00\u542F\u6216\u65E0\u6743\u9650${enableUrl ? `\uFF0C\u6253\u5F00 ${enableUrl} \u5F00\u542F\u540E\u518D\u542F\u52A8 Bridge` : ""}\u3002 ${output2.trim().slice(-2e3)}`));
+            return;
+          }
+          const url3 = output2.match(/https:\/\/[a-z0-9.-]+\.ts\.net/i)?.[0];
+          if (url3 && lower.includes("available on the internet")) {
+            const host = new URL(url3).hostname.toLowerCase();
+            if (this.tunnelProcess === child && !this.stoppingResources && this.domain !== host) {
+              this.domain = host;
+              this.tailscaleDomain = host;
               this.revision += 1;
             }
             finish();
@@ -1811,12 +2647,14 @@ ${custom}` : builtIn;
           const reason = quickTunnelUrlReceived ? "cloudflared created a trycloudflare.com URL but did not register a Cloudflare edge connection within 120 seconds" : "cloudflared did not provide a trycloudflare.com URL within 120 seconds";
           const relayDetail = this.quickTunnelRelayDetail();
           finish(new Error(`${reason}.${relayDetail}${cloudflaredEdgeFailureHint(output2 + relayDetail, this.quickTunnelRoute === "proxy")} ${output2.trim().slice(-4e3)}`));
+        } else if (this.tunnelProvider === "tailscale") {
+          finish(new Error(`tailscale funnel \u5728 30 \u79D2\u5185\u6CA1\u6709\u786E\u8BA4\u516C\u7F51\u5730\u5740\u3002 ${output2.trim().slice(-2e3)}`));
         } else if (this.tunnelProvider === "ngrok") {
           finish(new Error("ngrok did not confirm the reserved endpoint within 60 seconds. The endpoint is not reported online; check the owned agent log and ngrok Active Endpoints dashboard."));
         } else {
           finish();
         }
-      }, this.tunnelProvider === "cloudflare" ? 12e4 : this.tunnelProvider === "ngrok" ? 6e4 : 5e3);
+      }, this.tunnelProvider === "cloudflare" ? 12e4 : this.tunnelProvider === "ngrok" ? 6e4 : this.tunnelProvider === "tailscale" ? 3e4 : 5e3);
       const probe = this.tunnelProvider === "cloudflare" && this.quickTunnelProbeMs > 0 ? setTimeout(() => {
         if (quickTunnelUrlReceived && !quickTunnelEdgeRegistered) {
           finish(new Error(`cloudflared created a trycloudflare.com URL but did not register a Cloudflare edge connection within ${Math.round(this.quickTunnelProbeMs / 1e3)} seconds on the direct route.${cloudflaredEdgeFailureHint(output2)} ${output2.trim().slice(-4e3)}`));
@@ -1897,6 +2735,8 @@ ${custom}` : builtIn;
         if (this.tunnelProvider === "cloudflare") {
           if (this.quickTunnelRoute === "proxy") this.quickTunnelProxyWorked = true;
           this.output.appendLine(`[bridge] quick tunnel URL received and Cloudflare edge connection registered${this.quickTunnelRoute === "proxy" ? " through the HTTP proxy relay" : ""}; local health is ready and public health is not used as a startup gate: ${this.publicHealthUrl()}`);
+        } else if (this.tunnelProvider === "tailscale") {
+          this.output.appendLine(`[bridge] tailscale funnel started (agent-confirmed) for https://${this.domain}; public health is not used as a startup gate.`);
         } else if (this.tunnelProvider === "ngrok") {
           this.output.appendLine("[bridge] ngrok reserved endpoint started (agent-confirmed); local health is ready and public health is not used as a startup gate (endpoint available in Bridge status).");
         } else {
@@ -2038,11 +2878,15 @@ ${custom}` : builtIn;
     if (this.stoppingResources || !this.mcpTransport.isListening()) return;
     if (this.tunnelRecoveryPromise && this.tunnelRecoveryGeneration === this.tunnelGeneration) return;
     const generation = this.tunnelGeneration;
+    const previousDomain = tunnelHasFixedAddress(this.tunnelProvider) ? this.domain : "";
     const recovery = (async () => {
       let attempt = 0;
+      let rateLimited = false;
       this.noteReconnecting(1);
       while (!this.stoppingResources && this.mcpTransport.isListening() && generation === this.tunnelGeneration) {
-        const delayMs = this.tunnelProvider === "cloudflare" && attempt > 0 ? 6e4 : TUNNEL_RESTART_BACKOFF_MS[Math.min(attempt, TUNNEL_RESTART_BACKOFF_MS.length - 1)];
+        const delayMs = tunnelRecoveryDelayMs(this.tunnelProvider, attempt, rateLimited);
+        if (rateLimited) this.output.appendLine(`[bridge] trycloudflare.com rate limit (429 / error 1015); waiting ${Math.round(delayMs / 60e3)} minutes before the next Quick Tunnel request.`);
+        rateLimited = false;
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         if (this.stoppingResources || !this.mcpTransport.isListening() || generation !== this.tunnelGeneration) return;
         try {
@@ -2053,12 +2897,22 @@ ${custom}` : builtIn;
           this.lastError = void 0;
           this.startFailure = void 0;
           this.revision += 1;
-          this.output.appendLine(`[bridge] ${this.tunnelProvider} tunnel recovered: ${this.getStatus().publicUrl}`);
+          this.output.appendLine(tunnelRecoveredMessage(this.tunnelProvider, this.getStatus().publicUrl, previousDomain, this.domain));
           return;
         } catch (error2) {
           this.lastError = error2 instanceof Error ? error2.message : String(error2);
           this.output.appendLine(`[bridge] ${this.tunnelProvider} reconnect attempt ${attempt + 1} failed: ${this.lastError}`);
-          if (this.isDeterministicTunnelFailure(error2) && !(this.tunnelProvider === "ngrok" && mayRetryNgrokReplacement(error2, attempt + 1))) {
+          if (this.tunnelProvider === "cloudflare") {
+            rateLimited = QUICK_TUNNEL_RATE_LIMIT_PATTERN.test(this.lastError ?? "");
+            // The proxy relay is only a fallback for a failed direct route. When it fails too,
+            // forget both verdicts so the next attempt probes direct again: the network may have
+            // recovered while the proxy keeps failing (seen: a proxy answering :7844 with a 2020 cert).
+            if (this.quickTunnelRoute === "proxy") {
+              this.quickTunnelDirectFailed = false;
+              this.quickTunnelProxyWorked = false;
+            }
+          }
+          if (tunnelRecoveryShouldStop(this.tunnelProvider, error2, attempt + 1)) {
             this.state = "error";
             this.recordStartFailure(error2, "reconnect");
             this.revision += 1;
@@ -2098,7 +2952,7 @@ ${custom}` : builtIn;
    * PATH_OUTSIDE_WORKSPACE. Only that one directory is added; the rest of the host stays outside.
    * A missing directory is tolerated by canonicalizeWorkspaceRoots().
    */
-  fileToolRoots() {
+  fileToolRoots(toolName) {
     const roots2 = vscode9.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [];
     let skills;
     try {
@@ -2107,6 +2961,9 @@ ${custom}` : builtIn;
       skills = void 0;
     }
     if (skills && !roots2.some((root) => import_node_path27.default.resolve(root).toLowerCase() === import_node_path27.default.resolve(skills).toLowerCase())) roots2.push(skills);
+    // The packaged instruction is readable without granting patch/write access to the extension.
+    const bundled = bundledLeanreaReadRoot(this.context.extensionPath, toolName);
+    if (bundled && !roots2.some((root) => import_node_path27.default.resolve(root).toLowerCase() === import_node_path27.default.resolve(bundled).toLowerCase())) roots2.push(bundled);
     if (this.readWorkspaceScope() === "device") {
       for (const root of deviceFileRoots()) {
         if (!roots2.some((existing) => import_node_path27.default.resolve(existing).toLowerCase() === import_node_path27.default.resolve(root).toLowerCase())) roots2.push(root);
@@ -2160,6 +3017,7 @@ ${custom}` : builtIn;
         this.logDuringShutdown(`[bridge] session teardown failed during stop (continuing to tunnel shutdown): ${error2 instanceof Error ? error2.message : String(error2)}`);
       }
       try {
+        await this.nativeRea?.closeAll();
         await this.externalRegistry?.stopAll();
       } catch (error2) {
         this.logDuringShutdown(`[external-mcp] shutdown incomplete (continuing to tunnel shutdown): ${error2 instanceof Error ? error2.message : String(error2)}`);
@@ -2212,4 +3070,7 @@ ${custom}` : builtIn;
     });
   }
 };
+// Windows does not end child processes with their parent: track spawned helper trees and end them when the extension host exits,
+// so nothing keeps files under the portable install (e.g. data\tmp) open after OpenCode closes.
+var __ocChildTree = globalThis.__opencodeChildTree ??= (() => { const pids = new Set(); const killTree = (pid) => { if (!pid) return false; try { if (process.platform === "win32") { const r = require("node:child_process").spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { windowsHide: true, timeout: 5e3, stdio: "ignore" }); return r.status === 0; } process.kill(pid, "SIGKILL"); return true; } catch { return false; } }; process.once("exit", () => { for (const pid of pids) killTree(pid); pids.clear(); }); return { add: (pid) => { if (pid) pids.add(pid); }, delete: (pid) => { pids.delete(pid); }, killTree }; })();
 export { publicHealthFailure, cloudflaredEdgeFailureHint, bridgeWorkspaceScopeInstructions, normalizeHttpsHostname, normalizeNgrokDomain, normalizeCloudflareNamedDomain, normalizeNamedTunnelLocalPort, cancellationFromAbortSignal, import_node_child_process7, import_node_path27, import_node_util2, vscode9, import_promises12, import_node_os7, execFileAsync2, NGROK_DOMAIN_SETTING, NGROK_DOMAIN_STATE_KEY, CLOUDFLARE_NAMED_DOMAIN_SETTING, CLOUDFLARE_NAMED_DOMAIN_STATE_KEY, CLOUDFLARE_NAMED_TOKEN_SECRET, CLOUDFLARE_NAMED_LOCAL_PORT_SETTING, TUNNEL_PROVIDER_SETTING, CUSTOM_INSTRUCTIONS_SETTING, BRIDGE_SKILLS_ENABLED_SETTING, BRIDGE_WORKSPACE_SCOPE_SETTING, NGROK_USE_HTTP_PROXY_SETTING, DEFAULT_PUBLIC_HEALTH_STARTUP_TIMEOUT_MS, PUBLIC_HEALTH_STARTUP_TIMEOUT_SETTING, PUBLIC_HEALTH_REQUEST_TIMEOUT_MS, PUBLIC_HEALTH_POLL_INTERVAL_MS, PUBLIC_HEALTH_DETERMINISTIC_FAILURE_LIMIT, TUNNEL_RESTART_BACKOFF_MS, TUNNEL_TERMINATE_GRACE_MS, TUNNEL_KILL_GRACE_MS, NGROK_AGENT_API_BASE_URL, NGROK_AGENT_API_TIMEOUT_MS, CLOUDFLARED_WINGET_PACKAGE, DEFAULT_CLOUDFLARE_NAMED_LOCAL_PORT, BridgeManager };

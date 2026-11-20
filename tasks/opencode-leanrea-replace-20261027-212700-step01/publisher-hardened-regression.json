@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "firstPublish": true,
+  "incrementalUpdate": true,
+  "unchangedFilesSkipped": true,
+  "obsoleteManagedFilesRemoved": true,
+  "customizedManagedFilesPreserved": true,
+  "unknownUserFilesPreserved": true,
+  "unmanagedNameConflictsRejected": true,
+  "userDataPreserved": true,
+  "injectedFailureRolledBack": true,
+  "scope": "E:\\OpenCode-Source-Recovery-20261013\\tasks\\opencode-leanrea-replace-20261027-212700-step01\\isolated-publisher-hardened-jue567dv/generated/publisher-test-1793108621579"
+}

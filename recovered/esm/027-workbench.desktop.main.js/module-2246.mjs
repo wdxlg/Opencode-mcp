@@ -272,8 +272,7 @@ function createInputRequestPlanReview(inputReq, planReview, resourceUris) {
       id: action.id,
       label: action.label,
       ...action.description ? { description: action.description } : {},
-      ...action.default ? { default: true } : {},
-      ...action.permissionLevel ? { permissionLevel: action.permissionLevel } : {}
+      ...action.default ? { default: true } : {}
     })),
     planReview.canProvideFeedback,
     planReview.planUri ? resourceUris.fromAgentHost(URI.parse(planReview.planUri)).toJSON() : void 0,

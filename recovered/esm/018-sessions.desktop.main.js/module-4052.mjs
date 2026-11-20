@@ -26,6 +26,26 @@ import { IEnvironmentService } from "./module-0508.mjs";
 
 
 // src/vs/platform/agentHost/browser/remoteAgentHostServiceImpl.ts
+// OpenCode p30: 连接类错误（ConnectError / HTTP2 GOAWAY / 流重连失败）去重：同一条错误每分钟只记一次 warn，并附带被省略的次数；重连本身沿用 reconnectPolicy 的指数退避 1s,2s,4s…封顶 30s
+var ocP30LastLog = /* @__PURE__ */ new Map();
+function ocP30WarnOnce(logService, message, err) {
+  const detail = err === void 0 ? "" : err instanceof Error ? `${err.name && err.name !== "Error" ? err.name + ": " : ""}${err.message}` : String(err);
+  const key = `${message}|${detail}`;
+  const now = Date.now();
+  const prev = ocP30LastLog.get(key);
+  if (prev && now - prev.at < 6e4) {
+    prev.suppressed++;
+    return;
+  }
+  const suffix = prev?.suppressed ? ` (重复 ${prev.suppressed} 次已省略)` : "";
+  ocP30LastLog.set(key, { at: now, suppressed: 0 });
+  if (ocP30LastLog.size > 200) {
+    for (const [k, v] of ocP30LastLog) {
+      if (now - v.at >= 6e4) ocP30LastLog.delete(k);
+    }
+  }
+  logService.warn(detail ? `${message}: ${detail}${suffix}` : `${message}${suffix}`);
+}
 function disposeEntry(entry) {
   entry.store.dispose();
   entry.transportDisposable?.dispose();
@@ -463,7 +483,7 @@ var RemoteAgentHostService = class extends Disposable {
     try {
       createdConnection = await factory.createConnection(entryToCreate, options3);
     } catch (err) {
-      this._logService.error(`[RemoteAgentHost] Failed to create a connection to ${address}. Verify address and connectionToken`, err);
+      ocP30WarnOnce(this._logService, `[RemoteAgentHost] Failed to create a connection to ${address}. Verify address and connectionToken`, err); // OpenCode p30: 降为去重 warn
       this._rejectPendingConnectionWait(address, err);
       if (!this._store.isDisposed && this._configurationService.getValue(RemoteAgentHostsEnabledSettingId)) {
         this._scheduleReconnect(address, entryToCreate.connectionToken);
@@ -490,7 +510,7 @@ var RemoteAgentHostService = class extends Disposable {
       if (!isCurrentEntry()) {
         return;
       }
-      this._logService.warn(`[RemoteAgentHost] Connection closed: ${address}`);
+      ocP30WarnOnce(this._logService, `[RemoteAgentHost] Connection closed: ${address}`); // OpenCode p30: 去重
       entry.connected = false;
       entry.status = RemoteAgentHostConnectionStatus.disconnected;
       this._onDidChangeConnections.fire();
@@ -551,7 +571,7 @@ var RemoteAgentHostService = class extends Disposable {
         this._onDidChangeConnections.fire();
         return;
       }
-      this._logService.error(`[RemoteAgentHost] Failed to connect to ${address}. Verify address and connectionToken`, err);
+      ocP30WarnOnce(this._logService, `[RemoteAgentHost] Failed to connect to ${address}. Verify address and connectionToken`, err); // OpenCode p30: 降为去重 warn
       if (RemoteAgentHostConnectionStatus.isReconnecting(entry.status)) {
         this._logService.info(`[RemoteAgentHost] Handshake with ${address} was interrupted; the protocol client is restoring the connection`);
         return;

@@ -54,7 +54,9 @@ var AICustomizationManagementEditorInput = class _AICustomizationManagementEdito
   }
   getName() {
     const harnessLabel = _AICustomizationManagementEditorInput._activeHarnessLabel;
-    return harnessLabel ? localize(9529, null, harnessLabel) : localize(9528, null);
+    // OpenCode: 该编辑器标签页统一显示为「MCP」
+    void harnessLabel;
+    return "MCP";
   }
   getIcon() {
     return Codicon.settingsGear;

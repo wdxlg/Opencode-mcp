@@ -1,0 +1,40 @@
+{
+  "task": "opencode-multica-borrow-20261110-034000-step01",
+  "files": [
+    {
+      "path": "recovered/shared/multica/",
+      "purpose": "Multica 借鉴运行管理层源码（自写）",
+      "status": "active"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/multica/",
+      "purpose": "构建镜像（sync-shared 生成）",
+      "status": "generated"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0119.mjs",
+      "purpose": "tools/list+tools/call 接入",
+      "status": "modified"
+    },
+    {
+      "path": "scripts/sync-shared.cjs",
+      "purpose": "追加 multica 镜像块",
+      "status": "modified(仅我方 hunk)"
+    },
+    {
+      "path": "scripts/test-multica-borrow.mjs",
+      "purpose": "离线单测",
+      "status": "active"
+    },
+    {
+      "path": "tasks/opencode-multica-borrow-20261110-034000-step01/",
+      "purpose": "task.md/progress.md/tools/stage.cjs",
+      "status": "active"
+    },
+    {
+      "path": "docs/multica-borrow.md",
+      "purpose": "设计说明（收尾时新增，commit 85d73f71）",
+      "status": "active"
+    }
+  ]
+}

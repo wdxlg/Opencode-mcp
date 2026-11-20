@@ -117,7 +117,8 @@ var MainThreadWebviewPanels = class extends Disposable {
     });
   }
   $createWebviewPanel(extensionData, handle2, viewType, initData, showOptions) {
-    const targetGroup = this.getTargetGroupFromShowOptions(showOptions);
+    // OpenCode: 自家设置窗口以模态窗口显示（叠在当前界面上，不切换编辑器页面）
+    const targetGroup = /^opencode\.(tools|commands|attachContext|providers|skills|plugins)$/.test(viewType) ? -4 /* MODAL_GROUP */ : this.getTargetGroupFromShowOptions(showOptions);
     const mainThreadShowOptions = showOptions ? {
       preserveFocus: !!showOptions.preserveFocus,
       group: targetGroup
@@ -132,6 +133,10 @@ var MainThreadWebviewPanels = class extends Disposable {
       contentOptions: reviveWebviewContentOptions(initData.webviewOptions),
       extension
     }, this.webviewPanelViewType.fromExternal(viewType), initData.title, void 0, mainThreadShowOptions);
+    // OpenCode ctxframe1825: 「添加上下文」窗口内容很紧凑，模态框按内容大小（680x560）居中显示，最大化/弹出不受影响
+    if (viewType === "opencode.attachContext" && webview && typeof webview.getModalEditorOptions !== "function") {
+      webview.getModalEditorOptions = () => ({ preferredSize: { width: 680, height: 560 } });
+    }
     this.addWebviewInput(handle2, webview, { serializeBuffersForPostMessage: initData.serializeBuffersForPostMessage });
   }
   $disposeWebview(handle2) {

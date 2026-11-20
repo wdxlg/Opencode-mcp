@@ -130,6 +130,8 @@ var BaseWindow = class extends Disposable {
     const res = await dialogService.confirm({
       message,
       primaryButton,
+      // OpenCode: use the in-app dialog style, so the window close button stays usable (closing again quits)
+      custom: true,
       checkbox: {
         label: localize(6994, null)
       }

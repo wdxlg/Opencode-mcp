@@ -10,6 +10,7 @@ import { FILE_TOOL_DEFINITIONS, invokeFileTool } from "./module-0100.mjs";
 import { external_exports } from "./module-0004.mjs";
 import { fromJsonSchema2 } from "./module-0087.mjs";
 import { StdioServerTransport } from "./module-0088.mjs";
+import { MEMORY_TOOL_DEFINITIONS, MEMORY_TOOL_NAMES, brief, briefWithScratchCatalog, executeMemoryTool, getMemoryDir, resolveScratchBucketDir } from "./project-memory.mjs";
 
 
 // src/mcp-server.ts
@@ -114,6 +115,23 @@ var BATCH_TOOLS_TOOL = {
 };
 
 function createFileToolsServer(dependencies = {}) {
+  const resolveWorkspaceRoots = () => dependencies.getWorkspaceRoots ?? getWorkspaceRoots;
+  const fileServerOwner = process.env.MCP_SESSION_ID ? `mcp-file:${process.env.MCP_SESSION_ID}` : `mcp-file:${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
+  let boundScratch = null;
+  let bootMemoryInstructions;
+  try {
+    const roots = resolveWorkspaceRoots()();
+    const scratchConfig = process.env.OPENCODE_SCRATCH_MEMORY_DIR || "";
+    const scope = process.env.MCP_MEMORY_SCOPE === "scratch" ? "scratch" : (roots[0] || "scratch");
+    if (scope === "scratch") {
+      const scratchRoot = getMemoryDir("scratch", scratchConfig);
+      const bucket = resolveScratchBucketDir(scratchRoot, { owner: fileServerOwner });
+      bootMemoryInstructions = `===== OpenCode 临时记忆 scratch-memory [隔离桶: ${bucket.bucketId}] =====\n${briefWithScratchCatalog(bucket.dir, scratchRoot, bucket.bucketId, 230)}`;
+    } else {
+      const memDir = getMemoryDir(scope, scratchConfig);
+      bootMemoryInstructions = `===== OpenCode 轻量档案袋记忆 (.opencode-project) =====\n${brief(memDir, 230)}`;
+    }
+  } catch {}
   const server = new McpServer(
     {
       name: "opencode-file-tools",
@@ -122,14 +140,45 @@ function createFileToolsServer(dependencies = {}) {
     },
     {
       capabilities: { tools: {} },
+      ...bootMemoryInstructions ? { instructions: bootMemoryInstructions } : {},
       cacheHints: {
         "tools/list": { ttlMs: 6e4, cacheScope: "public" },
         "server/discover": { ttlMs: 3e5, cacheScope: "public" }
       }
     }
   );
-  const resolveInvokeTool = () => dependencies.invokeTool ?? invokeFileTool;
-  const resolveWorkspaceRoots = () => dependencies.getWorkspaceRoots ?? getWorkspaceRoots;
+  const resolveInvokeTool = () => {
+    const baseInvoke = dependencies.invokeTool ?? invokeFileTool;
+    return async (toolName, toolArgs, toolCtx) => {
+      if (MEMORY_TOOL_NAMES.has(toolName)) {
+        const roots = Array.isArray(toolCtx?.workspaceRoots) ? toolCtx.workspaceRoots : resolveWorkspaceRoots()();
+        const scratchDir = process.env.OPENCODE_SCRATCH_MEMORY_DIR || "";
+        const defaultScope = process.env.MCP_MEMORY_SCOPE === "scratch" ? "scratch" : (roots[0] || "scratch");
+        const payload = await executeMemoryTool(toolName, toolArgs || {}, {
+          owner: fileServerOwner,
+          scratchOwner: fileServerOwner,
+          workspaceRoots: roots,
+          scratchDirectory: scratchDir,
+          defaultWorkspaceId: defaultScope === "scratch" ? "scratch" : "project",
+          getBoundScratchId: () => boundScratch?.bucketId || "",
+          setBoundScratch: (_o, val) => { boundScratch = val; },
+          resolveMemoryDir: (wsId, extra = {}) => {
+            if (wsId === "scratch" || wsId === "global" || defaultScope === "scratch" || extra.scratchId || extra.topic) {
+              const scratchRoot = getMemoryDir("scratch", scratchDir);
+              return resolveScratchBucketDir(scratchRoot, {
+                owner: fileServerOwner,
+                scratchId: extra.scratchId || (extra.topic ? "" : (boundScratch?.bucketId || "")),
+                topic: extra.topic || ""
+              }).dir;
+            }
+            return getMemoryDir(defaultScope, scratchDir);
+          }
+        });
+        return { text: JSON.stringify(payload, null, 2), structuredContent: payload };
+      }
+      return baseInvoke(toolName, toolArgs, toolCtx);
+    };
+  };
   const resolveSignal = (ctx) => ctx?.mcpReq?.signal ?? ctx?.signal;
   const resolveProtocolEra = (ctx) => classifyProtocolEra(
     ctx?.mcpReq?.protocolVersion ?? ctx?.protocolVersion ?? ctx?.session?.protocolVersion ?? ctx?.transport?.protocolVersion
@@ -176,7 +225,7 @@ function createFileToolsServer(dependencies = {}) {
       handler
     );
   };
-  const allTools = [...FILE_TOOL_DEFINITIONS, BATCH_TOOLS_TOOL];
+  const allTools = [...FILE_TOOL_DEFINITIONS, ...MEMORY_TOOL_DEFINITIONS, BATCH_TOOLS_TOOL];
   for (const tool of allTools) {
     if (tool.name === BATCH_TOOLS_TOOL.name) {
       registerToolWithSchema(tool.name, tool, async (args, ctx) => {

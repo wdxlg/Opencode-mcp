@@ -1351,7 +1351,8 @@ function registerChatActions() {
   MenuRegistry.appendMenuItem(MenuId.ViewTitle, {
     command: {
       id: AICustomizationManagementCommands2.OpenEditor,
-      title: localize2(8560, "Open Customizations"),
+      // OpenCode: 对话视图右上角齿轮按钮直接叫「MCP」（打开 Bridge / MCP 设置页）
+      title: { value: "MCP", original: "MCP" },
       category: CHAT_CATEGORY,
       icon: Codicon.gear
     },

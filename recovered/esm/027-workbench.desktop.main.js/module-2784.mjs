@@ -6,7 +6,7 @@ import { localize } from "./module-0001.mjs";
 import { ChatSessionArchiveActionWordingSettingId, getChatSessionArchiveActionWording } from "./module-2494.mjs";
 import { ACTION_ID_NEW_CHAT } from "./module-1476.mjs";
 import { IChatSessionsService, SessionType } from "./module-0960.mjs";
-import { getChatSessionType, isUntitledChatSession } from "./module-0961.mjs";
+import { getChatSessionType } from "./module-0961.mjs";
 import { AICustomizationManagementCommands2 } from "./module-1472.mjs";
 import { AICustomizationManagementSection } from "./module-0995.mjs";
 import { showConfigureHooksQuickPick } from "./module-2550.mjs";
@@ -18,7 +18,6 @@ import { CONFIGURE_INSTRUCTIONS_ACTION_ID } from "./module-2166.mjs";
 import { CONFIGURE_PROMPTS_ACTION_ID } from "./module-2547.mjs";
 import { ContextKeyExpr } from "./module-0089.mjs";
 import { ChatContextKeys } from "./module-0965.mjs";
-import { toAgentHostBackendSessionUri } from "./module-2074.mjs";
 import { MarkdownString, isMarkdownString } from "./module-0462.mjs";
 import { agentSlashCommandToMarkdown, agentToMarkdown } from "./module-2275.mjs";
 import { timeout } from "./module-0036.mjs";
@@ -223,105 +222,6 @@ var ChatSlashCommandsContribution = class extends Disposable {
         chatService.setChatSessionTitle(sessionResource, title);
       }
     }));
-    const getAgentHostWorkingDirectory = (sessionResource) => {
-      return agentHostWorkingDirectoryResolver.resolve(sessionResource) ?? workspaceContextService.getWorkspace().folders[0]?.uri;
-    };
-    const readAgentHostConfigValues = (backendSession) => {
-      const state = agentHostService.getSubscriptionUnmanaged(1 /* Session */, backendSession)?.value;
-      return state && !(state instanceof Error) ? state.config?.values : void 0;
-    };
-    const setPermissionLevelForSession = async (sessionResource, level) => {
-      const backendSession = toAgentHostBackendSessionUri(sessionResource);
-      if (backendSession) {
-        const permittedLevel = configurationService.inspect("chat.tools.global.autoApprove" /* GlobalAutoApprove */).policyValue === false ? "default" /* Default */ : level;
-        const partial = { ["autoApprove" /* AutoApprove */]: permittedLevel };
-        const workingDirectory = getAgentHostWorkingDirectory(sessionResource);
-        if (isUntitledChatSession(sessionResource)) {
-          await agentHostProvisionalService.applyConfigChange(sessionResource, backendSession.scheme, workingDirectory, partial);
-          return;
-        }
-        agentHostService.dispatch(backendSession.toString(), {
-          type: "session/configChanged" /* SessionConfigChanged */,
-          config: partial
-        });
-        const nextConfig = { ...readAgentHostConfigValues(backendSession) ?? {}, ...partial };
-        void agentHostProvisionalService.refreshResolvedConfig(sessionResource, backendSession.scheme, workingDirectory, nextConfig);
-        return;
-      }
-      const widget = chatWidgetService.getWidgetBySessionResource(sessionResource) ?? chatWidgetService.lastFocusedWidget;
-      if (widget) {
-        widget.input.setPermissionLevel(level);
-      }
-    };
-    const autoApprovePolicyValue = configurationService.inspect("chat.tools.global.autoApprove" /* GlobalAutoApprove */).policyValue;
-    if (autoApprovePolicyValue !== false) {
-      this._store.add(slashCommandService.registerSlashCommand({
-        command: "autoApprove",
-        detail: localize(11195, null),
-        sortText: "z1_autoApprove",
-        executeImmediately: true,
-        silent: true,
-        locations: ["panel" /* Chat */],
-        sessionTypes: [SessionType.Local, SessionType.CopilotCLI]
-      }, async (_prompt, _progress, _history, _location, sessionResource) => {
-        await setPermissionLevelForSession(sessionResource, "autoApprove" /* AutoApprove */);
-      }));
-      this._store.add(slashCommandService.registerSlashCommand({
-        command: "disableAutoApprove",
-        detail: localize(11201, null),
-        sortText: "z1_disableAutoApprove",
-        executeImmediately: true,
-        silent: true,
-        locations: ["panel" /* Chat */],
-        sessionTypes: [SessionType.Local, SessionType.CopilotCLI]
-      }, async (_prompt, _progress, _history, _location, sessionResource) => {
-        await setPermissionLevelForSession(sessionResource, "default" /* Default */);
-      }));
-      this._store.add(slashCommandService.registerSlashCommand({
-        command: "yolo",
-        detail: localize(11214, null),
-        sortText: "z1_yolo",
-        executeImmediately: true,
-        silent: true,
-        locations: ["panel" /* Chat */],
-        sessionTypes: [SessionType.Local, SessionType.CopilotCLI]
-      }, async (_prompt, _progress, _history, _location, sessionResource) => {
-        await setPermissionLevelForSession(sessionResource, "autoApprove" /* AutoApprove */);
-      }));
-      this._store.add(slashCommandService.registerSlashCommand({
-        command: "disableYolo",
-        detail: localize(11202, null),
-        sortText: "z1_disableYolo",
-        executeImmediately: true,
-        silent: true,
-        locations: ["panel" /* Chat */],
-        sessionTypes: [SessionType.Local, SessionType.CopilotCLI]
-      }, async (_prompt, _progress, _history, _location, sessionResource) => {
-        await setPermissionLevelForSession(sessionResource, "default" /* Default */);
-      }));
-      this._store.add(slashCommandService.registerSlashCommand({
-        command: "autopilot",
-        detail: localize(11196, null),
-        sortText: "z1_autopilot",
-        executeImmediately: true,
-        silent: true,
-        locations: ["panel" /* Chat */],
-        sessionTypes: [SessionType.Local, SessionType.CopilotCLI]
-      }, async (_prompt, _progress, _history, _location, sessionResource) => {
-        await setPermissionLevelForSession(sessionResource, "autopilot" /* Autopilot */);
-      }));
-      this._store.add(slashCommandService.registerSlashCommand({
-        command: "exitAutopilot",
-        detail: localize(11203, null),
-        sortText: "z1_exitAutopilot",
-        executeImmediately: true,
-        silent: true,
-        locations: ["panel" /* Chat */],
-        sessionTypes: [SessionType.Local, SessionType.CopilotCLI]
-      }, async (_prompt, _progress, _history, _location, sessionResource) => {
-        await setPermissionLevelForSession(sessionResource, "default" /* Default */);
-      }));
-    }
     this._store.add(slashCommandService.registerSlashCommand({
       command: "help",
       detail: "",

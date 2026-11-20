@@ -1,0 +1,31 @@
+import os from "node:os"; import path from "node:path"; import fs from "node:fs";
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), "oc-personalib-"));
+const { AutomationService } = await import(new URL("../../recovered/shared/automation-store.mjs", import.meta.url));
+const opts = { directory: dir, leaseSweep: false, snapshot: path.join(dir, "snap.json"), workspaces: () => [], currentRoot: () => undefined, trusted: () => true, log: () => {} };
+const svc = new AutomationService(opts);
+await svc.initialize();
+const st = svc.read(); const g = st.presets.find((p) => p.id === st.globalPresetId);
+const base = { id: g.id, name: g.name, rules: g.rules, readOnly: g.policies.readOnly, allowCommands: g.policies.allowCommands };
+const ok = (label, v) => console.log((v ? "PASS " : "FAIL ") + label);
+const p1 = await svc.savePersonaPreset({ name: "砚台", text: "  你叫砚台。\r\n只陈述验证过的事实。 " });
+ok("preset saved, CRLF normalized+trimmed", p1.text === "你叫砚台。\n只陈述验证过的事实。" && p1.version === 1);
+try { await svc.savePersonaPreset({ name: "砚台", text: "dup" }); ok("dup name w/o version rejected", false); } catch (e) { ok("dup name w/o version rejected: " + e.message, true); }
+const s1 = await svc.savePreset({ ...base, expected_version: g.version, personaLibraryId: p1.id });
+ok("group links preset", s1.personaLibraryId === p1.id && s1.persona === p1.text);
+ok("effective persona from preset", svc.effective("global").persona === p1.text);
+const h1 = svc.effective("global").rules_hash;
+const p2 = await svc.savePersonaPreset({ id: p1.id, name: "砚台", text: "你叫砚台二号。", expected_version: 1 });
+const g2 = svc.read().presets.find((p) => p.id === g.id);
+ok("library update syncs group", g2.persona === "你叫砚台二号。" && g2.personaLibraryVersion === 2 && g2.version === s1.version + 1);
+ok("hash changes after library update", svc.effective("global").rules_hash !== h1);
+const s2 = await svc.savePreset({ ...base, expected_version: g2.version });
+ok("save without persona keeps link", s2.personaLibraryId === p1.id && s2.persona === "你叫砚台二号。");
+const s3 = await svc.savePreset({ ...base, expected_version: s2.version, persona: "自定义人设" });
+ok("custom persona drops link", !("personaLibraryId" in s3) && s3.persona === "自定义人设");
+const s4 = await svc.savePreset({ ...base, expected_version: s3.version, personaLibraryId: p1.id });
+await svc.deletePersonaPreset(p1.id, 2);
+const g4 = svc.read().presets.find((p) => p.id === g.id);
+ok("delete keeps text, drops link", g4.persona === "你叫砚台二号。" && !g4.personaLibraryId && (svc.read().personaLibrary || []).length === 0);
+try { await svc.savePreset({ ...base, expected_version: g4.version, personaLibraryId: "persona_nope" }); ok("unknown preset rejected", false); } catch (e) { ok("unknown preset rejected", true); }
+const svc2 = new AutomationService(opts); await svc2.initialize(); ok("reload validates", !!svc2.read());
+svc.stopLeaseSweeper?.(); svc2.stopLeaseSweeper?.(); process.exit(0);

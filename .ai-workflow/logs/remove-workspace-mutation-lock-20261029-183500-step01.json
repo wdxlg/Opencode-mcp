@@ -1,0 +1,69 @@
+{
+  "task_id": "remove-workspace-mutation-lock-20261029-183500-step01",
+  "status": "source_and_build_complete_function_unverified",
+  "completed_at": "2026-10-29T14:52:38.782Z",
+  "scope": "Remove run_command workspace-mutation lock in E:/OpenCode-Source-Recovery-20261013 and publish 1.0.0-recovered.28 to source-local opencode/.",
+  "decision": "User confirmed run_command_mutation_only, new_task_branch_recovered28, and confirm_build_only.",
+  "pre_snapshot": "refs/heads/pre/remove-workspace-mutation-lock-20261029-183500-step01",
+  "pre_tag": "refs/tags/pre/remove-workspace-mutation-lock-20261029-183500-step01",
+  "baseline": "b9794cd8a0ebc86cc781e485b27acd228ba0f578",
+  "original_head_preserved": "2722df0f9023bf85238d509a0ace5cb4a4d81021",
+  "source_commit": "cc1ed24cd33c45db3c7217bf69460eb39a802196",
+  "source_branch": "refs/heads/task/remove-workspace-mutation-lock-20261029-183500-step01",
+  "events": [
+    {
+      "phase": "analysis_and_confirm",
+      "result": "complete",
+      "bridge_ask_user_available_on_old_host": false,
+      "confirmed_via": "Arena native ask_user"
+    },
+    {
+      "phase": "implementation",
+      "result": "complete",
+      "removed": [
+        "workspace-mutation:<cwd>",
+        "WORKSPACE_BUSY",
+        "workspace-lock"
+      ],
+      "preserved": [
+        "withFileLocks",
+        "STALE_FILE",
+        "single-writer",
+        "TASK_WRITER_BUSY"
+      ]
+    },
+    {
+      "phase": "static_checks",
+      "node_check": true,
+      "git_diff_check": true,
+      "shared_copy_equal": true,
+      "banned_lock_strings_absent": true,
+      "functional_evidence": false
+    },
+    {
+      "phase": "build_and_publish",
+      "command": "node scripts/update.cjs",
+      "exit_code": 0,
+      "version": "1.0.0-recovered.28",
+      "destination": "E:/OpenCode-Source-Recovery-20261013/opencode",
+      "changed_files": 6,
+      "unchanged_files": 11014,
+      "removed_files": 0,
+      "backup": "E:\\OpenCode-Source-Recovery-20261013/.update-backup/1793285456605-3a9aea0a",
+      "user_data_preserved": true
+    },
+    {
+      "phase": "recovered_errors",
+      "items": [
+        "Initial git diff --cached --check opened interactive pager in PTY and noticed autocrlf on fresh read-tree; cancelled cleanly via cancel_command (exit 130) before commit/build, re-pointed pre ref to clean recovered.27 commit b9794cd8 and re-ran with --no-pager -c core.autocrlf=false."
+      ]
+    },
+    {
+      "phase": "limitations",
+      "tests_run": false,
+      "gui_checked": false,
+      "formal_opencode_untouched": true,
+      "user_acceptance": "not_run"
+    }
+  ]
+}

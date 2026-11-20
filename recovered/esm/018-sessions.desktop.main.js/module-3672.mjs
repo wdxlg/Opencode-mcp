@@ -39,7 +39,6 @@ import { generateUuid } from "./module-0190.mjs";
 import { disposableTimeout, raceCancellation, raceCancellationError } from "./module-0036.mjs";
 import { AgentHostDownloadProgress } from "./module-3660.mjs";
 import { isSessionConfigComplete } from "./module-3662.mjs";
-import { isAutoApprovePolicyRestricted, normalizeSessionConfigValue } from "./module-2041.mjs";
 import { migrateLegacyAutopilotConfig } from "./module-1741.mjs";
 import { KNOWN_MODE_VALUES } from "./module-1740.mjs";
 import { readAgentMergeSessionState } from "./module-2466.mjs";
@@ -62,6 +61,13 @@ import { IAgentHostActiveClientService } from "./module-1759.mjs";
 import { IStorageService } from "./module-0512.mjs";
 import { IDialogService } from "./module-0267.mjs";
 import { IWorkspaceTrustManagementService } from "./module-0854.mjs";
+// OpenCode: old approval policy removed; autoApprove is never policy-restricted
+function isAutoApprovePolicyRestricted(_configurationService) {
+  return false;
+}
+function normalizeSessionConfigValue(_property, value2, _policyRestricted) {
+  return value2;
+}
 
 
 // src/vs/sessions/contrib/providers/agentHost/browser/baseAgentHostSessionsProvider.ts

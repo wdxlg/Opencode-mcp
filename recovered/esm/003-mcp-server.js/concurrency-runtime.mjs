@@ -58,7 +58,7 @@ export async function canonicalResource(file){
   for(;;){try{p=await fs.realpath(p);break;}catch(e){if(e.code!=='ENOENT')throw e;const parent=path.dirname(p);if(parent===p)throw e;tail.unshift(path.basename(p));p=parent;}}
   p=path.join(p,...tail);return process.platform==='win32'?p.toLowerCase():p;
 }
-export function resourcePort(key){if(key.startsWith('process-slot:'))return 18000+Number(key.split(':')[1]);if(key.startsWith('workspace-mutation:'))return 18010+crypto.createHash('sha256').update(key).digest().readUInt32BE(0)%1000;return 20000+crypto.createHash('sha256').update('opencode-resource-v1\0'+key).digest().readUInt32BE(0)%24000;}
+export function resourcePort(key){if(key.startsWith('process-slot:'))return 18000+Number(key.split(':')[1]);return 20000+crypto.createHash('sha256').update('opencode-resource-v1\0'+key).digest().readUInt32BE(0)%24000;}
 // Kernel-owned exclusive listeners: process exit releases ownership, no stale lease stealing.
 // Hash collisions conservatively serialize unrelated resources. No data or RPC is accepted.
 export async function acquireResources(keys,{signal,timeoutMs=120000}={}){

@@ -1,0 +1,39 @@
+{
+  "previousReports": {
+    "buildVerification": "a41f132e25b87367b3c0f81b74cf4b17e7437c460544eeacfc967730e39be5fa",
+    "testSuite": "e3295e3e4b9025e6ba9bb12dfaa2bbe7d79d38446bcce769dba75051d1d2fbc5"
+  },
+  "previousExtension": {
+    "success": true,
+    "id": "000-extension.js",
+    "artifactPath": "resources/app/extensions/opencode/dist/extension.js",
+    "inputHash": "05909d5e50d364b4876c30e7e322cabcdf1fc0ec25376e0eb7ce7062287e9158",
+    "pipelineHash": "943b9ca7ba0426df01545e60f3149b5379dbdece38e6ac48ac56f02a41548262",
+    "compiler": "0.25.10",
+    "format": "cjs",
+    "sourceModules": 214,
+    "compiledInputs": 215,
+    "outputHash": "d9b553e0b05963534a2a86350fa578e78c00931d0cc462df29522f88c88f42c5",
+    "bytes": 3882823,
+    "warnings": [
+      {
+        "text": "The CommonJS \"module\" variable is treated as a global variable in an ECMAScript module and may not work as expected",
+        "location": {
+          "column": 0,
+          "file": "recovered/esm/000-extension.js/module-0023.mjs",
+          "length": 6,
+          "line": 36,
+          "lineText": "module.exports = __toCommonJS(extension_exports);",
+          "namespace": "",
+          "suggestion": ""
+        }
+      }
+    ],
+    "at": "2026-11-09T16:40:30.544Z"
+  },
+  "currentExtensionModules": 214,
+  "oldTestsReusedAsCurrentEvidence": false,
+  "testsToRun": [],
+  "functionalTestsAuthorized": false,
+  "productLaunchAuthorized": false
+}

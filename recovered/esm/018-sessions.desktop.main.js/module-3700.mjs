@@ -15,19 +15,17 @@ import { Action2, MenuId, MenuItemAction, registerAction2 } from "./module-0092.
 import { localize, localize2 } from "./module-0001.mjs";
 import { Menus } from "./module-3437.mjs";
 import { Codicon } from "./module-0085.mjs";
-import { isAutoApproveValuePolicyRestricted } from "./module-2041.mjs";
 import { toAction } from "./module-0082.mjs";
 import { ThemeIcon } from "./module-0086.mjs";
 import { EventType2, Gesture } from "./module-0251.mjs";
 import { isChatPermissionLevel } from "./module-0965.mjs";
-import { maybeConfirmElevatedPermissionLevel } from "./module-2100.mjs";
 import { Disposable, DisposableMap, DisposableStore, MutableDisposable } from "./module-0012.mjs";
 import { Checkbox } from "./module-0549.mjs";
 import { defaultCheckboxStyles } from "./module-0513.mjs";
 import { markOnboardingTarget } from "./module-3542.mjs";
 import { Delayer } from "./module-0036.mjs";
 import { autorun } from "./module-0052.mjs";
-import { AgentHostPermissionPickerDelegate, isWellKnownAutoApproveSchema2, isWellKnownClaudePermissionModeSchema, isWellKnownCodexApprovalsSchema, isWellKnownModeSchema } from "./module-3693.mjs";
+import { isWellKnownAutoApproveSchema2, isWellKnownClaudePermissionModeSchema, isWellKnownCodexApprovalsSchema, isWellKnownModeSchema } from "./module-3693.mjs";
 import { renderIcon } from "./module-0467.mjs";
 import { reportNewChatPickerClosed } from "./module-3541.mjs";
 import { CHANGES_VIEW_ID } from "./module-3620.mjs";
@@ -47,9 +45,7 @@ import { BaseActionViewItem } from "./module-0476.mjs";
 import { ISessionContext } from "./module-3499.mjs";
 import { AgentHostClaudePermissionModePicker } from "./module-3698.mjs";
 import { AgentHostCodexApprovalsPicker } from "./module-3699.mjs";
-import { MobilePermissionPicker } from "./module-3691.mjs";
 import { observableValue } from "./module-0048.mjs";
-import { AgentHostPermissionPickerActionItem } from "./module-3697.mjs";
 import { IActionViewItemService } from "./module-0518.mjs";
 import { ChatContextKeyExprs, ChatContextKeys } from "./module-0966.mjs";
 import { WorkbenchPhase, registerWorkbenchContribution2 } from "./module-0872.mjs";
@@ -130,7 +126,7 @@ function getBranchUncommittedChanges(branchName, repositoryBranchName, repositor
 
 function toActionItems2(property, items, currentValue, policyRestricted, repositoryBranchName, repositoryUncommittedChanges, onShowChanges) {
   const actionItems = items.map((item) => {
-    const disabled = property === "autoApprove" /* AutoApprove */ && isAutoApproveValuePolicyRestricted(item.value, policyRestricted === true);
+    const disabled = false;
     const checked = isSelectedValue2(currentValue, item.value);
     const uncommittedChanges = property === "branch" /* Branch */ ? getBranchUncommittedChanges(item.value, repositoryBranchName, repositoryUncommittedChanges) : void 0;
     const uncommittedChangesDescription = uncommittedChanges !== void 0 ? formatUncommittedChanges(uncommittedChanges) : void 0;
@@ -197,18 +193,11 @@ function renderPickerTrigger2(slot, disabled, disposables, onOpen) {
 }
 
 function applyAutoApproveFiltering(items, property, configurationService) {
-  if (property !== "autoApprove" /* AutoApprove */) {
-    return { items, policyRestricted: false };
-  }
-  const policyRestricted = configurationService.inspect("chat.tools.global.autoApprove" /* GlobalAutoApprove */).policyValue === false;
-  return { items, policyRestricted };
+  return { items, policyRestricted: false };
 }
 
 async function confirmAutoApproveLevel(value2, label3, dialogService, storageService) {
-  if (!isChatPermissionLevel(value2)) {
-    return true;
-  }
-  return maybeConfirmElevatedPermissionLevel(value2, dialogService, storageService, { defaultSettingKey: "chat.defaultConfiguration" /* DefaultConfiguration */, levelLabel: label3 });
+  return true;
 }
 
 function triggerAriaLabel(title, label3, isReadOnly2, hasUncommittedChanges) {
@@ -1012,11 +1001,6 @@ var AgentHostSessionConfigPickerContribution = class extends Disposable {
     ));
     this._register(actionViewItemService.register(
       Menus.NewSessionControl,
-      NEW_SESSION_APPROVE_PICKER_ID,
-      (_action, _options, scopedInstantiationService) => this._createNewSessionPermissionPicker(scopedInstantiationService)
-    ));
-    this._register(actionViewItemService.register(
-      Menus.NewSessionControl,
       NEW_SESSION_PERMISSION_MODE_PICKER_ID,
       (_action, _options, scopedInstantiationService) => {
         const { session } = scopedInstantiationService.invokeFunction((accessor) => accessor.get(ISessionContext));
@@ -1030,11 +1014,6 @@ var AgentHostSessionConfigPickerContribution = class extends Disposable {
         const { session } = scopedInstantiationService.invokeFunction((accessor) => accessor.get(ISessionContext));
         return new PickerActionViewItem(scopedInstantiationService.createInstance(AgentHostCodexApprovalsPicker, session));
       }
-    ));
-    this._register(actionViewItemService.register(
-      MenuId.ChatInputSecondary,
-      RUNNING_SESSION_CONFIG_PICKER_ID,
-      this._createRunningSessionPermissionPickerFactory()
     ));
     this._register(actionViewItemService.register(
       MenuId.ChatInputSecondary,
@@ -1056,41 +1035,6 @@ var AgentHostSessionConfigPickerContribution = class extends Disposable {
   static {
     this.ID = "sessions.contrib.agentHostSessionConfigPicker";
   }
-  /**
-   * On the new-chat page (left of the toolbar), use the sessions
-   * {@link PermissionPicker} so the styling matches the surrounding sessions
-   * pickers (font size, padding, icon size).
-   */
-  _createNewSessionPermissionPicker(instantiationService) {
-    const { session } = instantiationService.invokeFunction((accessor) => accessor.get(ISessionContext));
-    const delegate = instantiationService.createInstance(AgentHostPermissionPickerDelegate, session);
-    const picker = instantiationService.createInstance(MobilePermissionPicker, delegate);
-    return new PickerActionViewItem(picker, delegate);
-  }
-  /**
-   * Inside a running chat widget (`ChatInputSecondary`), use the workbench
-   * {@link PermissionPickerActionItem} so it matches the rest of the
-   * chat-input secondary toolbar (which is what the extension-host CLI
-   * already uses).
-   */
-  _createRunningSessionPermissionPickerFactory() {
-    return (action, _options, instantiationService) => {
-      if (!(action instanceof MenuItemAction)) {
-        return void 0;
-      }
-      const { session } = instantiationService.invokeFunction((accessor) => accessor.get(ISessionContext));
-      const pickerOptions = {
-        compact: observableValue(action, false),
-        listOptions: { minWidth: 255 }
-      };
-      return instantiationService.createInstance(
-        AgentHostPermissionPickerActionItem,
-        action,
-        pickerOptions,
-        session
-      );
-    };
-  }
 };
 
 AgentHostSessionConfigPickerContribution = __decorateClass([
@@ -1099,24 +1043,6 @@ AgentHostSessionConfigPickerContribution = __decorateClass([
 ], AgentHostSessionConfigPickerContribution);
 
 var NEW_SESSION_APPROVE_PICKER_ID = "sessions.agentHost.newSessionApprovePicker";
-
-registerAction2(class extends Action2 {
-  constructor() {
-    super({
-      id: NEW_SESSION_APPROVE_PICKER_ID,
-      title: localize2(4931, "Session Approvals"),
-      f1: false,
-      menu: [{
-        id: Menus.NewSessionControl,
-        group: "navigation",
-        order: 1,
-        when: ContextKeyExpr.or(IsActiveSessionLocalAgentHost, IsActiveSessionRemoteAgentHost)
-      }]
-    });
-  }
-  async run() {
-  }
-});
 
 var NEW_SESSION_PERMISSION_MODE_PICKER_ID = "sessions.agentHost.newSessionPermissionModePicker";
 
@@ -1185,24 +1111,6 @@ registerAction2(class extends Action2 {
 });
 
 var RUNNING_SESSION_CONFIG_PICKER_ID = "sessions.agentHost.runningSessionConfigPicker";
-
-registerAction2(class extends Action2 {
-  constructor() {
-    super({
-      id: RUNNING_SESSION_CONFIG_PICKER_ID,
-      title: localize2(4936, "Session Approvals"),
-      f1: false,
-      menu: [{
-        id: MenuId.ChatInputSecondary,
-        group: "navigation",
-        order: 10,
-        when: ChatContextKeyExprs.isAgentHostSession
-      }]
-    });
-  }
-  async run() {
-  }
-});
 
 var RUNNING_SESSION_PERMISSION_MODE_PICKER_ID = "sessions.agentHost.runningSessionPermissionModePicker";
 

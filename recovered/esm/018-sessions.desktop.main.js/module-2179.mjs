@@ -3,7 +3,7 @@
 // Original module marker: src/vs/workbench/contrib/chat/browser/widget/input/chatInputPart.ts
 import { $, AnimationFrameScheduler, DisposableResizeObserver, EventType, addDisposableListener, addStandardDisposableListener, append, clearNode, getTotalWidth, getWindow, h, hide, isHTMLElement, isKeyboardEvent, scheduleAtNextAnimationFrame, setVisibility, show } from "./module-0075.mjs";
 import { ChatInputPickerResponsiveLayout, isChatInputPickerResponsiveState } from "./module-2150.mjs";
-import { ChatEditingSessionSubmitAction, ChatSessionPrimaryPickerAction, ChatSubmitAction, OpenDelegationPickerAction, OpenModePickerAction, OpenModelPickerAction, OpenPermissionPickerAction, OpenSessionTargetPickerAction, OpenWorkspacePickerAction } from "./module-2056.mjs";
+import { ChatEditingSessionSubmitAction, ChatSessionPrimaryPickerAction, ChatSubmitAction, OpenDelegationPickerAction, OpenModePickerAction, OpenModelPickerAction, OpenSessionTargetPickerAction, OpenWorkspacePickerAction } from "./module-2056.mjs";
 import { observableMemento } from "./module-1018.mjs";
 import { deserializeUntitledInputAttachments, deserializeUntitledInputState, serializeUntitledInputAttachments, serializeUntitledInputState } from "./module-2047.mjs";
 import { mixin } from "./module-0098.mjs";
@@ -44,8 +44,6 @@ import { ILanguageModelChatMetadata, ILanguageModelsService } from "./module-096
 import { isDefined } from "./module-0010.mjs";
 import { ChatPetAchievementIds, didExplicitlySwitchChatPetModel } from "./module-2111.mjs";
 import { ModePickerActionItem, isModeConsideredBuiltIn } from "./module-2169.mjs";
-import { isChatPermissionLevel } from "./module-0965.mjs";
-import { isAutoApprovePolicyRestricted, isAutoApproveValuePolicyRestricted } from "./module-2041.mjs";
 import { ChatSessionPickerActionItem } from "./module-2093.mjs";
 import { equals } from "./module-0007.mjs";
 import { Iterable } from "./module-0011.mjs";
@@ -63,7 +61,6 @@ import { DEFAULT_FONT_FAMILY } from "./module-0312.mjs";
 import { AgentSessionProviders, getAgentSessionProvider } from "./module-0983.mjs";
 import { ChatInputNotificationWidget } from "./module-2148.mjs";
 import { constObservable } from "./module-0061.mjs";
-import { ChatGoalBannerWidget } from "./module-2147.mjs";
 import { transaction } from "./module-0045.mjs";
 import { chatInputStackClass, chatInputStackSlotClass, chatInputSurfaceStackClass, chatInputSurfaceStackSlotClass, setChatInputStackInputFocused, setChatInputStackSlot } from "./module-2033.mjs";
 import { registerChatInputOnboardingHosts } from "./module-2149.mjs";
@@ -100,10 +97,9 @@ import { DictationActionViewItem } from "./module-2080.mjs";
 import { VoiceModeActionViewItem } from "./module-2082.mjs";
 import { Codicon } from "./module-0085.mjs";
 import { ThemeIcon } from "./module-0086.mjs";
-import { OpenAgentHostAutoApprovePickerAction, OpenAgentHostCodexApprovalsPickerAction, OpenAgentHostFolderPickerAction, OpenAgentHostModePickerAction, OpenAgentHostPermissionModePickerAction, getAgentHostPickerProperty } from "./module-2103.mjs";
+import { OpenAgentHostCodexApprovalsPickerAction, OpenAgentHostFolderPickerAction, OpenAgentHostModePickerAction, OpenAgentHostPermissionModePickerAction, getAgentHostPickerProperty } from "./module-2103.mjs";
 import { AgentHostGenericConfigChips } from "./module-2104.mjs";
 import { WorkspacePickerActionItem } from "./module-2171.mjs";
-import { PermissionPickerActionItem } from "./module-2170.mjs";
 import { AgentHostChatInputPicker, AgentHostChatInputPickerActionViewItem } from "./module-2102.mjs";
 import { AgentHostFolderPickerActionItem } from "./module-2106.mjs";
 import { onUnexpectedError } from "./module-0004.mjs";
@@ -173,7 +169,6 @@ var INPUT_EDITOR_PADDING = { compact: { top: 2, bottom: 2 }, default: { top: 12,
 
 var CachedLanguageModelsKey = "chat.cachedLanguageModels.v2";
 
-var PERMISSION_LEVEL_OPTION_ID = "permissionLevel";
 
 function getToolbarPickerResponsiveItems(toolbar, compactStates) {
   const items = [];
@@ -349,10 +344,6 @@ var ChatInputPart = class extends Disposable {
     this._onDidChangeChatPetHorizontalPlatforms = this._register(new Emitter());
     this.onDidChangeChatPetHorizontalPlatforms = this._onDidChangeChatPetHorizontalPlatforms.event;
     this._notificationWidget = this._register(new MutableDisposable());
-    this._goalBannerWidget = this._register(new MutableDisposable());
-    this._onDidDismissGoalBanner = this._register(new Emitter());
-    /** Fired when the user dismisses the autopilot goal banner. */
-    this.onDidDismissGoalBanner = this._onDidDismissGoalBanner.event;
     this._contextUsageDisposables = this._register(new MutableDisposable());
     /** Arbitrates which notice occupies the area above this input. */
     this.noticeHost = this._register(new ChatInputNoticeHost(() => this.focus()));
@@ -377,7 +368,6 @@ var ChatInputPart = class extends Disposable {
     this._currentChatModes = this._register(new MutableDisposable());
     // Flag to prevent circular updates between view and model
     this._isSyncingToOrFromInputModel = false;
-    this.permissionWidgetDisposeListener = this._register(new MutableDisposable());
     this.overflowPickerWidget = this._register(new MutableDisposable());
     this.chatSessionPickerWidgets = this._register(new DisposableMap());
     this._chatSessionOptionEmitters = this._register(new DisposableMap());
@@ -471,7 +461,6 @@ var ChatInputPart = class extends Disposable {
     const localModes = this.chatModeService.createModes(LocalChatSessionUri.getNewSessionUri());
     this._currentChatModes.value = localModes;
     this._currentChatModesObservable = observableValue("currentChatModes", localModes);
-    this._currentPermissionLevel = observableValue("permissionLevel", this.getDefaultPermissionLevel());
     const languageModelListChanged = observableSignalFromEvent(this, Event2.any(
       this.languageModelsService.onDidChangeLanguageModels,
       this.languageModelsService.onDidChangeModelVisibility
@@ -556,8 +545,6 @@ var ChatInputPart = class extends Disposable {
     this.chatModeKindKey = ChatContextKeys.chatModeKind.bindTo(contextKeyService);
     this.chatModeNameKey = ChatContextKeys.chatModeName.bindTo(contextKeyService);
     this.chatModelIdKey = ChatContextKeys.chatModelId.bindTo(contextKeyService);
-    this.permissionLevelKey = ChatContextKeys.chatPermissionLevel.bindTo(contextKeyService);
-    this.permissionLevelKey.set(this._currentPermissionLevel.get());
     this.withinEditSessionKey = ChatContextKeys.withinEditSessionDiff.bindTo(contextKeyService);
     this.filePartOfEditSessionKey = ChatContextKeys.filePartOfEditSession.bindTo(contextKeyService);
     this.chatSessionHasOptions = ChatContextKeys.chatSessionHasModels.bindTo(contextKeyService);
@@ -577,14 +564,6 @@ var ChatInputPart = class extends Disposable {
     this.history = this._register(this.instantiationService.createInstance(ChatHistoryNavigator, this.location));
     this._register(this.configurationService.onDidChangeConfiguration((e4) => {
       const newOptions = {};
-      if (e4.affectsConfiguration("chat.tools.global.autoApprove" /* GlobalAutoApprove */)) {
-        this.setPermissionLevel(this._currentPermissionLevel.get());
-      }
-      if (e4.affectsConfiguration("chat.permissions.default" /* DefaultPermissionLevel */)) {
-        if (this._chatSessionIsEmpty) {
-          this.setPermissionLevel(this.getDefaultPermissionLevel());
-        }
-      }
       if (e4.affectsConfiguration("chat.defaultModel" /* DefaultModel */)) {
         this._modelSelectionController.applyConfiguredDefault();
       }
@@ -799,9 +778,6 @@ var ChatInputPart = class extends Disposable {
   get currentChatModesObs() {
     return this._currentChatModesObservable;
   }
-  get currentPermissionLevelObs() {
-    return this._currentPermissionLevel;
-  }
   get currentModeInfo() {
     const mode = this._currentModeObservable.get();
     const modeId = mode.isBuiltin ? this.currentModeKind : "custom";
@@ -820,8 +796,7 @@ var ChatInputPart = class extends Disposable {
       } : void 0,
       telemetryModeId: modeId,
       telemetryModeName: getModeNameForTelemetry(mode),
-      applyCodeBlockSuggestionId: void 0,
-      permissionLevel: this._currentPermissionLevel.get()
+      applyCodeBlockSuggestionId: void 0
     };
   }
   get selectedElements() {
@@ -1076,31 +1051,6 @@ var ChatInputPart = class extends Disposable {
       }
     };
   }
-  openPermissionPicker() {
-    this.permissionWidget?.show();
-  }
-  setPermissionLevel(level) {
-    level = this.getPermittedPermissionLevel(level);
-    this._currentPermissionLevel.set(level, void 0);
-    this.permissionLevelKey.set(level);
-    this.permissionWidget?.refresh();
-    const sessionResource = this.getCurrentSessionResource();
-    if (sessionResource) {
-      this.chatSessionsService.setSessionOption(sessionResource, PERMISSION_LEVEL_OPTION_ID, level);
-    }
-    logChangesToStateModel(this._inputModel, `setPermissionLevel -> _syncInputStateToModel (level=${level}, currentLanguageModel=${this._currentLanguageModel.get()?.identifier}) in ${this._currentSessionKey}`, void 0, void 0, this.logService);
-    this._syncInputStateToModel();
-  }
-  getDefaultPermissionLevel() {
-    const level = this.configurationService.getValue("chat.permissions.default" /* DefaultPermissionLevel */);
-    return isChatPermissionLevel(level) ? level : "default" /* Default */;
-  }
-  getPermittedPermissionLevel(level) {
-    if (isAutoApproveValuePolicyRestricted(level, isAutoApprovePolicyRestricted(this.configurationService))) {
-      return "default" /* Default */;
-    }
-    return level;
-  }
   openSessionTargetPicker() {
     this.sessionTargetWidget?.show();
   }
@@ -1252,10 +1202,6 @@ var ChatInputPart = class extends Disposable {
   }
   _setEmptyModelState() {
     logChangesToStateModel(this._inputModel, `setting empty model state for ${this._widget?.viewModel?.sessionResource.toString()} in ${this._currentSessionKey}`, void 0, void 0, this.logService);
-    const currentLevel = this._inputModel?.state?.get()?.permissionLevel;
-    if (currentLevel === void 0 || !isChatPermissionLevel(currentLevel)) {
-      this.setPermissionLevel(this.getDefaultPermissionLevel());
-    }
     if (this.entitlementService.anonymous) {
       this.setChatMode("agent" /* Agent */, false);
       this._modelSelectionController.ensureCurrentModelSupported();
@@ -1310,14 +1256,6 @@ var ChatInputPart = class extends Disposable {
         this._inputEditor.setValue(state?.inputText || "");
         if (state?.selections.length) {
           this._inputEditor.setSelections(state.selections);
-        }
-      }
-      if (!this.configurationService.getValue("chat.tools.global.autoApprove" /* GlobalAutoApprove */)) {
-        const targetLevel = this.getPermittedPermissionLevel(state?.permissionLevel ?? "default" /* Default */);
-        if (this._currentPermissionLevel.get() !== targetLevel) {
-          this._currentPermissionLevel.set(targetLevel, void 0);
-          this.permissionLevelKey.set(targetLevel);
-          this.permissionWidget?.refresh();
         }
       }
       if (state) {
@@ -1571,7 +1509,6 @@ var ChatInputPart = class extends Disposable {
       modelConfiguration: selectedModel ? this._modelConfigStore.getModelConfiguration(selectedModel.identifier) : void 0,
       selectedModelReason: selectedModel ? this._modelSelectionController.selectionReason : void 0,
       selections: this._inputEditor?.getSelections() || [],
-      permissionLevel: this._currentPermissionLevel.get(),
       contrib: {}
     };
     for (const contrib of this._widget?.contribs || Iterable.empty()) {
@@ -1840,16 +1777,14 @@ var ChatInputPart = class extends Disposable {
   }
   /**
    * OpenCode multi-model: whether an empty send should re-answer the previous
-   * question as a new branch variant. Requires Plan mode, an existing turn,
+   * question as a new branch variant. Requires codeBranches, a Code snapshot, an existing turn,
    * no request in progress and the opencode.multiModel.enabled setting.
    */
   isBranchEligible() {
     if (!(this.configurationService.getValue("opencode.multiModel.enabled") ?? true)) {
       return false;
     }
-    const mode = this._currentModeObservable.get();
-    const isPlanMode = mode.id === "plan" || mode.name.get().trim().toLowerCase() === "opencode plan";
-    if (!isPlanMode) {
+    if (!(this.configurationService.getValue("opencode.multiModel.codeBranches") ?? true)) {
       return false;
     }
     const model = this._widget?.viewModel?.model;
@@ -1860,7 +1795,10 @@ var ChatInputPart = class extends Disposable {
       return false;
     }
     const lastResponse = model.getRequests().at(-1)?.response;
-    return !!lastResponse?.isComplete && !lastResponse.isCanceled;
+    if (!lastResponse?.isComplete || lastResponse.isCanceled) {
+      return false;
+    }
+    return !!lastResponse.result?.metadata?.["opencodeBranchBase"];
   }
   getOrCreateOptionEmitter(optionGroupId) {
     let emitter = this._chatSessionOptionEmitters.get(optionGroupId);
@@ -1932,7 +1870,6 @@ var ChatInputPart = class extends Disposable {
     const requiresCustomModels = sessionType && this.chatSessionsService.requiresCustomModelsForSessionType(sessionType);
     this.chatSessionHasTargetedModels.set(!!requiresCustomModels);
     const visibleOptionGroups = this.getVisibleOptionGroups(sessionResource);
-    this.permissionWidget?.refresh();
     if (!visibleOptionGroups.length) {
       this.chatSessionHasOptions.set(false);
       this.chatSessionOptionsValid.set(true);
@@ -2013,9 +1950,6 @@ var ChatInputPart = class extends Disposable {
     }
     const visibleGroups = /* @__PURE__ */ new Map();
     for (const optionGroup of allOptionGroups) {
-      if (optionGroup.kind === "permissions") {
-        continue;
-      }
       const hasItems = optionGroup.items.length > 0 || (optionGroup.commands || []).length > 0;
       const passesWhenClause = this.evaluateOptionGroupVisibility(optionGroup);
       const sessionHasOption = !sessionResource || this.chatSessionsService.getSessionOption(sessionResource, optionGroup.id) !== void 0;
@@ -2024,21 +1958,6 @@ var ChatInputPart = class extends Disposable {
       }
     }
     return Array.from(visibleGroups.values());
-  }
-  /**
-   * Returns the permissions-kind option group contributed by the active session provider, if any.
-   * Items from this group are surfaced inside the chat permission picker, replacing the
-   * built-in `ChatPermissionLevel` items. Honors the same visibility predicates as
-   * {@link getVisibleOptionGroups} so that `when` clauses are respected.
-   *
-   * If the provider declares more than one permissions-kind group (which the API forbids),
-   * the first one wins.
-   */
-  getActiveExtensionPermissionGroup(sessionResource) {
-    const allOptionGroups = this.getAllOptionsGroups(sessionResource);
-    return allOptionGroups.find(
-      (g) => g.kind === "permissions" && g.items.length > 0 && this.evaluateOptionGroupVisibility(g)
-    );
   }
   /**
    * Refresh all registered option groups for the current chat session.
@@ -2238,30 +2157,6 @@ var ChatInputPart = class extends Disposable {
     await this._modelConfigStore.setModelConfiguration(modelIdentifier, values);
   }
   /**
-   * Lazy-instantiate the goal banner widget on first use.
-   */
-  ensureGoalBannerWidget() {
-    if (!this._goalBannerWidget.value) {
-      const widget = new ChatGoalBannerWidget();
-      this._register(widget.onDismiss(() => this._onDidDismissGoalBanner.fire()));
-      this._goalBannerWidget.value = widget;
-      widget.attachTo(this.chatGoalBannerContainer);
-    }
-    return this._goalBannerWidget.value;
-  }
-  /** Shows the autopilot goal banner with a loading state. */
-  showGoalBannerLoading() {
-    this.ensureGoalBannerWidget().setLoading();
-  }
-  /** Updates the goal banner with the given summary text. */
-  setGoalBanner(summary) {
-    this.ensureGoalBannerWidget().setGoal(summary);
-  }
-  /** Hides the goal banner. */
-  clearGoalBanner() {
-    this._goalBannerWidget.value?.clear();
-  }
-  /**
    * Shows the context usage details popup and focuses it.
    * @returns Whether the details were successfully shown.
    */
@@ -2422,7 +2317,6 @@ var ChatInputPart = class extends Disposable {
             h(`.chat-input-notification-container.${chatInputStackSlotClass}@chatInputNotificationContainer`),
             h(`.voice-mode-onboarding-container.${chatInputStackSlotClass}@voiceModeOnboardingContainer`),
             h(`.dictation-onboarding-container.${chatInputStackSlotClass}@dictationOnboardingContainer`),
-            h(`.chat-goal-banner-container.${chatInputStackSlotClass}@chatGoalBannerContainer`),
             h(".chat-todo-list-widget-container@chatInputTodoListWidgetContainer"),
             h(".chat-artifacts-widget-container@chatArtifactsWidgetContainer"),
             h(".chat-editing-session@chatEditingSessionWidgetContainer"),
@@ -2456,7 +2350,6 @@ var ChatInputPart = class extends Disposable {
           h(`.chat-input-notification-container.${chatInputStackSlotClass}@chatInputNotificationContainer`),
           h(`.voice-mode-onboarding-container.${chatInputStackSlotClass}@voiceModeOnboardingContainer`),
           h(`.dictation-onboarding-container.${chatInputStackSlotClass}@dictationOnboardingContainer`),
-          h(`.chat-goal-banner-container.${chatInputStackSlotClass}@chatGoalBannerContainer`),
           h(".chat-todo-list-widget-container@chatInputTodoListWidgetContainer"),
           h(".chat-artifacts-widget-container@chatArtifactsWidgetContainer"),
           h(".chat-editing-session@chatEditingSessionWidgetContainer"),
@@ -2517,7 +2410,6 @@ var ChatInputPart = class extends Disposable {
       this.voiceModeOnboardingService,
       this.dictationOnboardingService
     ));
-    this.chatGoalBannerContainer = elements.chatGoalBannerContainer;
     this.contextUsageWidgetContainer = elements.contextUsageWidgetContainer;
     this.statusToolbarContainer = elements.statusToolbarContainer;
     if (this.options.renderStyle === "compact") {
@@ -2932,14 +2824,12 @@ var ChatInputPart = class extends Disposable {
       [OpenSessionTargetPickerAction.ID, 22],
       [OpenDelegationPickerAction.ID, 22],
       [OpenWorkspacePickerAction.ID, 22],
-      [OpenPermissionPickerAction.ID, 22],
       [ChatSessionPrimaryPickerAction.ID, 22],
       [OpenAgentHostModePickerAction.ID, 22],
       ["sessions.agentHost.runningSessionModePicker", 22],
       ["sessions.agentHost.runningSessionConfigPicker", 22],
       ["sessions.agentHost.runningSessionPermissionModePicker", 22],
       ["sessions.agentHost.runningSessionCodexApprovalsPicker", 22],
-      [OpenAgentHostAutoApprovePickerAction.ID, 22],
       [OpenAgentHostPermissionModePickerAction.ID, 22],
       [OpenAgentHostCodexApprovalsPickerAction.ID, 22],
       [OpenAgentHostFolderPickerAction.ID, 22],
@@ -3015,47 +2905,6 @@ var ChatInputPart = class extends Disposable {
           } else {
             return new HiddenActionViewItem(action);
           }
-        } else if (action.id === OpenPermissionPickerAction.ID && action instanceof MenuItemAction) {
-          const delegate2 = {
-            currentPermissionLevel: this._currentPermissionLevel,
-            setPermissionLevel: (level) => {
-              this.setPermissionLevel(level);
-            },
-            getExtensionPermissions: () => {
-              const sessionResource = this.getCurrentSessionResource();
-              const group2 = this.getActiveExtensionPermissionGroup(sessionResource);
-              if (!group2) {
-                return void 0;
-              }
-              const current = sessionResource ? this.chatSessionsService.getSessionOption(sessionResource, group2.id) : void 0;
-              const defaultId = group2.selected?.id ?? group2.items.find((i2) => i2.default)?.id;
-              const rawSelectedId = current === void 0 ? defaultId : typeof current === "string" ? current : current.id;
-              const selectedId = rawSelectedId !== void 0 && group2.items.some((i2) => i2.id === rawSelectedId) ? rawSelectedId : defaultId;
-              const sessionType = sessionResource ? getChatSessionType(sessionResource) : this.options.sessionTypePickerDelegate?.getActiveSessionProvider?.() ?? "";
-              return { sessionType, groupId: group2.id, items: group2.items, selectedId };
-            },
-            setExtensionPermission: (groupId, item) => {
-              this.updateOptionContextKey(groupId, item.id);
-              this.getOrCreateOptionEmitter(groupId).fire(item);
-              const sessionResource = this.getCurrentSessionResource();
-              if (sessionResource) {
-                this.chatSessionsService.setSessionOption(sessionResource, groupId, item);
-              }
-              this.permissionWidget?.refresh();
-            },
-            isSandboxToggleApplicable: () => this.getEffectiveSessionType(this.getCurrentSessionResource()) === SessionType.Local
-          };
-          const createPicker = () => this.instantiationService.createInstance(PermissionPickerActionItem, action, delegate2, getSecondaryPickerOptions(action.id));
-          secondaryOverflowPickerHandlers.set(action.id, (anchor) => showOverflowPicker(createPicker, anchor));
-          const widget2 = createPicker();
-          this.permissionWidget = widget2;
-          this.permissionWidgetDisposeListener.value = widget2.onDidDispose(() => {
-            if (this.permissionWidget === widget2) {
-              this.permissionWidget = void 0;
-            }
-            this.permissionWidgetDisposeListener.clear();
-          });
-          return widget2;
         } else if (agentHostPickerProperty && action instanceof MenuItemAction) {
           if (this.options.isSessionsWindow) {
             return new HiddenActionViewItem(action);
@@ -4199,4 +4048,4 @@ var HiddenActionViewItem = class extends BaseActionViewItem {
     container2.style.display = "none";
   }
 };
-export { getToolbarPickerResponsiveItems, isShowableActionViewItem, createOverflowAction, getInputStateStorageKey, createEmptyInputStateMemento, getLastPosition, $42, INPUT_EDITOR_MAX_HEIGHT, INPUT_EDITOR_LINE_HEIGHT, INPUT_EDITOR_PADDING, CachedLanguageModelsKey, PERMISSION_LEVEL_OPTION_ID, LEGACY_SHARED_INPUT_STATE_TAGS, emptyInputAttachments, ChatInputPart, chatInputEditorContainerSelector, ChatSessionPickersContainerActionItem, HiddenActionViewItem };
+export { getToolbarPickerResponsiveItems, isShowableActionViewItem, createOverflowAction, getInputStateStorageKey, createEmptyInputStateMemento, getLastPosition, $42, INPUT_EDITOR_MAX_HEIGHT, INPUT_EDITOR_LINE_HEIGHT, INPUT_EDITOR_PADDING, CachedLanguageModelsKey, LEGACY_SHARED_INPUT_STATE_TAGS, emptyInputAttachments, ChatInputPart, chatInputEditorContainerSelector, ChatSessionPickersContainerActionItem, HiddenActionViewItem };

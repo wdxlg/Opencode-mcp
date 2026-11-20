@@ -2095,4 +2095,113 @@ Registry.as(Extensions14.ConfigurationMigration).registerConfigurationMigrations
     return { value: "on" };
   }
 }]);
+
+// OpenCode market-ext-step01: 侧边栏不再有自带的「扩展」按钮，所有编辑器扩展都在「市场」窗口里管理。
+// 这里给扩展宿主（市场窗口）提供已安装扩展的完整状态与管理操作，并把打开扩展视图的入口转到市场。
+var OC_EXT_STATE_NAMES = { 0: "installing", 1: "installed", 2: "uninstalling", 3: "uninstalled" };
+function ocExtFind(service, id2) {
+  const want = String(id2 ?? "").toLowerCase();
+  return service.local.find((e) => e.identifier.id.toLowerCase() === want);
+}
+function ocExtSerialize(e, service, enablement) {
+  let canToggle = false, canToggleWorkspace = false, autoUpdate = false, hasConfig = false, hasKeys = false, iconPath = "";
+  try { canToggle = !!e.local && enablement.canChangeEnablement(e.local); } catch {}
+  try { canToggleWorkspace = !!e.local && enablement.canChangeWorkspaceEnablement(e.local); } catch {}
+  try { autoUpdate = !!service.isAutoUpdateEnabledFor(e); } catch {}
+  const manifest = e.local?.manifest;
+  if (manifest) {
+    hasConfig = !!manifest.contributes?.configuration;
+    hasKeys = Array.isArray(manifest.contributes?.keybindings) && manifest.contributes.keybindings.length > 0;
+    if (typeof manifest.icon === "string" && e.local.location?.scheme === "file") iconPath = URI.joinPath(e.local.location, manifest.icon).fsPath;
+  }
+  const icon = typeof e.iconUrl === "string" && /^https:\/\//.test(e.iconUrl) ? e.iconUrl : "";
+  const runtime = e.runtimeState ? { action: String(e.runtimeState.action ?? ""), reason: String(e.runtimeState.reason ?? "") } : null;
+  return {
+    id: e.identifier.id, name: String(e.displayName || e.name || e.identifier.id), publisher: String(e.publisherDisplayName || e.publisher || ""),
+    description: String(e.description ?? ""), version: String(e.version ?? ""), latestVersion: String(e.latestVersion ?? ""),
+    icon, iconPath, builtin: !!e.isBuiltin, state: OC_EXT_STATE_NAMES[e.state] ?? String(e.state), enablement: e.enablementState,
+    enabled: (() => { try { return enablement.isEnabledEnablementState(e.enablementState); } catch { return true; } })(),
+    disabledGlobally: e.enablementState === 10, disabledWorkspace: e.enablementState === 11,
+    canToggle, canToggleWorkspace, outdated: !!e.outdated, runtime, categories: Array.isArray(e.categories) ? e.categories.slice(0, 6) : [],
+    installCount: Number(e.installCount) || 0, rating: Number(e.rating) || 0, preRelease: !!e.isPreReleaseVersion, hasPreRelease: !!e.hasPreReleaseVersion,
+    pinned: !!e.pinned, autoUpdate, gallery: !!e.gallery, malicious: !!e.isMalicious, deprecated: !!e.deprecationInfo, workspaceScoped: !!e.isWorkspaceScoped,
+    hasConfig, hasKeys, url: String(e.url ?? ""), repository: String(e.repository ?? "")
+  };
+}
+CommandsRegistry.registerCommand("_opencode.extensions.state", async (accessor, opts) => {
+  const service = accessor.get(IExtensionsWorkbenchService);
+  const enablement = accessor.get(IWorkbenchExtensionEnablementService);
+  if (opts?.refresh) { try { await service.queryLocal(); } catch {} }
+  const local = service.local.filter((e) => e.state !== 3).map((e) => ocExtSerialize(e, service, enablement));
+  let recommendations = [];
+  try {
+    const recs = accessor.get(IExtensionRecommendationsService).getAllRecommendationsWithReason() || {};
+    recommendations = Object.keys(recs).map((id2) => ({ id: id2, reason: String(recs[id2]?.reasonText ?? "") }));
+  } catch {}
+  let autoUpdateAll = "on";
+  try { autoUpdateAll = String(service.getAutoUpdateValue()); } catch {}
+  const needsRestart = local.some((x) => x.runtime && x.runtime.action === "restartExtensions");
+  const needsReload = local.some((x) => x.runtime && x.runtime.action === "reloadWindow");
+  return { local, recommendations, autoUpdateAll, needsRestart, needsReload };
+});
+CommandsRegistry.registerCommand("_opencode.extensions.run", async (accessor, action, id2, arg) => {
+  const service = accessor.get(IExtensionsWorkbenchService);
+  const commands = accessor.get(ICommandService);
+  const instantiationService = accessor.get(IInstantiationService);
+  const ext = id2 ? ocExtFind(service, id2) : void 0;
+  const need = () => { if (!ext) throw new Error("没有找到扩展 " + id2); return ext; };
+  switch (action) {
+    case "enable": await service.setEnablement(need(), 12); return true;
+    case "disable": await service.setEnablement(need(), 10); return true;
+    case "enableWorkspace": await service.setEnablement(need(), 13); return true;
+    case "disableWorkspace": await service.setEnablement(need(), 11); return true;
+    case "uninstall": await service.uninstall(need()); return true;
+    case "update": await service.install(need(), { installPreReleaseVersion: !!need().local?.isPreReleaseVersion }); return true;
+    case "preRelease": await service.install(need(), { installPreReleaseVersion: !!arg }); return true;
+    case "otherVersion": return runAction(instantiationService.createInstance(InstallAnotherVersionAction, need(), true));
+    case "autoUpdate": await service.updateAutoUpdateEnablementFor(need(), !!arg); return true;
+    case "autoUpdateAll": await service.updateAutoUpdateForAllExtensions(!!arg); return true;
+    case "details": await service.open(need() ?? String(id2)); return true;
+    case "settings": return commands.executeCommand("workbench.extensions.action.configure", need().identifier.id);
+    case "keybindings": return commands.executeCommand("workbench.extensions.action.configureKeybindings", need().identifier.id);
+    case "copyId": await accessor.get(IClipboardService).writeText(need().identifier.id); return true;
+    case "checkUpdates": await service.checkForUpdates("opencode-market"); return true;
+    case "updateAll": await service.updateAll(); return true;
+    case "restart": await service.updateRunningExtensions(); return true;
+    case "reload": return commands.executeCommand("workbench.action.reloadWindow");
+    case "installVsix": return commands.executeCommand(SELECT_INSTALL_VSIX_EXTENSION_COMMAND_ID);
+    case "enableAll": return commands.executeCommand("workbench.extensions.action.enableAll");
+    case "disableAll": return commands.executeCommand("workbench.extensions.action.disableAll");
+    case "runningExtensions": return commands.executeCommand("workbench.action.showRuntimeExtensions");
+  }
+  throw new Error("未知操作 " + action);
+});
+// 打开「扩展」视图（快捷键 Ctrl+Shift+X、菜单、管理按钮等）时关掉它，改为打开市场的扩展页。
+var OcExtensionsViewRedirect = class extends Disposable {
+  static {
+    this.ID = "workbench.contrib.opencodeExtensionsViewRedirect";
+  }
+  constructor(viewsService, commandService) {
+    super();
+    const born = Date.now();
+    let last;
+    const redirect = () => {
+      viewsService.closeViewContainer(VIEWLET_ID2);
+      if (last && last !== VIEWLET_ID2) viewsService.openViewContainer(last, false);
+      if (Date.now() - born > 4e3) commandService.executeCommand("opencode.openMarket", "ext", { view: "installed" }).then(void 0, onUnexpectedError);
+    };
+    this._register(viewsService.onDidChangeViewContainerVisibility((e) => {
+      if (!e?.visible || e.location !== 0) return;
+      if (e.id !== VIEWLET_ID2) { last = e.id; return; }
+      setTimeout(redirect, 0);
+    }));
+    if (viewsService.isViewContainerVisible?.(VIEWLET_ID2)) setTimeout(redirect, 0);
+  }
+};
+OcExtensionsViewRedirect = __decorateClass([
+  __decorateParam(0, IViewsService),
+  __decorateParam(1, ICommandService)
+], OcExtensionsViewRedirect);
+registerWorkbenchContribution2(OcExtensionsViewRedirect.ID, OcExtensionsViewRedirect, WorkbenchPhase.AfterRestored);
+
 export { overrideActionForActiveExtensionEditorWebview, runAction, VIEW_CONTAINER, jsonRegistry2, CONTEXT_HAS_LOCAL_SERVER, CONTEXT_HAS_REMOTE_SERVER, CONTEXT_HAS_WEB_SERVER, CONTEXT_GALLERY_SORT_CAPABILITIES, CONTEXT_GALLERY_FILTER_CAPABILITIES, CONTEXT_GALLERY_ALL_PUBLIC_REPOSITORY_SIGNED, CONTEXT_GALLERY_ALL_PRIVATE_REPOSITORY_SIGNED, CONTEXT_GALLERY_HAS_EXTENSION_LINK, ExtensionsContributions, ExtensionStorageCleaner, TrustedPublishersInitializer, ExtensionToolsContribution, workbenchRegistry };

@@ -28,6 +28,23 @@ import { IEditorGroupsService } from "./module-0933.mjs";
 
 
 // src/vs/workbench/browser/parts/editor/editorParts.ts
+// OpenCode: does a saved editor part (its serializedGrid) hold at least one editor? Unknown shapes count as "yes".
+function ocSerializedGridHasEditors(partState) {
+  const root = partState?.serializedGrid?.root;
+  if (!root) {
+    return true;
+  }
+  const visit = (node) => {
+    if (!node) {
+      return false;
+    }
+    if (node.type === "leaf") {
+      return Array.isArray(node.data?.editors) ? node.data.editors.length > 0 : true;
+    }
+    return Array.isArray(node.data) ? node.data.some(visit) : true;
+  };
+  return visit(root);
+}
 var EditorParts = class extends MultiWindowParts {
   constructor(instantiationService, storageService, themeService, auxiliaryWindowService, contextKeyService) {
     super("workbench.editorParts", themeService, storageService);
@@ -308,6 +325,19 @@ var EditorParts = class extends MultiWindowParts {
     this._isReady = true;
     this.whenReadyPromise.complete();
     await Promise.allSettled(this.parts.map((part) => part.whenRestored));
+    // OpenCode: a floating window whose editors could not come back (a webview with no serializer, an editor that
+    // failed to restore) would otherwise stay open as an empty window on every start; close it now.
+    for (const part of [...this.parts]) {
+      if (part === this.mainPart || part === this.modalEditorPart || !this.auxiliaryWindowService.getWindow(part.windowId)) {
+        continue;
+      }
+      try {
+        if (part.groups.every((group2) => group2.isEmpty)) {
+          part.close();
+        }
+      } catch {
+      }
+    }
     this.whenRestoredPromise.complete();
   }
   loadState() {
@@ -345,15 +375,34 @@ var EditorParts = class extends MultiWindowParts {
     }
   }
   createState() {
+    // OpenCode: an empty floating window is not saved, so it never comes back as an empty window on the next start.
+    // mru indexes the parts as they will exist after a restore: the main part, then the saved floating windows in order.
+    const kept = [this.mainPart];
+    const auxiliary = [];
+    for (const part of this.parts) {
+      const auxiliaryWindow = this.auxiliaryWindowService.getWindow(part.windowId);
+      if (!auxiliaryWindow) {
+        continue;
+      }
+      const state = part.createState();
+      if (!ocSerializedGridHasEditors(state)) {
+        continue;
+      }
+      kept.push(part);
+      auxiliary.push({ state, ...auxiliaryWindow.createState() });
+    }
     return {
-      auxiliary: this.parts.map((part) => ({ part, auxiliaryWindow: this.auxiliaryWindowService.getWindow(part.windowId) })).filter(({ auxiliaryWindow }) => auxiliaryWindow !== void 0).map(({ part, auxiliaryWindow }) => ({
-        state: part.createState(),
-        ...auxiliaryWindow.createState()
-      })),
-      mru: this.mostRecentActiveParts.map((part) => this.parts.indexOf(part))
+      auxiliary,
+      mru: this.mostRecentActiveParts.filter((part) => kept.includes(part)).map((part) => kept.indexOf(part))
     };
   }
   async restoreState(state) {
+    // OpenCode: states saved by older builds can still hold empty floating windows; skip those.
+    const savedAuxiliary = Array.isArray(state.auxiliary) ? state.auxiliary : [];
+    const auxiliaryStates = savedAuxiliary.filter((auxiliaryEditorPartState) => ocSerializedGridHasEditors(auxiliaryEditorPartState?.state));
+    if (auxiliaryStates.length !== savedAuxiliary.length) {
+      state = { ...state, auxiliary: auxiliaryStates, mru: [] };
+    }
     if (state.auxiliary.length) {
       const auxiliaryEditorPartPromises = [];
       for (const auxiliaryEditorPartState of state.auxiliary) {

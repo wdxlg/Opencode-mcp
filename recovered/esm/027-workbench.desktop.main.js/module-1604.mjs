@@ -37,7 +37,7 @@ var AuxiliaryBarPart = class extends AbstractPaneCompositePart {
       "workbench.parts.auxiliarybar" /* AUXILIARYBAR_PART */,
       {
         hasTitle: true,
-        trailingSeparator: true,
+        trailingSeparator: false,
         borderWidth: () => this.getColor(SIDE_BAR_BORDER) || this.getColor(contrastBorder) ? 1 : 0
       },
       AuxiliaryBarPart.activeViewSettingsKey,

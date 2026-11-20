@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "OpenCode embedded REA backend source port; no executable or service entry",
+  "license": "MIT",
+  "imports": {
+    "#javascript-analysis-worker": "./vendor/dist/composition/javascriptAnalysisWorkerProcess.js",
+    "#web-bundle-analysis-worker": "./vendor/dist/composition/webBundleAnalysisWorkerProcess.js"
+  }
+}

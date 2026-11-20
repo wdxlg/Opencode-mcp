@@ -1,0 +1,107 @@
+{
+  "task_id": "remove-workspace-mutation-lock-20261029-183500-step01",
+  "status": "source_and_build_complete_function_unverified",
+  "version": "1.0.0-recovered.28",
+  "source_commit": "cc1ed24cd33c45db3c7217bf69460eb39a802196",
+  "branch": "refs/heads/task/remove-workspace-mutation-lock-20261029-183500-step01",
+  "pre_snapshot": "b9794cd8a0ebc86cc781e485b27acd228ba0f578",
+  "completed_at": "2026-10-29T14:52:38.782Z",
+  "user_acceptance": "not_run",
+  "files": [
+    {
+      "path": "tasks/remove-workspace-mutation-lock-20261029-183500-step01/task.md",
+      "purpose": "任务总状态、强制读取清单、快照与使用方法",
+      "sha256": "4e573b42f496a7d4cb3c3f8ade1882d5d7960353b60bccb256f292d0648e4015"
+    },
+    {
+      "path": "tasks/remove-workspace-mutation-lock-20261029-183500-step01/progress.md",
+      "purpose": "进度状态板",
+      "sha256": "75546ffd2d33c26e0ee2f48a2f7c7f8db831c1eb98f999f98787743983bba299"
+    },
+    {
+      "path": "recovered/shared/concurrency-runtime.mjs",
+      "purpose": "移除 workspace-mutation 端口映射真源",
+      "sha256": "bfbefd745e8973ba059df09541672d10b953c8d9abca519a20af56568059227b"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/concurrency-runtime.mjs",
+      "purpose": "扩展构建同步副本",
+      "sha256": "bfbefd745e8973ba059df09541672d10b953c8d9abca519a20af56568059227b"
+    },
+    {
+      "path": "recovered/esm/003-mcp-server.js/concurrency-runtime.mjs",
+      "purpose": "MCP 服务构建同步副本",
+      "sha256": "bfbefd745e8973ba059df09541672d10b953c8d9abca519a20af56568059227b"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0165.mjs",
+      "purpose": "TerminalCommandManager.run 移除工作区命令写互斥锁与 WORKSPACE_BUSY",
+      "sha256": "7955adedb081ffab6a331384dc73bcd18b081313b5b4cdadeb19086e51207d08"
+    },
+    {
+      "path": "recovered/esm/000-extension.js/module-0043.mjs",
+      "purpose": "扩展终端说明文案同步移除写锁表述",
+      "sha256": "8aa7f11faad883be99d1993666a238cdfc8cb07da9ff8f5a565768991d002aa7"
+    },
+    {
+      "path": "recovered/esm/002-agent-host.js/module-0028.mjs",
+      "purpose": "Agent Host 终端说明文案同步移除写锁表述",
+      "sha256": "5c3187b6097e3320e9e682ba1524983a38d9074d17699d0d2422a62d7e6380a6"
+    },
+    {
+      "path": "scripts/test-command-limits.mjs",
+      "purpose": "静态回归断言补充禁止 workspace-mutation 与 WORKSPACE_BUSY",
+      "sha256": "45abdcbe299bb0db763b2c7d0b6844827c06b6d45220ed2670abe7ad3723b018"
+    },
+    {
+      "path": "package.json",
+      "purpose": "源码版本更新至 1.0.0-recovered.28",
+      "sha256": "fe7632b24f13b51078647bfe8e411a880739d57c18f61f70aff880abfa57f033"
+    },
+    {
+      "path": "README.md",
+      "purpose": "recovered.28 删锁范围、保留锁与验证边界说明",
+      "sha256": "58443b9ba360d6525766ee564f307b777cea28a87549ac3056f7e9618840abaf"
+    },
+    {
+      "path": "reports/build-verification.json",
+      "purpose": "构建与完整性校验回执",
+      "sha256": "ab72876be598904f8184aa5d529b25abfc7c9c5bcd6c34a68f418b15d136c838"
+    },
+    {
+      "path": "reports/runtime-update.json",
+      "purpose": "源码内 opencode 运行目录增量发布报告",
+      "sha256": "38f5d8e17b1d34e03e4269a3e14ffb8212b106e6b98fb363e5ff9da1039a5169"
+    },
+    {
+      "path": "opencode/resources/app/extensions/opencode/dist/extension.js",
+      "purpose": "源码内 opencode 新版扩展产物",
+      "sha256": "de9367ab933e94d01e3481fc16f1fa4a6c0fcc1528919004554960c56711e448"
+    },
+    {
+      "path": "opencode/resources/app/extensions/opencode/runtime/agent-host.js",
+      "purpose": "源码内 opencode 新版 agent-host 产物",
+      "sha256": "85b7b683af076ae47833fc7f74aab9d75f37bb6ac488d7d77eb60bbd8fc56c1c"
+    },
+    {
+      "path": "opencode/resources/app/extensions/opencode/runtime/mcp-server.js",
+      "purpose": "源码内 opencode 新版 mcp-server 产物",
+      "sha256": "80bd68afed21c34c0f0aff5bafc879b3c94289594b07f12620a24db88f132332"
+    },
+    {
+      "path": "opencode/OPENCODE-RELEASE.json",
+      "purpose": "源码内 opencode 1.0.0-recovered.28 发布清单",
+      "sha256": "860edaa0919de26a7aa4922b8d2e7267a6011d614e8cebe1e203aac0eac42735"
+    },
+    {
+      "path": "backup/remove-workspace-mutation-lock-20261029-183500-step01/memory-before.sqlite",
+      "purpose": "SQLite 修改前一致性备份（不入 Git）",
+      "sha256": "6024882b253392e3c224973f1cd3d36064a07c62d45943831cf6e301fb451768"
+    },
+    {
+      "path": ".ai-workflow/logs/remove-workspace-mutation-lock-20261029-183500-step01.json",
+      "purpose": "本任务操作留痕日志",
+      "sha256": "f528f57737258fe87459cb5ffb1e6ea66aa5bf934dc859715523e0f84107cad7"
+    }
+  ]
+}

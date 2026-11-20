@@ -8,7 +8,7 @@ import { forgetNativeConfig, recallNativeConfig, redactedNativeView, rememberNat
 import { registerExternalMcpNetworkCommands } from "./module-0111.mjs";
 import { registerExternalMcpSecretCommands } from "./module-0065.mjs";
 import { ExternalMcpNetwork } from "./module-0105.mjs";
-import { managedStdioEnvironment } from "./module-0110.mjs";
+import { managedStdioEnvironment, windowsMcpDirectEnvironment } from "./module-0110.mjs";
 import { bridgeStatusOf, editorStateOf, legacyEditorStatus } from "./module-0112.mjs";
 import { registerWindowsMcpIntegration } from "./windows-mcp-integration.mjs";
 
@@ -219,6 +219,7 @@ var ExternalMcpCenter = class {
     if (runtime.transport === "stdio") {
       const resolved = new vscode6.McpStdioServerDefinition(definition.label, runtime.command, runtime.args, {
         ...runtime.env,
+        ...windowsMcpDirectEnvironment(runtime.command, runtime.args, runtime.env, this.bundledBinDir),
         ...timeout ? { OPENCODE_MCP_TIMEOUT_MS: timeout } : {}
       }, version2);
       if (runtime.cwd) resolved.cwd = vscode6.Uri.file(runtime.cwd);

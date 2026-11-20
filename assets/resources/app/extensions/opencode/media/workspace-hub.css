@@ -1,88 +1,211 @@
+/* OpenCode 工作区与共享聊天：与“自定义”编辑器（Bridge、多模型协作）共用同一套扁平卡片、按钮、胶囊与提示样式，全部取宿主主题令牌。 */
 :root{color-scheme:light dark}
+body{--oc-border:var(--vscode-widget-border,var(--vscode-editorWidget-border,var(--vscode-panel-border,#3c3c3c)));--oc-card:var(--vscode-editorWidget-background,var(--vscode-editor-background,#252526));--oc-inset:var(--vscode-editor-background,#1e1e1e);--oc-shadow:none;--oc-muted:var(--vscode-descriptionForeground,#9d9d9d);--oc-radius:6px;--oc-radius-sm:4px;--oc-pill:10px}
+body.vscode-high-contrast,body.vscode-high-contrast-light{--oc-shadow:none;--oc-card:var(--vscode-editor-background);--oc-border:var(--vscode-contrastBorder,var(--vscode-widget-border))}
 *{box-sizing:border-box}
-body{margin:0;background:var(--vscode-editor-background,#17191e);color:var(--vscode-editor-foreground,#ddd);font:13px var(--vscode-font-family,system-ui);line-height:1.55}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:30px 32px 24px;border-bottom:1px solid var(--vscode-widget-border,#333)}
-.topbar-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.badge.instance{opacity:.75;font-weight:normal}
-h1{font-size:25px;letter-spacing:-.7px;margin:4px 0 7px}
-h2{font-size:16px;margin:0}
-p{margin:0;color:var(--vscode-descriptionForeground,#a6a6ad)}
-.eyebrow{font-size:10px;letter-spacing:1.6px;color:var(--vscode-descriptionForeground,#9c9eaa);font-weight:600}
-.primary,button{font:inherit;cursor:pointer;border:1px solid var(--vscode-button-border,transparent);border-radius:5px;padding:7px 12px;background:var(--vscode-button-secondaryBackground,#343841);color:var(--vscode-button-secondaryForeground,#ddd)}
-.primary{background:var(--vscode-button-background,#376de0);color:var(--vscode-button-foreground,#fff)}
-button:hover{filter:brightness(1.12)}
-button:focus-visible,input:focus-visible{outline:1px solid var(--vscode-focusBorder,#5b9bf5);outline-offset:2px}
-button:disabled{opacity:.45;cursor:default;filter:none}
-.tabs{display:flex;align-items:center;gap:4px;padding:12px 32px 0;border-bottom:1px solid var(--vscode-widget-border,#333)}
-.tabs button{background:transparent;border:0;border-radius:0;padding:9px 14px 13px;border-bottom:2px solid transparent;color:var(--vscode-descriptionForeground,#aaa)}
-.tabs button.selected{border-color:var(--vscode-focusBorder,#5b9bf5);color:var(--vscode-editor-foreground,#fff)}
-.tabs button span{font-size:10px;border-radius:10px;background:var(--vscode-badge-background,#343a46);color:var(--vscode-badge-foreground,#ddd);padding:1px 6px;margin-left:4px}
-.live{margin-left:auto;font-size:11px;display:flex;align-items:center;gap:7px;color:var(--vscode-descriptionForeground,#999)}
-.live i,.status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;background:var(--vscode-testing-iconPassed,#70ba8a)}
-main{padding:24px 32px;min-height:450px}
-.section-heading{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:17px}
-.section-heading span{color:var(--vscode-descriptionForeground,#999);font-size:11px}
-.window-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
-.window-card{max-width:720px;border:1px solid var(--vscode-widget-border,#353840);border-radius:8px;padding:19px;background:var(--vscode-sideBar-background,#1e2128)}
-.window-card.current{border-color:var(--vscode-focusBorder,#548cef)}
-.card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}
-.project-name{font-size:16px;font-weight:600;overflow-wrap:anywhere}
-.badge{font-size:10px;border:1px solid var(--vscode-widget-border,#404551);padding:1px 7px;border-radius:20px;white-space:nowrap}
-.current .badge{color:var(--vscode-textLink-foreground,#7fb6ff)}
-.project-path{font:11px var(--vscode-editor-font-family,monospace);color:var(--vscode-descriptionForeground,#aaa);overflow-wrap:anywhere;min-height:34px}
-.bridge-status{display:flex;align-items:center;gap:8px;font-size:11px;margin:16px 0 8px}
-.status-dot.stopped{background:var(--vscode-descriptionForeground,#777)}
-.status-dot.error{background:var(--vscode-errorForeground,#ed716a)}
-.status-dot.starting{background:var(--vscode-editorWarning-foreground,#d6aa63)}
-.address-row{display:flex;gap:8px;align-items:stretch}
-.address-input{flex:1;min-width:0;padding:9px 10px;font:11px var(--vscode-editor-font-family,monospace);border-radius:5px;background:var(--vscode-textCodeBlock-background,#171a20);border:1px solid transparent;color:var(--vscode-editor-foreground,#ddd)}
-.reveal{flex-shrink:0;font-size:11px;padding:7px 10px}
-.task{border-top:1px solid var(--vscode-widget-border,#333);padding-top:12px;margin-top:14px}
-.task-label{font-size:10px;color:var(--vscode-descriptionForeground,#999);margin-bottom:5px}
-.task-title{white-space:pre-line;min-height:38px;overflow-wrap:anywhere}
-.task-meta{font-size:11px;color:var(--vscode-descriptionForeground,#aaa);display:flex;justify-content:space-between;margin:9px 0}
-.task progress{width:100%;height:4px;accent-color:var(--vscode-progressBar-background,#578bee)}
-.card-actions{display:flex;gap:8px;margin-top:16px}
-.card-actions button{flex:1;font-size:11px}
-.empty{padding:50px 20px;text-align:center;color:var(--vscode-descriptionForeground,#999);line-height:1.9}
-.chat-layout{display:grid;grid-template-columns:270px minmax(0,1fr);border:1px solid var(--vscode-widget-border,#343840);border-radius:8px;overflow:hidden;min-height:520px;height:calc(100vh - 266px)}
-.chat-sidebar{border-right:1px solid var(--vscode-widget-border,#343840);background:var(--vscode-sideBar-background,#1d2027);display:flex;flex-direction:column;min-height:0}
-.search{display:flex;gap:8px;align-items:center;margin:15px;border:1px solid var(--vscode-input-border,#3a3e46);background:var(--vscode-input-background,#292d35);border-radius:4px;padding:5px 9px}
-.search input{min-width:0;width:100%;background:transparent;border:0;color:var(--vscode-input-foreground,#ddd);font:inherit}
-.chat-list{overflow:auto;flex:1;padding:0 8px 12px}
-.chat-item{display:block;text-align:left;width:100%;border:1px solid transparent;background:transparent;color:inherit;margin-bottom:4px;padding:11px}
-.chat-item.selected{border-color:var(--vscode-focusBorder,#568be8);background:var(--vscode-list-activeSelectionBackground,#25415e)}
-.chat-item .title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chat-item .meta{font-size:10px;display:flex;justify-content:space-between;gap:5px;margin-top:5px;color:var(--vscode-descriptionForeground,#aaa)}
-.conversation{display:flex;flex-direction:column;min-width:0;min-height:0}
-.conversation-header{padding:18px 22px;border-bottom:1px solid var(--vscode-widget-border,#333);display:flex;align-items:center;justify-content:space-between;gap:15px}
-.conversation-header h2{margin:5px 0;overflow-wrap:anywhere}
-.conversation-header button{font-size:11px;flex-shrink:0}
-.header-actions{display:flex;gap:8px;flex-shrink:0}
-.danger{border-color:var(--vscode-errorForeground,#e66);color:var(--vscode-errorForeground,#e88);background:transparent}
-.muted{font-size:11px;color:var(--vscode-descriptionForeground,#aaa)}
-.messages{padding:22px;overflow:auto;flex:1;min-height:0}
-.turn{margin-bottom:24px}
-.role{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--vscode-descriptionForeground,#aaa);margin-bottom:8px}
-.turn.user .bubble{background:var(--vscode-textCodeBlock-background,#242932);padding:12px 15px;border-radius:7px;border:1px solid var(--vscode-widget-border,#333)}
-.bubble{overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.75}
-.bubble pre{white-space:pre;overflow:auto;background:var(--vscode-textCodeBlock-background,#20242a);padding:12px;border-radius:5px;font:12px/1.65 var(--vscode-editor-font-family,monospace);border:1px solid var(--vscode-widget-border,#333)}
-.bubble .tool{font-size:11px;padding:5px 9px;margin:6px 0;border-left:2px solid var(--vscode-progressBar-background,#568beb);color:var(--vscode-descriptionForeground,#aaa)}
-.reader-note{padding:11px 18px;background:var(--vscode-sideBar-background,#1d2027);font-size:10px;color:var(--vscode-descriptionForeground,#999);border-top:1px solid var(--vscode-widget-border,#333)}
-footer{padding:12px 32px 20px;display:flex;gap:15px;flex-wrap:wrap;align-items:center;color:var(--vscode-descriptionForeground,#888);font-size:10px}
-footer .link{font-size:11px;background:transparent;color:var(--vscode-textLink-foreground,#78aeff);border:0;padding:0}
-#folder-path{font-family:var(--vscode-editor-font-family,monospace);overflow-wrap:anywhere;flex:1}
-#notice{margin:14px 32px 0;padding:8px 12px;border:1px solid var(--vscode-focusBorder,#548ce0);border-radius:5px;color:var(--vscode-editor-foreground,#ddd)}
-#notice.error{border-color:var(--vscode-errorForeground,#e66);color:var(--vscode-errorForeground,#e88)}
+body{margin:0;padding:16px 20px 24px;background:var(--vscode-editor-background,#1e1e1e);color:var(--vscode-foreground,#ccc);font:var(--vscode-font-size,13px)/1.5 var(--vscode-font-family,system-ui)}
+h1,h2,h3{font-weight:600;margin:0}
+h1{font-size:20px;line-height:1.3}
+h2{font-size:14px}
+p{margin:0;color:var(--oc-muted)}
 [hidden]{display:none!important}
-@media(max-width:720px){.topbar{padding:20px;align-items:flex-start;flex-direction:column;gap:15px}
-.tabs{padding-left:16px;padding-right:16px}
-main{padding:18px}
-.section-heading{align-items:flex-start;flex-direction:column}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--vscode-scrollbarSlider-background,rgba(121,121,121,.4))}
+::-webkit-scrollbar-thumb:hover{background:var(--vscode-scrollbarSlider-hoverBackground,rgba(100,100,100,.7))}
+
+/* 按钮：默认次要按钮，.primary 为主操作，.danger 为描边危险操作。 */
+button{font:inherit;cursor:pointer;min-height:28px;padding:4px 12px;border:1px solid var(--vscode-button-secondaryBorder,var(--vscode-button-border,transparent));border-radius:var(--oc-radius-sm);background:var(--vscode-button-secondaryBackground,#3a3d41);color:var(--vscode-button-secondaryForeground,#ccc);white-space:nowrap}
+button:hover{background:var(--vscode-button-secondaryHoverBackground,#45494e)}
+.primary{background:var(--vscode-button-background,#0e639c);color:var(--vscode-button-foreground,#fff);border-color:var(--vscode-button-border,transparent)}
+.primary:hover{background:var(--vscode-button-hoverBackground,#1177bb)}
+.danger,.danger:hover{background:transparent;border-color:var(--vscode-errorForeground,#f48771);color:var(--vscode-errorForeground,#f48771)}
+.danger:hover:not(:disabled){opacity:.75}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible{outline:1px solid var(--vscode-focusBorder,#007fd4);outline-offset:2px}
+
+/* 页头：与 Bridge 主卡片一致。 */
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px;margin-bottom:10px;border:1px solid var(--oc-border);border-radius:var(--oc-radius);background:var(--oc-card);box-shadow:var(--oc-shadow)}
+.topbar p{margin-top:7px;max-width:720px;line-height:1.4}
+.topbar-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
+.eyebrow{font-size:11px;letter-spacing:.4px;color:var(--oc-muted);font-weight:600;margin-bottom:4px}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:var(--oc-pill);background:var(--vscode-badge-background,#4d4d4d);color:var(--vscode-badge-foreground,#fff);white-space:nowrap}
+.badge.instance{font-weight:400;opacity:.85}
+.current .badge{color:var(--vscode-testing-iconPassed,#73c991)}
+
+#notice{margin:0 0 10px;padding:8px 12px;border:1px solid var(--vscode-focusBorder,#007fd4);border-left-width:3px;border-radius:var(--oc-radius-sm);background:var(--oc-card);color:var(--vscode-foreground,#ccc)}
+#notice.error{border-color:var(--vscode-inputValidation-errorBorder,var(--vscode-errorForeground,#f48771));background:var(--vscode-inputValidation-errorBackground,var(--oc-card))}
+
+/* 页签 */
+.tabs{display:flex;align-items:center;gap:2px;margin:0 0 12px;border-bottom:1px solid var(--oc-border)}
+.tabs button{min-height:0;background:transparent;border:0;border-radius:0;padding:8px 12px 7px;border-bottom:2px solid transparent;color:var(--vscode-tab-inactiveForeground,var(--oc-muted))}
+.tabs button:hover{background:transparent;color:var(--vscode-foreground,#ccc)}
+.tabs button.selected{border-bottom-color:var(--vscode-focusBorder,#007fd4);color:var(--vscode-tab-activeForeground,var(--vscode-foreground,#fff))}
+.tabs button span{font-size:11px;font-weight:600;border-radius:var(--oc-pill);background:var(--vscode-badge-background,#4d4d4d);color:var(--vscode-badge-foreground,#fff);padding:0 7px;margin-left:5px}
+.live{margin-left:auto;font-size:11px;display:flex;align-items:center;gap:7px;color:var(--oc-muted)}
+.live i,.status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--vscode-testing-iconPassed,#73c991);flex-shrink:0}
+.status-dot.stopped{background:var(--oc-muted)}
+.status-dot.error{background:var(--vscode-errorForeground,#f48771)}
+.status-dot.starting{background:var(--vscode-editorWarning-foreground,#cca700)}
+
+main{min-height:420px}
+.section-heading{display:flex;justify-content:space-between;gap:15px;align-items:baseline;margin:2px 2px 10px}
+.section-heading span{color:var(--oc-muted);font-size:12px}
+
+/* 工作区卡片 */
+.window-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.window-card{min-width:0;padding:13px 15px;border:1px solid var(--oc-border);border-radius:var(--oc-radius);background:var(--oc-card);box-shadow:var(--oc-shadow)}
+.window-card.current{border-color:var(--vscode-focusBorder,#007fd4)}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+.project-name{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.project-path{font:12px var(--vscode-editor-font-family,monospace);color:var(--oc-muted);overflow-wrap:anywhere}
+.bridge-status{display:flex;align-items:center;gap:8px;font-size:12px;margin:12px 0 6px}
+.address-row{display:flex;gap:8px;align-items:stretch}
+.address-input{flex:1;min-width:0;height:30px;padding:5px 8px;font:12px var(--vscode-editor-font-family,monospace);border-radius:var(--oc-radius-sm);background:var(--vscode-input-background,#3c3c3c);border:1px solid var(--vscode-input-border,transparent);color:var(--vscode-input-foreground,#ccc)}
+.reveal{flex-shrink:0;height:30px}
+.task{border-top:1px solid var(--oc-border);padding-top:10px;margin-top:12px}
+.task-label{font-size:11px;color:var(--oc-muted);margin-bottom:4px}
+.task-title{white-space:pre-line;overflow-wrap:anywhere}
+.task-meta{font-size:12px;color:var(--oc-muted);display:flex;justify-content:space-between;gap:8px;margin:8px 0}
+.task progress{width:100%;height:4px;accent-color:var(--vscode-progressBar-background,#0e70c0)}
+.card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.card-actions button{flex:1 1 auto}
+.empty{padding:40px 20px;text-align:center;color:var(--oc-muted);line-height:1.8}
+
+/* 共享聊天 */
+.chat-layout{display:grid;grid-template-columns:270px minmax(0,1fr);border:1px solid var(--oc-border);border-radius:var(--oc-radius);background:var(--oc-card);box-shadow:var(--oc-shadow);overflow:hidden;min-height:480px;height:calc(100vh - 250px)}
+.chat-sidebar{border-right:1px solid var(--oc-border);display:flex;flex-direction:column;min-height:0}
+.search{display:flex;gap:8px;align-items:center;margin:12px;border:1px solid var(--vscode-input-border,transparent);background:var(--vscode-input-background,#3c3c3c);border-radius:var(--oc-radius-sm);padding:4px 8px;color:var(--oc-muted)}
+.search:focus-within{border-color:var(--vscode-focusBorder,#007fd4)}
+.search input{min-width:0;width:100%;background:transparent;border:0;outline:0;color:var(--vscode-input-foreground,#ccc);font:inherit}
+.chat-list{overflow:auto;flex:1;padding:0 8px 12px}
+.chat-item{display:block;text-align:left;width:100%;min-height:0;border:1px solid transparent;border-radius:var(--oc-radius-sm);background:transparent;color:inherit;margin-bottom:2px;padding:8px 10px;white-space:normal}
+.chat-item:hover{background:var(--vscode-list-hoverBackground,#2a2d2e)}
+.chat-item.selected{border-color:var(--vscode-focusBorder,#007fd4);background:var(--vscode-list-activeSelectionBackground,#04395e);color:var(--vscode-list-activeSelectionForeground,inherit)}
+.chat-item .title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-item .meta{font-size:11px;display:flex;justify-content:space-between;gap:5px;margin-top:3px;color:var(--oc-muted)}
+.conversation{display:flex;flex-direction:column;min-width:0;min-height:0}
+.conversation-header{padding:13px 15px;border-bottom:1px solid var(--oc-border);display:flex;align-items:center;justify-content:space-between;gap:15px}
+.conversation-header h2{margin:3px 0;overflow-wrap:anywhere}
+.header-actions{display:flex;gap:8px;flex-shrink:0}
+.muted{font-size:12px;color:var(--oc-muted)}
+.messages{padding:16px;overflow:auto;flex:1;min-height:0;background:var(--oc-inset)}
+.turn{margin-bottom:20px}
+.role{font-size:11px;font-weight:600;letter-spacing:.4px;color:var(--oc-muted);margin-bottom:6px}
+.turn.user .bubble{background:var(--vscode-textCodeBlock-background,#2b2b2b);padding:10px 13px;border-radius:var(--oc-radius);border:1px solid var(--oc-border)}
+.bubble{overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.7}
+.bubble pre{white-space:pre;overflow:auto;background:var(--vscode-textCodeBlock-background,#2b2b2b);padding:10px 12px;border-radius:var(--oc-radius-sm);font:12px/1.6 var(--vscode-editor-font-family,monospace);border:1px solid var(--oc-border)}
+.bubble .tool{font-size:12px;padding:4px 9px;margin:6px 0;border-left:2px solid var(--vscode-progressBar-background,#0e70c0);color:var(--oc-muted)}
+.reader-note{display:flex;align-items:center;gap:6px;padding:8px 15px;font-size:11px;color:var(--oc-muted);border-top:1px solid var(--oc-border)}
+
+footer{margin-top:10px;padding:10px 2px 0;display:flex;gap:12px;flex-wrap:wrap;align-items:center;color:var(--oc-muted);font-size:11px}
+footer .link{min-height:0;font-size:12px;background:transparent;color:var(--vscode-textLink-foreground,#3794ff);border:0;padding:0}
+footer .link:hover{background:transparent;color:var(--vscode-textLink-activeForeground,#3794ff);text-decoration:underline}
+#folder-path{font-family:var(--vscode-editor-font-family,monospace);overflow-wrap:anywhere;flex:1}
+
+@media(max-width:720px){body{padding:12px}
+.topbar{flex-direction:column;gap:12px}
+.topbar-actions{justify-content:flex-start}
+.section-heading{align-items:flex-start;flex-direction:column;gap:4px}
 .chat-layout{grid-template-columns:1fr;height:auto;min-height:600px}
-.chat-sidebar{border-right:0;border-bottom:1px solid var(--vscode-widget-border,#333);max-height:240px}
+.chat-sidebar{border-right:0;border-bottom:1px solid var(--oc-border);max-height:240px}
 .messages{min-height:320px;max-height:65vh}
 .conversation-header{flex-wrap:wrap}
-footer{padding:10px 18px 20px}
-.window-grid{grid-template-columns:1fr}
+.window-grid{grid-template-columns:1fr}}
+.task progress{display:block;-webkit-appearance:none;appearance:none;height:4px;border:0;border-radius:2px;overflow:hidden;background:var(--vscode-input-background,#3c3c3c)}
+.task progress::-webkit-progress-bar{background:var(--vscode-input-background,#3c3c3c)}
+.task progress::-webkit-progress-value{background:var(--vscode-progressBar-background,#0e70c0)}
+
+/* ==== oc-unified-ui-v1 BEGIN：统一尺寸 / 动效 / 焦点（全部页面共用，追加在最后以覆盖旧值） ==== */
+:root{--oc-u-r1:2px;--oc-u-r2:4px;--oc-u-r3:6px;--oc-u-ease:cubic-bezier(.2,0,0,1);--oc-u-fast:.1s;--oc-u-mid:.2s;--oc-u-slow:.28s;--oc-radius:6px;--oc-radius-sm:4px;--tc-r:6px;--tc-r2:4px;--wk-radius:4px;--wk-radius-lg:6px}
+@keyframes ocu-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes ocu-fade{from{opacity:0}to{opacity:1}}
+@keyframes ocu-pop{from{opacity:0;transform:scale(.97) translateY(-2px)}to{opacity:1;transform:none}}
+@keyframes ocu-slide{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes ocu-shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+/* 交互元素：统一过渡 */
+:is(button,.wk-btn,.wk-icon-btn,.tc-primary,.tc-ghost,.tc-icon-btn,.tc-ibtn,.tc-sendbtn,.tc-seg,.tc-pill,.tc-chip,.wk-chip,.wk-tab,.chat-item,.wk-list-item,.ap-row,.tc-conv,.tc-mpick-row,.tc-at-item,.tc-addpop-item,.item-list>*,a):is(:hover,:focus-visible,:active){transition:background-color var(--oc-u-fast) var(--oc-u-ease),border-color var(--oc-u-fast) var(--oc-u-ease),color var(--oc-u-fast) var(--oc-u-ease),opacity var(--oc-u-fast) var(--oc-u-ease),box-shadow var(--oc-u-fast) var(--oc-u-ease),transform var(--oc-u-fast) var(--oc-u-ease)}
+button:not(:disabled):active,.wk-btn:not(.is-disabled):active,.tc-primary:active,.tc-ghost:active{transform:translateY(.5px) scale(.99)}
+:is(input,select,textarea,.wk-input,.wk-select,.wk-textarea,.tc-input-wrap):is(:focus,:focus-within){transition:border-color var(--oc-u-fast) var(--oc-u-ease),box-shadow var(--oc-u-fast) var(--oc-u-ease)}
+.tc-switch-knob{transition:transform var(--oc-u-mid) var(--oc-u-ease)}
+/* 键盘焦点 */
+:focus-visible{outline:1px solid var(--vscode-focusBorder);outline-offset:1px}
+button:focus-visible,[role=button]:focus-visible,[tabindex]:focus-visible{outline:1px solid var(--vscode-focusBorder);outline-offset:1px}
+/* 入场：卡片、列表行、列 */
+.oc-card,.wk-card,.wk-col,.board-card,.board-column,.tc-subcard,.tc-off-card,.window-card,.rule-entry,.layer-row,.chat-item,.task,.ap-row,.wk-list-item,.message-card,.effective-rule,.tc-conv,.wk-comment,.receipt-list>*{animation:ocu-in var(--oc-u-mid) var(--oc-u-ease) both}
+:is(.oc-card,.wk-col,.wk-card,.rule-entry,.layer-row,.chat-item,.task,.ap-row,.wk-list-item,.window-card,.tc-conv):nth-child(2){animation-delay:20ms}
+:is(.oc-card,.wk-col,.wk-card,.rule-entry,.layer-row,.chat-item,.task,.ap-row,.wk-list-item,.window-card,.tc-conv):nth-child(3){animation-delay:40ms}
+:is(.oc-card,.wk-col,.wk-card,.rule-entry,.layer-row,.chat-item,.task,.ap-row,.wk-list-item,.window-card,.tc-conv):nth-child(4){animation-delay:60ms}
+:is(.oc-card,.wk-col,.wk-card,.rule-entry,.layer-row,.chat-item,.task,.ap-row,.wk-list-item,.window-card,.tc-conv):nth-child(5){animation-delay:80ms}
+:is(.oc-card,.wk-col,.wk-card,.rule-entry,.layer-row,.chat-item,.task,.ap-row,.wk-list-item,.window-card,.tc-conv):nth-child(n+6){animation-delay:100ms}
+/* 弹层 / 抽屉 / 空状态 / 折叠内容 / 页签切换 */
+.wk-menu,.tc-mpick-pop,.tc-at-pop,.tc-addpop,.tc-presetpop,.mem-cm,[role=menu],[role=listbox]:not(select){animation:ocu-pop var(--oc-u-fast) var(--oc-u-ease) both;transform-origin:top left;box-shadow:0 4px 14px var(--vscode-widget-shadow,rgba(0,0,0,.36))}
+.wk-drawer,.tc-drawer{animation:ocu-slide var(--oc-u-slow) var(--oc-u-ease) both}
+.wk-empty,.wk-col-empty,.tc-chat-empty,.empty,.tc-mpanel-empty{animation:ocu-fade var(--oc-u-slow) var(--oc-u-ease) both}
+details[open]>:not(summary),.oc-collapsible[open]>.oc-collapsible-body{animation:ocu-in var(--oc-u-mid) var(--oc-u-ease) both}
+[role=tabpanel]:not([hidden]),.tab-panel:not([hidden]),.tc-memberpage:not([hidden]){animation:ocu-fade var(--oc-u-mid) var(--oc-u-ease) both}
+.feedback:not(:empty),.wk-feedback:not(:empty),.tc-feedback:not(:empty){animation:ocu-in var(--oc-u-mid) var(--oc-u-ease) both}
+/* 平面化：静态卡片不要阴影，只有浮层有 */
+.oc-card,.board-card,.board-column,.tc-subcard,.tc-off-card,.window-card,.wk-card,.wk-col,.task,.message-card{box-shadow:none!important}
+/* 减弱动态效果 */
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+/* ==== oc-unified-ui-v1 END ==== */
+/* oc-unified-ui-v1 页面：工作区 */
+.window-card,.task,.chat-item{border-radius:6px}
+.window-card:hover{border-color:var(--vscode-focusBorder)}
+.status-dot.live,.status-dot.starting{animation:ocu-fade 1.2s ease-in-out infinite alternate}
+.bubble{animation:ocu-in var(--oc-u-mid) var(--oc-u-ease) both}
+
+/* ==== oc-unified-ui-v2 BEGIN：VS Code 简约矢量风格收尾 + 各种宽度/状态适配 ==== */
+/* 矢量图标 */
+.oc-vi{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;vertical-align:-2px;flex:none}.oc-vi svg{width:100%;height:100%;display:block}
+/* 扁平：静态元素无投影、无光晕；浮层保留 VS Code 的 widget 阴影 */
+.tc-node-box,.tc-node:hover .tc-node-box{filter:none!important}
+.tc-node:hover .tc-node-box{stroke:var(--vscode-focusBorder)}
+.tc-tabs button[aria-selected=true],.tc-floatbar,.tc-hintbar,.tc-composer:focus-within{box-shadow:none!important}
+.tc-floatbar,.tc-hintbar{border:1px solid var(--vscode-widget-border,var(--vscode-panel-border))}
+@keyframes tc-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes tc-flash{from{outline:1px solid var(--vscode-focusBorder)}to{outline:1px solid transparent}}
+/* 禁用、高对比度 */
+button:disabled,.is-disabled,[aria-disabled=true]{opacity:.5;cursor:default}
+body.vscode-high-contrast :is(.oc-card,.wk-card,.wk-col,.task,.window-card,.rule-entry,.layer-row,.tc-subcard,.tc-off-card,.tc-node-box){border-color:var(--vscode-contrastBorder)!important;stroke:var(--vscode-contrastBorder)}
+body.vscode-high-contrast :focus-visible{outline-color:var(--vscode-contrastActiveBorder,var(--vscode-focusBorder))}
+/* 滚动条与 VS Code 一致 */
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--vscode-scrollbarSlider-background);border:0;border-radius:0}
+::-webkit-scrollbar-thumb:hover{background:var(--vscode-scrollbarSlider-hoverBackground)}::-webkit-scrollbar-thumb:active{background:var(--vscode-scrollbarSlider-activeBackground)}
+/* 页签：选中指示条滑入 */
+.wk-tab{position:relative;border-bottom-color:transparent!important}
+.wk-tab::after{content:"";position:absolute;left:4px;right:4px;bottom:-1px;height:2px;background:var(--vscode-focusBorder);transform:scaleX(0);transition:transform var(--oc-u-mid) var(--oc-u-ease)}
+.wk-tab[aria-selected=true]::after{transform:scaleX(1)}
+/* 长文本 / 内容溢出 */
+p,.hint,.wk-muted,.sub,.meta,.project-path,.tc-conv-last,.wk-card-meta{overflow-wrap:anywhere}
+code,.wk-mono{overflow-wrap:anywhere;word-break:break-all}
+img,video{max-width:100%;height:auto}
+select,input:not([type=checkbox]):not([type=radio]),textarea{min-width:0;max-width:100%}
+.topbar,.toolbar,.actions,.control-row,.wk-toolbar,.topbar-actions,.header-actions,.card-actions,.rule-add-row,.checks{flex-wrap:wrap}
+table{max-width:100%}
+/* 窄：编辑器被拆分或窗口很小 */
+@media (max-width:640px){
+ body{padding-left:10px;padding-right:10px}
+ .topbar-title{min-width:0;width:100%}
+ .editor-layout,.rules-editor-layout,.handoff-grid,.wk-grid2,.window-grid,.staff-layout,.role-layout{grid-template-columns:minmax(0,1fr)!important}
+ .chat-layout{grid-template-columns:minmax(0,1fr)!important}.chat-sidebar{max-height:40vh}
+ .wk-search{flex:1 1 100%;order:9}
+ .tc-hintbar{display:none}
+ .wk-col{min-width:min(260px,calc(100vw - 48px))}
+ .oc-card,.tc-subcard{padding-left:12px;padding-right:12px}
 }
+@media (max-width:420px){
+ .actions>button,.control-row>button{flex:1 1 auto}
+ .tc-floatbar{right:8px;left:8px;flex-wrap:wrap}
+ .wk-hint-line,.topbar-title p{display:none}
+}
+/* 宽：超宽屏限制正文宽度，避免一行太长 */
+@media (min-width:1500px){
+ .rules-page>.topbar,.rules-page main,.rules-page>.oc-card,.rules-page>details{max-width:1240px;margin-left:auto;margin-right:auto}
+ .ap-list,.wk-list{max-width:1240px;margin-left:auto;margin-right:auto}
+}
+/* 矮：窗口很矮时收紧纵向空间 */
+@media (max-height:520px){.wk-empty{padding:12px}.tc-chat-empty-icon,.tc-off-icon{display:none}}
+/* ==== oc-unified-ui-v2 END ==== */

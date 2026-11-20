@@ -16,9 +16,6 @@ import { IEditorService } from "./module-0934.mjs";
 import { IInstantiationService } from "./module-0077.mjs";
 import { IAgentHostConnectionsService } from "./module-0959.mjs";
 import { ILanguageModelsService } from "./module-0967.mjs";
-import { IStorageService } from "./module-0512.mjs";
-import { AUTOPILOT_DONT_SHOW_AGAIN_KEY, AUTO_APPROVE_DONT_SHOW_AGAIN_KEY } from "./module-2105.mjs";
-import { resetShownWarnings } from "./module-2106.mjs";
 
 
 // src/vs/workbench/contrib/chat/browser/actions/chatDeveloperActions.ts
@@ -39,7 +36,6 @@ function registerChatDeveloperActions() {
   registerAction2(InspectChatModelReferencesAction);
   registerAction2(InspectAgentHostSubscriptionsAction);
   registerAction2(ClearRecentlyUsedLanguageModelsAction);
-  registerAction2(ResetChatPermissionWarningDialogsAction);
   registerAction2(OpenAgentHostStateFileAction);
 }
 
@@ -352,24 +348,4 @@ var ClearRecentlyUsedLanguageModelsAction = class _ClearRecentlyUsedLanguageMode
   }
 };
 
-var ResetChatPermissionWarningDialogsAction = class _ResetChatPermissionWarningDialogsAction extends Action2 {
-  static {
-    this.ID = "workbench.action.chat.resetPermissionWarningDialogs";
-  }
-  constructor() {
-    super({
-      id: _ResetChatPermissionWarningDialogsAction.ID,
-      title: localize2(8638, "Reset Permission Warning Dialogs (Autopilot, Bypass Approvals)"),
-      category: Categories.Developer,
-      f1: true,
-      precondition: ChatContextKeys.enabled
-    });
-  }
-  run(accessor) {
-    const storageService = accessor.get(IStorageService);
-    storageService.remove(AUTOPILOT_DONT_SHOW_AGAIN_KEY, 0 /* PROFILE */);
-    storageService.remove(AUTO_APPROVE_DONT_SHOW_AGAIN_KEY, 0 /* PROFILE */);
-    resetShownWarnings();
-  }
-};
-export { uriReplacer, registerChatDeveloperActions, formatChatModelReferenceInspection, subscriptionKindLabel, escapeMarkdownTableCell, formatConnectionSubscriptions, formatAgentHostSubscriptionsInspection, LogChatInputHistoryAction, LogChatIndexAction, InspectChatModelAction, InspectChatModelReferencesAction, InspectAgentHostSubscriptionsAction, ClearRecentlyUsedLanguageModelsAction, ResetChatPermissionWarningDialogsAction };
+export { uriReplacer, registerChatDeveloperActions, formatChatModelReferenceInspection, subscriptionKindLabel, escapeMarkdownTableCell, formatConnectionSubscriptions, formatAgentHostSubscriptionsInspection, LogChatInputHistoryAction, LogChatIndexAction, InspectChatModelAction, InspectChatModelReferencesAction, InspectAgentHostSubscriptionsAction, ClearRecentlyUsedLanguageModelsAction };

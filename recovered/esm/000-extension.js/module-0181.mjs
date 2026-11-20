@@ -48,7 +48,31 @@ var MERGE_CONTRACT = [
   "- Do not invent file paths, line numbers, or facts you did not verify."
 ].join("\n");
 
-function buildMergePrompt(question, variants, allowReadTools) {
+var CODE_MERGE_CONTRACT = [
+  "You are the merge model for a multi-model Code round in OpenCode. Several models independently implemented the same user request, each starting from the same workspace snapshot. Your job is to produce ONE merged implementation as real file changes, not a written plan.",
+  "",
+  "# Input",
+  "You receive the user request and every branch answer, labeled with its model name. Branch answers usually end with the diff that branch produced. The full patch file of every branch, including the primary answer, is listed in the workspace instructions.",
+  "",
+  "# How to work",
+  "- You are inside a private git worktree created from the same snapshot the branches started from. Start by choosing the strongest implementation as the baseline (the primary answer unless verified evidence shows another branch is better) and apply its patch with run_command, e.g. `git apply --whitespace=nowarn <patch>`.",
+  "- Then port the justified improvements from the other branches by editing files directly. Do not blindly apply several overlapping patches; resolve overlaps by hand.",
+  "- Read the code to settle disagreements instead of guessing. Never decide by branch majority vote.",
+  "- Build or run the relevant tests with run_command when the project makes that practical, and fix what you broke.",
+  "- Never touch the user\u2019s real workspace; only the worktree.",
+  "",
+  "# Final message (in the language of the user request)",
+  "## \u91C7\u7528\u4E0E\u53D6\u820D (What was taken)",
+  "Which branch is the baseline and which parts were taken from each other branch, and what was rejected and why.",
+  "",
+  "## \u9A8C\u8BC1 (Verification)",
+  "Commands actually run and their results; say plainly what was not verified.",
+  "",
+  "## \u98CE\u9669 (Risks)",
+  "Remaining risks, briefly."
+].join("\n");
+
+function buildMergePrompt(question, variants, allowReadTools, codeMerge = false) {
   const sections = [];
   for (const [index, variant] of variants.entries()) {
     const bounded = variant.content.length > 4e4 ? variant.content.slice(0, 24e3) + "\n\n\u2026[branch output truncated: omitted middle content]\n\n" + variant.content.slice(-16e3) : variant.content;
@@ -57,14 +81,14 @@ ${bounded}` : `### \u53C2\u8003\u5206\u652F ${index + 1}\uFF08\u6A21\u578B\uFF1A
 ${bounded}`);
   }
   return [
-    MERGE_CONTRACT,
-    allowReadTools ? "" : "File verification tools are disabled for this merge. Use only supplied evidence; explicitly mark critical claims without verifiable provenance as unverified, including unanimous claims. Do not execute tests, commands or writes to compensate.",
+    codeMerge ? CODE_MERGE_CONTRACT : MERGE_CONTRACT,
+    allowReadTools || codeMerge ? "" : "File verification tools are disabled for this merge. Use only supplied evidence; explicitly mark critical claims without verifiable provenance as unverified, including unanimous claims. Do not execute tests, commands or writes to compensate.",
     "",
     "# User question",
     question.trim() || "(empty question)",
     "",
-    "# Branch answers",
+    codeMerge ? "# Branch answers (each ends with its diff when it changed files)" : "# Branch answers",
     ...sections
   ].filter((line, index, all) => line !== "" || index === 0 || all[index - 1] !== "").join("\n");
 }
-export { resolveMergeModelReference, buildMergePrompt, MERGE_CONTRACT };
+export { resolveMergeModelReference, buildMergePrompt, MERGE_CONTRACT, CODE_MERGE_CONTRACT };

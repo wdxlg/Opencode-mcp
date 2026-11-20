@@ -50,31 +50,6 @@ function promptArgumentHint() {
 function getConfigSlashCommands() {
   return [
     {
-      command: "yolo",
-      sortText: "z1_yolo",
-      options: [
-        { arg: "on", detail: setBypassDetail(), config: { ["autoApprove" /* AutoApprove */]: AUTO_APPROVE_BYPASS } },
-        { arg: "off", detail: setDefaultDetail(), config: { ["autoApprove" /* AutoApprove */]: AUTO_APPROVE_DEFAULT } }
-      ]
-    },
-    {
-      command: "allow-all",
-      sortText: "z1_allow-all",
-      options: [
-        { arg: "on", detail: setBypassDetail(), config: { ["autoApprove" /* AutoApprove */]: AUTO_APPROVE_BYPASS } },
-        { arg: "off", detail: setDefaultDetail(), config: { ["autoApprove" /* AutoApprove */]: AUTO_APPROVE_DEFAULT } }
-      ]
-    },
-    {
-      command: "autopilot",
-      sortText: "z1_autopilot",
-      options: [
-        { arg: "on", detail: autopilotOnDetail(), config: { ["mode" /* Mode */]: MODE_AUTOPILOT } },
-        { arg: "off", detail: exitAutopilotDetail(), config: { ["mode" /* Mode */]: MODE_INTERACTIVE } },
-        { detail: autopilotPromptDetail(), config: { ["mode" /* Mode */]: MODE_AUTOPILOT }, argumentHint: autopilotArgumentHint() }
-      ]
-    },
-    {
       command: "plan",
       sortText: "z1_plan",
       options: [

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Video Publisher"
+  short_description: "Auto-record Polo-Balls battles and publish to 7 video platforms"
+  default_prompt: "Automatically record a Polo-Balls battle (sim or live) and publish the bilingual videos and covers to 7 platforms."

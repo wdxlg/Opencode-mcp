@@ -42,6 +42,26 @@ import { ILogService } from "./module-0095.mjs";
 
 
 // src/vs/platform/agentHost/browser/agentHostProtocolClient.ts
+// OpenCode p30: 连接类错误（ConnectError / HTTP2 GOAWAY / 流重连失败）去重：同一条错误每分钟只记一次 warn，并附带被省略的次数；重连本身沿用 reconnectPolicy 的指数退避 1s,2s,4s…封顶 30s
+var ocP30LastLog = /* @__PURE__ */ new Map();
+function ocP30WarnOnce(logService, message, err) {
+  const detail = err === void 0 ? "" : err instanceof Error ? `${err.name && err.name !== "Error" ? err.name + ": " : ""}${err.message}` : String(err);
+  const key = `${message}|${detail}`;
+  const now = Date.now();
+  const prev = ocP30LastLog.get(key);
+  if (prev && now - prev.at < 6e4) {
+    prev.suppressed++;
+    return;
+  }
+  const suffix = prev?.suppressed ? ` (重复 ${prev.suppressed} 次已省略)` : "";
+  ocP30LastLog.set(key, { at: now, suppressed: 0 });
+  if (ocP30LastLog.size > 200) {
+    for (const [k, v] of ocP30LastLog) {
+      if (now - v.at >= 6e4) ocP30LastLog.delete(k);
+    }
+  }
+  logService.warn(detail ? `${message}: ${detail}${suffix}` : `${message}${suffix}`);
+}
 var AHP_CLIENT_CONNECTION_CLOSED = -32e3;
 
 var PING_INTERVAL_MS2 = 5e3;
@@ -506,7 +526,7 @@ var AgentHostProtocolClient = class extends Disposable {
       gate.complete();
       this._logService.info(`[RemoteAgentHostProtocol] Reconnected to ${this._address}.`);
     } catch (err) {
-      this._logService.warn(`[RemoteAgentHostProtocol] Reconnect attempt failed for ${this._address}: ${err instanceof Error ? err.message : String(err)}`);
+      ocP30WarnOnce(this._logService, `[RemoteAgentHostProtocol] Reconnect attempt failed for ${this._address}`, err); // OpenCode p30: 去重
       transport?.dispose();
       if (this._state.kind !== "reconnecting" /* Reconnecting */) {
         return;

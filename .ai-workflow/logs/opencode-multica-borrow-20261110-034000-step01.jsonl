@@ -1,0 +1,6 @@
+{"time": "2026-11-10T03:40:00+08:00", "task": "opencode-multica-borrow-20261110-034000-step01", "step": "m00", "op": "pre tag", "detail": "pre/opencode-multica-borrow-20261110-034000-step01 -> 5a93f69"}
+{"time": "2026-11-10T03:45:00+08:00", "task": "opencode-multica-borrow-20261110-034000-step01", "step": "m01", "op": "add", "detail": "recovered/shared/multica core/task-sync/hooks; module-0119 wrap; sync-shared multica block"}
+{"time": "Tue 2026-11-10 9:28 AM CST (UTC+08:00)", "task": "opencode-multica-borrow-20261110-034000-step01", "step": "m11", "op": "unlock", "detail": "用户授权删除残留 .update-lock（pid 30100 已复用、无对应 journal、无发布进程）"}
+{"time": "Tue 2026-11-10 9:30 AM CST (UTC+08:00)", "task": "opencode-multica-borrow-20261110-034000-step01", "step": "m11", "op": "commit", "detail": "build 0; test 12/12; c21e0f6e; post tag m11"}
+{"time": "Tue 2026-11-10 9:34 AM CST (UTC+08:00)", "task": "opencode-multica-borrow-20261110-034000-step01", "step": "m12", "op": "commit", "detail": "build 0; test 13/13; 3c2a4848; post tag m12"}
+{"time": "Tue 2026-11-10 9:40 AM CST (UTC+08:00)", "task": "opencode-multica-borrow-20261110-034000-step01", "step": "m99", "op": "docs+close", "detail": "docs/multica-borrow.md 85d73f71; task.md/progress.md/index 收尾提交"}

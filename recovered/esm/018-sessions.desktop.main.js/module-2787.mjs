@@ -3,9 +3,9 @@
 // Original module marker: src/vs/workbench/contrib/chat/browser/tools/languageModelToolsService.ts
 import { Registry } from "./module-0090.mjs";
 import { Extensions3 } from "./module-0138.mjs";
-import { localize, localize2 } from "./module-0001.mjs";
+import { localize } from "./module-0001.mjs";
 import { Disposable, DisposableStore, combinedDisposable, toDisposable } from "./module-0012.mjs";
-import { Emitter, Event2 } from "./module-0017.mjs";
+import { Emitter } from "./module-0017.mjs";
 import { RunOnceScheduler, timeout } from "./module-0036.mjs";
 import { ObservableSet } from "./module-0066.mjs";
 import { derived, derivedOpts } from "./module-0054.mjs";
@@ -27,16 +27,14 @@ import { IChatService, IChatToolInvocation } from "./module-0973.mjs";
 import { StopWatch } from "./module-0016.mjs";
 import { MarkdownString, createMarkdownCommandLink } from "./module-0462.mjs";
 import { renderAsPlaintext } from "./module-0468.mjs";
-import { chatSessionResourceToId, getChatSessionType } from "./module-0962.mjs";
-import { localChatSessionType } from "./module-0961.mjs";
-import { isAutoApproveLevel, isAutopilotLevel } from "./module-0965.mjs";
+import { chatSessionResourceToId } from "./module-0962.mjs";
+import { normalizeOpenCodePermissionMode } from "./module-0965.mjs";
 import { AccessibilitySignal, IAccessibilitySignalService } from "./module-0445.mjs";
 import { getToolConfirmationAlert } from "./module-2184.mjs";
 import { URI } from "./module-0032.mjs";
 import { getMediaMime } from "./module-0136.mjs";
 import { encodeBase64 } from "./module-0038.mjs";
 import { assertNever } from "./module-0009.mjs";
-import { severity_default } from "./module-0266.mjs";
 import { toToolSetVariableEntry, toToolVariableEntry } from "./module-0980.mjs";
 import { __decorateClass, __decorateParam } from "./module-0000.mjs";
 import { IInstantiationService } from "./module-0077.mjs";
@@ -52,30 +50,15 @@ import { ILanguageModelToolsConfirmationService } from "./module-1473.mjs";
 import { ICommandService } from "./module-0087.mjs";
 import { IChatWidgetService } from "./module-0982.mjs";
 import { IToolResultCompressor } from "./module-2717.mjs";
-import { IChatToolRiskAssessmentService } from "./module-2279.mjs";
 
 
 // src/vs/workbench/contrib/chat/browser/tools/languageModelToolsService.ts
 var jsonSchemaRegistry = Registry.as(Extensions3.JSONContribution);
 
-var SkipAutoApproveConfirmationKey = "vscode.chat.tools.global.autoApprove.testMode";
-
-var autoApproveAllReason = "auto-approve-all";
-
 var toolIdsThatCannotBeAutoApproved = /* @__PURE__ */ new Set([
   "vscode_get_confirmation_with_options",
   "vscode_get_modified_files_confirmation"
 ]);
-
-var fetchWebPageToolIds = /* @__PURE__ */ new Set([
-  "copilot_fetchWebPage",
-  "vscode_fetchWebPage_internal"
-]);
-
-var globalAutoApproveDescription = localize2(
-  11713,
-  'Global auto approve also known as "YOLO mode" disables manual approval completely for _all tools in all workspaces_, allowing the agent to act fully autonomously. This is extremely dangerous and is *never* recommended, even containerized environments like [Codespaces](https://github.com/features/codespaces) and [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) have user keys forwarded into the container that could be compromised.\n\n**This feature disables [critical security protections](https://code.visualstudio.com/docs/agents/run/security) and makes it much easier for an attacker to compromise the machine.**\n\nNote: This setting only controls tool approval and does not prevent the agent from asking questions. To automatically answer agent questions, use the [`chat.autoReply`](command:workbench.action.openSettings?%5B%22chat.autoReply%22%5D) setting.'
-);
 
 var OPENCODE_TERMINAL_TOOL_IDS = /* @__PURE__ */ new Set([
   "opencode_run_command",
@@ -85,6 +68,136 @@ var OPENCODE_TERMINAL_TOOL_IDS = /* @__PURE__ */ new Set([
 
 function isOpenCodeTerminalTool(toolId) {
   return OPENCODE_TERMINAL_TOOL_IDS.has(toolId);
+}
+
+// OpenCode: 对话面板「权限」按钮（opencode.chat.permissionMode / categoryPermissions / toolPermissions / mcpPermissions）。
+// 只作用于 Chat 会话中的工具调用（dto.context.sessionResource）；Bridge 远程调用走扩展的 invokeDirect，不经过这里。
+// 决策以 preToolUse 结果并入现有审批流程：deny → 拒绝并告知模型；ask → 强制确认；allow → 免确认。与真实 hook 结果取更严格者。
+// 优先级：单个工具 > MCP 服务器 > 类别（「权限」›「更多」）> 模式。类别表与扩展 module-0140 保持一致。
+var OC_PERMISSION_CATEGORY_OF = /* @__PURE__ */ new Map([
+  ["run_command", "terminal"], ["send_command_input", "terminal"], ["cancel_command", "terminal"],
+  ["apply_patch", "edit"],
+  ["see_now", "screen"],
+  ["configure_mcp", "mcpConfig"]
+]);
+// 无需权限的工具（与扩展 module-0140 的 OC_PERMISSION_ALWAYS_ALLOWED 一致）：读取文件、搜索与列目录、诊断与 LSP、读取记忆与技能、任务卡与计划，三种模式都允许；旧的类别 / 单工具设置忽略
+var OC_PERMISSION_ALWAYS_NAMES = /* @__PURE__ */ new Set(["get_command_output", "wait", ...["read_files", "read_image", "find_files", "search_files", "list_directory", "get_diagnostics", "lsp", "bridge_memory_brief", "bridge_memory_recall", "bridge_memory_search", "bridge_memory_status", "bridge_memory_digest", "bridge_memory_selftest", "list_skills", "bridge_search_sessions", "set_todos", "update_plan", "report_progress"]]);
+var OC_PERMISSION_MODE_DEFAULTS = {
+  ask: { terminal: "ask", edit: "ask", screen: "allow", mcpConfig: "ask", mcp: "ask", other: "ask" },
+  auto: { terminal: "allow", edit: "allow", screen: "allow", mcpConfig: "allow", mcp: "allow", other: "allow" },
+  // 全自动：工具权限与「自动允许」完全相同（提问自动选推荐项、交接自动发送由 askQuestions 工具与 chatWidget 按同一设置处理）
+  fullAuto: { terminal: "allow", edit: "allow", screen: "allow", mcpConfig: "allow", mcp: "allow", other: "allow" },
+  readonly: { terminal: "deny", edit: "deny", screen: "deny", mcpConfig: "deny", mcp: "deny", other: "deny" }
+};
+var OC_PERMISSION_CATEGORY_LABEL = { terminal: "\u7ec8\u7aef\u547d\u4ee4", edit: "\u4fee\u6539\u6587\u4ef6", screen: "\u5c4f\u5e55/\u6444\u50cf\u5934\u67e5\u770b", mcpConfig: "\u914d\u7f6e MCP \u670d\u52a1\u5668", mcp: "MCP \u5de5\u5177" };
+var OC_PERMISSION_RANK = { allow: 0, ask: 1, deny: 2 };
+var OC_PERMISSION_LABEL = { allow: "\u5141\u8bb8", ask: "\u8be2\u95ee", deny: "\u7981\u6b62" };
+function ocNormalizePermission(value2) {
+  return value2 === "allow" || value2 === "ask" || value2 === "deny" ? value2 : void 0;
+}
+function ocPermissionMap(value2) {
+  return value2 && typeof value2 === "object" && !Array.isArray(value2) ? value2 : {};
+}
+function ocChatPermissionMode(configurationService) {
+  return normalizeOpenCodePermissionMode(configurationService.getValue("opencode.chat.permissionMode"));
+}
+
+// auto-review-step01: 「每次询问」模式下，只读命令和用户白名单里的命令自动放行，其余照常确认。
+// 只认简单命令：可用 && || ; | 串联；出现重定向、$( )、反引号、变量展开、后台 & 一律不自动放行。
+var OC_READONLY_COMMANDS = new Set(["ls", "dir", "pwd", "cd", "cat", "type", "head", "tail", "wc", "grep", "rg", "findstr", "find", "echo", "which", "where", "whoami", "hostname", "tree", "stat", "file", "du", "df", "printenv", "uname", "ver", "get-childitem", "gci", "get-content", "gc", "select-string", "get-location", "get-item", "test-path", "get-command", "get-process", "resolve-path", "measure-object", "sort", "uniq", "cut", "diff", "fc", "comm", "md5sum", "sha256sum", "nvidia-smi", "ipconfig", "netstat", "tasklist", "systeminfo"]);
+var OC_READONLY_GIT = new Set(["status", "log", "diff", "show", "rev-parse", "ls-files", "blame", "describe", "shortlog", "show-ref", "cat-file", "grep", "reflog", "remote", "branch", "tag", "config", "worktree", "stash"]);
+var OC_VERSION_FLAGS = /^(--version|-v|-V|version|--help|-h|help)$/;
+function ocSplitCommand(text2) {
+  if (/[<>`]|\$\(|\$\{|\$[A-Za-z_]|%[A-Za-z_]+%|(^|[^&])&($|[^&])/.test(text2)) return void 0;
+  const segments = text2.split(/&&|\|\||;|\|/).map((part) => part.trim());
+  if (segments.some((part) => !part)) return void 0;
+  return segments.map((part) => part.match(/"[^"]*"|'[^']*'|\S+/g) ?? []);
+}
+function ocSegmentReadOnly(words) {
+  const head = (words[0] ?? "").replace(/^["']|["']$/g, "").toLowerCase().replace(/\.exe$/, "");
+  const rest = words.slice(1);
+  if (head === "git") {
+    const sub = (rest.find((w) => !w.startsWith("-")) ?? "").toLowerCase();
+    if (!OC_READONLY_GIT.has(sub)) return false;
+    if (rest.some((w) => /^--(output|exec|upload-pack|receive-pack|ext-diff)/.test(w) || w === "-o")) return false;
+    if (sub === "branch" || sub === "tag") return !rest.some((w) => /^(-d|-D|-m|-M|-c|-C|-f|--delete|--move|--copy|--force|-a.*d)$/.test(w)) && rest.filter((w) => !w.startsWith("-")).length <= 1;
+    if (sub === "config") return rest.some((w) => /^(--get|--get-all|--list|-l|--get-regexp)$/.test(w));
+    if (sub === "remote") return rest.filter((w) => !w.startsWith("-")).length <= 1;
+    if (sub === "worktree" || sub === "stash") return rest.some((w) => w === "list");
+    return true;
+  }
+  if (head === "find") return !rest.some((w) => /^-(exec|execdir|delete|fprint|fprintf|fls|ok|okdir)$/.test(w));
+  if (head === "rg") return !rest.some((w) => w.startsWith("--pre"));
+  if (head === "sort") return !rest.some((w) => /^(-o|--output)/.test(w));
+  if (OC_READONLY_COMMANDS.has(head)) return true;
+  // 任意程序的 --version / --help
+  return rest.length === 1 && OC_VERSION_FLAGS.test(rest[0]);
+}
+function ocCommandAutoApproval(configurationService, parameters) {
+  const command = typeof parameters?.command === "string" ? parameters.command.trim() : "";
+  if (!command || command.length > 2000 || /[\r\n]/.test(command)) return void 0;
+  const allowlist = configurationService.getValue("opencode.chat.commandAllowlist");
+  const allowed = Array.isArray(allowlist) ? allowlist.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim().toLowerCase()) : [];
+  const readOnly = configurationService.getValue("opencode.chat.autoApproveReadOnlyCommands") !== false;
+  if (!allowed.length && !readOnly) return void 0;
+  if (allowed.some((item) => item === command.toLowerCase())) return "OpenCode \u547d\u4ee4\u767d\u540d\u5355\uff1a\u81ea\u52a8\u5141\u8bb8";
+  const segments = ocSplitCommand(command);
+  if (!segments) return void 0;
+  let viaAllowlist = false;
+  for (const words of segments) {
+    const text2 = words.join(" ").toLowerCase();
+    if (allowed.some((item) => text2 === item || text2.startsWith(item + " "))) { viaAllowlist = true; continue; }
+    if (readOnly && ocSegmentReadOnly(words)) continue;
+    return void 0;
+  }
+  return viaAllowlist ? "OpenCode \u547d\u4ee4\u767d\u540d\u5355\uff1a\u81ea\u52a8\u5141\u8bb8" : "OpenCode \u53ea\u8bfb\u547d\u4ee4\uff1a\u81ea\u52a8\u5141\u8bb8";
+}
+function ocToolPermissionDecision(configurationService, toolData, parameters) {
+  if (!toolData) return void 0;
+  const mode = ocChatPermissionMode(configurationService);
+  const defaults = OC_PERMISSION_MODE_DEFAULTS[mode];
+  const modeReason = mode === "auto" ? "OpenCode \u6743\u9650\u6a21\u5f0f\uff1a\u81ea\u52a8\u5141\u8bb8" : mode === "fullAuto" ? "OpenCode \u6743\u9650\u6a21\u5f0f\uff1a\u5168\u81ea\u52a8" : mode === "readonly" ? "OpenCode \u6743\u9650\u6a21\u5f0f\uff1a\u53ea\u8bfb\uff08\u4e0d\u5141\u8bb8\u4fee\u6539\u6587\u4ef6\u3001\u8fd0\u884c\u547d\u4ee4\u6216\u672a\u5355\u72ec\u5141\u8bb8\u7684\u5de5\u5177\uff1b\u4e0d\u8981\u91cd\u8bd5\uff0c\u8bf4\u660e\u4f60\u672c\u6765\u8981\u505a\u7684\u4e8b\uff09" : "OpenCode \u6743\u9650\u6a21\u5f0f\uff1a\u6bcf\u6b21\u8be2\u95ee";
+  // 模式默认为允许且当前是「每次询问」时不干预，保留工作台原有的确认行为（与上一版一致）
+  const fromMode = (category) => {
+    const decision = defaults[category] ?? defaults.other;
+    return mode === "ask" && decision === "allow" ? void 0 : { decision, reason: modeReason };
+  };
+  const categories = ocPermissionMap(configurationService.getValue("opencode.chat.categoryPermissions"));
+  const fromCategory = (category) => {
+    const rule = ocNormalizePermission(categories[category]);
+    return rule ? { decision: rule, reason: `OpenCode \u6743\u9650\uff1a${OC_PERMISSION_CATEGORY_LABEL[category] ?? category} \u8bbe\u4e3a${OC_PERMISSION_LABEL[rule]}` } : fromMode(category);
+  };
+  if (toolData.source?.type === "mcp") {
+    const rules = ocPermissionMap(configurationService.getValue("opencode.chat.mcpPermissions"));
+    const toolRule = ocNormalizePermission(ocPermissionMap(rules.tools)[toolData.id]);
+    const server = String(toolData.source.serverLabel || toolData.source.label || "");
+    const serverRule = ocNormalizePermission(ocPermissionMap(rules.servers)[server]);
+    if (toolRule) return { decision: toolRule, reason: `OpenCode MCP \u5de5\u5177\u6743\u9650\uff1a${toolData.displayName || toolData.id} \u8bbe\u4e3a${OC_PERMISSION_LABEL[toolRule]}` };
+    if (serverRule) return { decision: serverRule, reason: `OpenCode MCP \u5de5\u5177\u6743\u9650\uff1a\u670d\u52a1\u5668 ${server} \u8bbe\u4e3a${OC_PERMISSION_LABEL[serverRule]}` };
+    return fromCategory("mcp");
+  }
+  const id = String(toolData.id || "");
+  if (id.startsWith("opencode_")) {
+    const name = id.slice("opencode_".length);
+    if (OC_PERMISSION_ALWAYS_NAMES.has(name)) return mode === "ask" ? void 0 : { decision: "allow", reason: modeReason };
+    const toolRule = ocNormalizePermission(ocPermissionMap(configurationService.getValue("opencode.chat.toolPermissions"))[name]);
+    if (toolRule) return { decision: toolRule, reason: `OpenCode \u6743\u9650\uff1a\u5de5\u5177 ${name} \u8bbe\u4e3a${OC_PERMISSION_LABEL[toolRule]}` };
+    const category = OC_PERMISSION_CATEGORY_OF.get(name);
+    const ocBase = category ? fromCategory(category) : fromMode("other");
+    if (name === "run_command" && parameters && ocBase?.decision === "ask") {
+      const ocAuto = ocCommandAutoApproval(configurationService, parameters);
+      if (ocAuto) return { decision: "allow", reason: ocAuto };
+    }
+    return ocBase;
+  }
+  return fromMode("other");
+}
+
+function ocMergePermissionHookResult(hookResult, ocDecision) {
+  if (!ocDecision) return hookResult;
+  const current = hookResult?.permissionDecision;
+  if (current && (OC_PERMISSION_RANK[current] ?? -1) >= OC_PERMISSION_RANK[ocDecision.decision]) return hookResult;
+  return { ...hookResult ?? {}, permissionDecision: ocDecision.decision, permissionDecisionReason: ocDecision.reason };
 }
 
 function extractOpenCodeOutputBlock(text2) {
@@ -105,7 +218,7 @@ function parseOpenCodeExitCode(text2) {
 }
 
 var LanguageModelToolsService = class extends Disposable {
-  constructor(_instantiationService, _extensionService, _contextKeyService, _chatService, _dialogService, _telemetryService, _logService, _configurationService, _accessibilityService, _accessibilitySignalService, _storageService, _confirmationService, _commandService, _chatWidgetService, _toolResultCompressor, _riskAssessmentService) {
+  constructor(_instantiationService, _extensionService, _contextKeyService, _chatService, _dialogService, _telemetryService, _logService, _configurationService, _accessibilityService, _accessibilitySignalService, _storageService, _confirmationService, _commandService, _chatWidgetService, _toolResultCompressor) {
     super();
     this._instantiationService = _instantiationService;
     this._extensionService = _extensionService;
@@ -122,7 +235,6 @@ var LanguageModelToolsService = class extends Disposable {
     this._commandService = _commandService;
     this._chatWidgetService = _chatWidgetService;
     this._toolResultCompressor = _toolResultCompressor;
-    this._riskAssessmentService = _riskAssessmentService;
     this._onDidChangeTools = this._register(new Emitter());
     this.onDidChangeTools = this._onDidChangeTools.event;
     this._onDidPrepareToolCallBecomeUnresponsive = this._register(new Emitter());
@@ -177,13 +289,6 @@ var LanguageModelToolsService = class extends Disposable {
     this._register(this._configurationService.onDidChangeConfiguration((e4) => {
       if (e4.affectsConfiguration("chat.extensionTools.enabled" /* ExtensionToolsEnabled */) || e4.affectsConfiguration("chat.agent.enabled" /* AgentEnabled */) || e4.affectsConfiguration("github.copilot.chat.gpt55ReadFileTool.enabled" /* Gpt55ReadFileToolEnabled */)) {
         this._onDidChangeToolsScheduler.schedule();
-      }
-    }));
-    this._register(Event2.runAndSubscribe(this._configurationService.onDidChangeConfiguration, (e4) => {
-      if (!e4 || e4.affectsConfiguration("chat.tools.global.autoApprove" /* GlobalAutoApprove */)) {
-        if (this._configurationService.getValue("chat.tools.global.autoApprove" /* GlobalAutoApprove */) !== true) {
-          this._storageService.remove("chat.tools.global.autoApprove.optIn" /* GlobalAutoApproveOptIn */, -1 /* APPLICATION */);
-        }
       }
     }));
     this._ctxToolsCount = ChatContextKeys.Tools.toolsCount.bindTo(_contextKeyService);
@@ -476,7 +581,7 @@ var LanguageModelToolsService = class extends Disposable {
       }));
       token = source.token;
     }
-    const preToolUseHookResult = dto.preToolUseResult;
+    const preToolUseHookResult = dto.context?.sessionResource ? ocMergePermissionHookResult(dto.preToolUseResult, ocToolPermissionDecision(this._configurationService, toolData, dto.parameters)) : dto.preToolUseResult;
     if (preToolUseHookResult?.permissionDecision === "deny") {
       const denialResult = this._handlePreToolUseDenial(dto, preToolUseHookResult, toolData, toolInvocation, request2);
       if (pendingToolCallKey) {
@@ -535,7 +640,7 @@ var LanguageModelToolsService = class extends Disposable {
         const { autoConfirmed: resolvedAutoConfirmed, preparedInvocation: updatedPreparedInvocation } = await this.resolveAutoConfirmFromHook(preToolUseHookResult, tool, dto, preparedInvocation, dto.context?.sessionResource);
         preparedInvocation = updatedPreparedInvocation;
         const preResolvedAutoConfirmed = resolvedAutoConfirmed ?? (preToolUseHookResult?.permissionDecision === "ask" ? void 0 : dto.preApproved);
-        const { autoConfirmed, skipExplanation: riskSkipExplanation } = await this._maybeApplyAutopilotRiskGate(tool, dto, preparedInvocation, preResolvedAutoConfirmed, token);
+        const autoConfirmed = preResolvedAutoConfirmed;
         if (hadPendingInvocation && toolInvocation) {
           if (toolInvocation.state.get().type === IChatToolInvocation.StateKind.Streaming) {
             toolInvocation.transitionFromStreaming(preparedInvocation, dto.parameters, autoConfirmed);
@@ -550,20 +655,6 @@ var LanguageModelToolsService = class extends Disposable {
           this._chatService.appendProgress(request2, toolInvocation);
         }
         dto.toolSpecificData = toolInvocation?.toolSpecificData;
-        if (riskSkipExplanation) {
-          this._logToolApprovalTelemetry(tool, dto, { type: 5 /* Skipped */ });
-          this._chatService.appendProgress(request2, {
-            kind: "info",
-            content: new MarkdownString(localize(11715, null, tool.data.displayName, riskSkipExplanation))
-          });
-          toolResult = {
-            content: [{
-              kind: "text",
-              value: `Autopilot skipped this tool call because it was automatically assessed as high-risk: ${riskSkipExplanation} The action was not performed. Do not retry it as-is \u2014 choose a safer approach or leave it for the user to run manually.`
-            }]
-          };
-          return toolResult;
-        }
         if (preparedInvocation?.confirmationMessages?.title) {
           if (!IChatToolInvocation.executionConfirmedOrDenied(toolInvocation) && !autoConfirmed) {
             this.playAccessibilitySignal([toolInvocation], dto.context?.sessionResource);
@@ -706,7 +797,7 @@ ${toErrorMessage(err, true)}`);
       [4 /* UserAction */]: "userAction",
       [5 /* Skipped */]: "skipped"
     };
-    const allowedConfirmationNotNeededReasons = /* @__PURE__ */ new Set([autoApproveAllReason, "inlineChat"]);
+    const allowedConfirmationNotNeededReasons = /* @__PURE__ */ new Set(["inlineChat"]);
     let confirmationNotNeededReason;
     if (reason.type === 1 /* ConfirmationNotNeeded */ && reason.reason) {
       const raw = typeof reason.reason === "string" ? reason.reason : reason.reason.value;
@@ -802,63 +893,6 @@ ${msgText}`),
     const autoConfirmed = await this.shouldAutoConfirm(tool.data.id, tool.data.runsInWorkspace, tool.data.source, dto.parameters, sessionResource, dto.chatRequestId, combination, dto.context?.workingDirectory);
     return { autoConfirmed, preparedInvocation };
   }
-  /**
-   * In Autopilot, runs the risk classifier on an auto-approved call and skips it when the rating
-   * is {@link ToolRiskLevel.Red}. Any other result returns the original auto-confirmation
-   * unchanged.
-   *
-   * To keep the classifier off the hot path, it only runs when all of these hold:
-   * - the call was auto-approved by the session approving everything, or is a `run_in_terminal` /
-   *   fetch call that self-approved (these can run risky commands or prompt-injected URLs without
-   *   ever showing a confirmation);
-   * - it would otherwise show a confirmation (the self-approving tools above are the exception);
-   * - the session is a local panel session at the Autopilot level with Advanced Autopilot on.
-   *
-   * This is independent of `chat.tools.riskAssessment.enabled`, which only controls the
-   * confirmation risk badge. CLI and agent-host sessions handle their own confirmations and are
-   * excluded.
-   *
-   * Fails open: a cancelled, unavailable, or failed assessment keeps the original
-   * auto-confirmation so Autopilot keeps moving.
-   */
-  async _maybeApplyAutopilotRiskGate(tool, dto, preparedInvocation, autoConfirmed, token) {
-    const isTerminalTool = tool.data.id === "run_in_terminal" /* RunInTerminal */;
-    const isFetchTool = fetchWebPageToolIds.has(tool.data.id);
-    const isAlwaysClassifyTool = isTerminalTool || isFetchTool;
-    const isBlanketSessionApprove = autoConfirmed?.type === 1 /* ConfirmationNotNeeded */ && autoConfirmed.reason === autoApproveAllReason;
-    const isSelfApprovedAlwaysClassify = isAlwaysClassifyTool && autoConfirmed === void 0 && !preparedInvocation?.confirmationMessages?.title;
-    if (!isBlanketSessionApprove && !isSelfApprovedAlwaysClassify) {
-      return { autoConfirmed };
-    }
-    if (!isAlwaysClassifyTool && !preparedInvocation?.confirmationMessages?.title) {
-      return { autoConfirmed };
-    }
-    if (this._configurationService.getValue("chat.autopilot.advanced.enabled" /* AutopilotAdvancedEnabled */) !== true) {
-      return { autoConfirmed };
-    }
-    const sessionResource = dto.context?.sessionResource;
-    if (!sessionResource || getChatSessionType(sessionResource) !== localChatSessionType) {
-      return { autoConfirmed };
-    }
-    if (!this._isSessionInAutopilotLevel(sessionResource)) {
-      return { autoConfirmed };
-    }
-    try {
-      const assessment = await this._riskAssessmentService.assess(tool.data, dto.parameters, token, void 0, { ignoreEnablement: true });
-      if (token.isCancellationRequested) {
-        return { autoConfirmed };
-      }
-      if (assessment?.risk === "red" /* Red */) {
-        const fallbackExplanation = localize(11714, null);
-        const explanation = assessment.explanation.trim() || fallbackExplanation;
-        this._logService.info(`[LanguageModelToolsService#invokeTool] Autopilot skipping high-risk tool ${tool.data.id}: ${explanation}`);
-        return { autoConfirmed: { type: 5 /* Skipped */ }, skipExplanation: explanation };
-      }
-    } catch (err) {
-      this._logService.warn(`[LanguageModelToolsService#invokeTool] Autopilot risk assessment failed for tool ${tool.data.id}, allowing: ${toErrorMessage(err)}`);
-    }
-    return { autoConfirmed };
-  }
   async prepareToolInvocation(tool, dto, forceConfirmationReason, token) {
     let prepared;
     if (tool.impl.prepareToolInvocation) {
@@ -902,9 +936,7 @@ ${msgText}`),
       prepared.confirmationMessages.disclaimer = toolIdsThatCannotBeAutoApproved.has(tool.data.id) ? void 0 : new MarkdownString(localize(11720, null, getToolFullReferenceName(tool.data), createMarkdownCommandLink({ text: "`" + "chat.tools.eligibleForAutoApproval" /* EligibleForAutoApproval */ + "`", id: "workbench.action.openSettings", arguments: ["chat.tools.eligibleForAutoApproval" /* EligibleForAutoApproval */], tooltip: localize(11731, null) }, false)), { isTrusted: true });
     }
     if (prepared?.confirmationMessages?.title) {
-      if (this._isAutoApprovePolicyRestricted()) {
-        prepared.confirmationMessages.allowAutoConfirm = false;
-      } else if (prepared.toolSpecificData?.kind !== "terminal" && prepared.confirmationMessages.allowAutoConfirm !== false) {
+      if (prepared.toolSpecificData?.kind !== "terminal" && prepared.confirmationMessages.allowAutoConfirm !== false) {
         prepared.confirmationMessages.allowAutoConfirm = isEligibleForAutoApproval;
       }
       if (!prepared.toolSpecificData && tool.data.alwaysDisplayInputOutput) {
@@ -973,17 +1005,6 @@ ${msgText}`),
     }
   }
   playAccessibilitySignal(toolInvocations, chatSessionResource) {
-    const autoApproved = this._configurationService.getValue("chat.tools.global.autoApprove" /* GlobalAutoApprove */);
-    if (autoApproved) {
-      return;
-    }
-    if (chatSessionResource) {
-      const model = this._chatService.getSession(chatSessionResource);
-      const request2 = model?.getRequests().at(-1);
-      if (isAutoApproveLevel(request2?.modeInfo?.permissionLevel) || this._isSessionLiveAutoApproveLevel(chatSessionResource)) {
-        return;
-      }
-    }
     const pendingInvocations = toolInvocations.filter((inv) => !IChatToolInvocation.executionConfirmedOrDenied(inv));
     if (pendingInvocations.length === 0) {
       return;
@@ -1082,55 +1103,6 @@ ${msgText}`),
       }
     });
   }
-  /**
-   * Returns true if enterprise policy has explicitly disabled the global auto-approve setting.
-   * When this is the case, Bypass Approvals and Autopilot permission levels should not auto-approve tools.
-   */
-  _isAutoApprovePolicyRestricted() {
-    const inspected = this._configurationService.inspect("chat.tools.global.autoApprove" /* GlobalAutoApprove */);
-    return inspected.policyValue === false;
-  }
-  /**
-   * Returns true if the session's current (live) permission picker level is auto-approve.
-   * This checks the widget's current state, not what was stamped on the request,
-   * so switching to Autopilot mid-session takes effect immediately.
-   */
-  _isSessionLiveAutoApproveLevel(chatSessionResource) {
-    const widget = this._chatWidgetService.getWidgetBySessionResource(chatSessionResource) ?? this._chatWidgetService.lastFocusedWidget;
-    return !!widget && isAutoApproveLevel(widget.input.currentModeInfo.permissionLevel);
-  }
-  /**
-   * True if the session is in an auto-approve level (Auto-Approve / Autopilot),
-   * via either the last request's stamped level or the live picker level.
-   */
-  _isSessionInAutoApproveLevel(chatSessionResource) {
-    if (!chatSessionResource) {
-      return false;
-    }
-    const model = this._chatService.getSession(chatSessionResource);
-    const request2 = model?.getRequests().at(-1);
-    return isAutoApproveLevel(request2?.modeInfo?.permissionLevel) || this._isSessionLiveAutoApproveLevel(chatSessionResource);
-  }
-  /**
-   * True if the session's live permission picker level is Autopilot. Like
-   * {@link _isSessionLiveAutoApproveLevel}, but excludes plain Auto-Approve.
-   */
-  _isSessionLiveAutopilotLevel(chatSessionResource) {
-    const widget = this._chatWidgetService.getWidgetBySessionResource(chatSessionResource) ?? this._chatWidgetService.lastFocusedWidget;
-    return !!widget && isAutopilotLevel(widget.input.currentModeInfo.permissionLevel);
-  }
-  /**
-   * True if the session is at the Autopilot level (not plain Auto-Approve), via either the last
-   * request's stamped level or the live picker level.
-   */
-  _isSessionInAutopilotLevel(chatSessionResource) {
-    if (!chatSessionResource) {
-      return false;
-    }
-    const model = this._chatService.getSession(chatSessionResource);
-    const request2 = model?.getRequests().at(-1);
-    return isAutopilotLevel(request2?.modeInfo?.permissionLevel) || this._isSessionLiveAutopilotLevel(chatSessionResource);
-  }
   getEligibleForAutoApprovalSpecialCase(toolData) {
     if (toolData.id === "vscode_fetchWebPage_internal") {
       return "fetch";
@@ -1171,11 +1143,6 @@ ${msgText}`),
     if (!tool) {
       return void 0;
     }
-    if (chatSessionResource && !this._isAutoApprovePolicyRestricted() && this._isSessionInAutoApproveLevel(chatSessionResource)) {
-      if (!(toolIdsThatCannotBeAutoApproved.has(tool.data.id) && getChatSessionType(chatSessionResource) !== localChatSessionType)) {
-        return { type: 1 /* ConfirmationNotNeeded */, reason: autoApproveAllReason };
-      }
-    }
     if (!this.isToolEligibleForAutoApproval(tool.data)) {
       return void 0;
     }
@@ -1183,95 +1150,17 @@ ${msgText}`),
     if (reason) {
       return reason;
     }
-    const config = this._configurationService.inspect("chat.tools.global.autoApprove" /* GlobalAutoApprove */);
-    let value2 = config.value ?? config.defaultValue;
-    if (typeof runsInWorkspace === "boolean") {
-      value2 = config.userLocalValue ?? config.applicationValue;
-      if (runsInWorkspace) {
-        value2 = config.workspaceValue ?? config.workspaceFolderValue ?? config.userRemoteValue ?? value2;
-      }
-    }
-    const autoConfirm = value2 === true || typeof value2 === "object" && value2.hasOwnProperty(toolId) && value2[toolId] === true;
-    if (autoConfirm) {
-      if (await this._checkGlobalAutoApprove()) {
-        return { type: 2 /* Setting */, id: "chat.tools.global.autoApprove" /* GlobalAutoApprove */ };
-      }
-    }
     return void 0;
   }
   async shouldAutoConfirmPostExecution(toolId, runsInWorkspace, source, parameters, chatSessionResource, chatRequestId, workingDirectory) {
-    const sessionAutoApprove = chatSessionResource && !this._isAutoApprovePolicyRestricted() && this._isSessionInAutoApproveLevel(chatSessionResource);
-    if (sessionAutoApprove) {
-      if (!(toolIdsThatCannotBeAutoApproved.has(toolId) && getChatSessionType(chatSessionResource) !== localChatSessionType)) {
-        return { type: 1 /* ConfirmationNotNeeded */, reason: autoApproveAllReason };
+    // OpenCode: 「权限」按钮允许的工具（自动允许 / 全自动，或单独设为允许）执行后也不再要求确认结果；询问 / 禁止的照常
+    if (chatSessionResource && !toolIdsThatCannotBeAutoApproved.has(toolId)) {
+      const ocDecision = ocToolPermissionDecision(this._configurationService, this._tools.get(toolId)?.data, parameters);
+      if (ocDecision?.decision === "allow") {
+        return { type: 1 /* ConfirmationNotNeeded */, reason: ocDecision.reason };
       }
-    }
-    if (this._configurationService.getValue("chat.tools.global.autoApprove" /* GlobalAutoApprove */) && !sessionAutoApprove && await this._checkGlobalAutoApprove()) {
-      return { type: 2 /* Setting */, id: "chat.tools.global.autoApprove" /* GlobalAutoApprove */ };
     }
     return this._confirmationService.getPostConfirmAction({ toolId, source, parameters, chatSessionResource, workingDirectory });
-  }
-  async _checkGlobalAutoApprove() {
-    const optedIn = this._storageService.getBoolean("chat.tools.global.autoApprove.optIn" /* GlobalAutoApproveOptIn */, -1 /* APPLICATION */, false);
-    if (optedIn) {
-      return true;
-    }
-    if (this._contextKeyService.getContextKeyValue(SkipAutoApproveConfirmationKey) === true) {
-      return true;
-    }
-    if (this._pendingGlobalAutoApproveCheck) {
-      return this._pendingGlobalAutoApproveCheck;
-    }
-    this._pendingGlobalAutoApproveCheck = this._doCheckGlobalAutoApprove();
-    try {
-      return await this._pendingGlobalAutoApproveCheck;
-    } finally {
-      this._pendingGlobalAutoApproveCheck = void 0;
-    }
-  }
-  async _doCheckGlobalAutoApprove() {
-    const store = new DisposableStore();
-    try {
-      const cts = new CancellationTokenSource();
-      store.add(cts);
-      store.add(this._storageService.onDidChangeValue(-1 /* APPLICATION */, "chat.tools.global.autoApprove.optIn" /* GlobalAutoApproveOptIn */, store)(() => {
-        if (this._storageService.getBoolean("chat.tools.global.autoApprove.optIn" /* GlobalAutoApproveOptIn */, -1 /* APPLICATION */, false)) {
-          cts.cancel();
-        }
-      }));
-      const promptResult = await this._dialogService.prompt({
-        type: severity_default.Warning,
-        message: localize(11712, null),
-        buttons: [
-          {
-            label: localize(11711, null),
-            run: () => true
-          },
-          {
-            label: localize(11710, null),
-            run: () => false
-          }
-        ],
-        custom: {
-          icon: Codicon.warning,
-          markdownDetails: [{
-            markdown: new MarkdownString(globalAutoApproveDescription.value, { isTrusted: { enabledCommands: ["workbench.action.openSettings"] } })
-          }]
-        },
-        token: cts.token
-      });
-      if (cts.token.isCancellationRequested) {
-        return true;
-      }
-      if (promptResult.result !== true) {
-        await this._configurationService.updateValue("chat.tools.global.autoApprove" /* GlobalAutoApprove */, false);
-        return false;
-      }
-      this._storageService.store("chat.tools.global.autoApprove.optIn" /* GlobalAutoApproveOptIn */, true, -1 /* APPLICATION */, 0 /* USER */);
-      return true;
-    } finally {
-      store.dispose();
-    }
   }
   cleanupCallDisposables(requestId, store) {
     if (requestId) {
@@ -1597,7 +1486,6 @@ LanguageModelToolsService = __decorateClass([
   __decorateParam(12, ICommandService),
   __decorateParam(13, IChatWidgetService),
   __decorateParam(14, IToolResultCompressor),
-  __decorateParam(15, IChatToolRiskAssessmentService)
 ], LanguageModelToolsService);
 
 function getToolFullReferenceName(tool, toolSet) {
@@ -1616,4 +1504,4 @@ function getToolSetFullReferenceName(toolSet) {
   }
   return toolSet.referenceName;
 }
-export { isOpenCodeTerminalTool, extractOpenCodeOutputBlock, parseOpenCodeExitCode, getToolFullReferenceName, getToolSetFullReferenceName, jsonSchemaRegistry, SkipAutoApproveConfirmationKey, autoApproveAllReason, toolIdsThatCannotBeAutoApproved, fetchWebPageToolIds, globalAutoApproveDescription, OPENCODE_TERMINAL_TOOL_IDS, LanguageModelToolsService };
+export { isOpenCodeTerminalTool, extractOpenCodeOutputBlock, parseOpenCodeExitCode, getToolFullReferenceName, getToolSetFullReferenceName, jsonSchemaRegistry, toolIdsThatCannotBeAutoApproved, OPENCODE_TERMINAL_TOOL_IDS, LanguageModelToolsService };

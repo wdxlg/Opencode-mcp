@@ -78,7 +78,7 @@ var AbstractPaneCompositePart = class extends CompositePart {
     this.MIN_COMPOSITE_BAR_WIDTH = 50;
   }
   get snap() {
-    return this.layoutService.isVisible(this.partId) || !!this.paneCompositeBar.value?.getVisiblePaneCompositeIds().length;
+    return true; /* OpenCode-p13 */
   }
   get onDidPaneCompositeOpen() {
     return Event2.map(this.onDidCompositeOpen.event, (compositeEvent) => compositeEvent.composite);
@@ -472,8 +472,19 @@ var AbstractPaneCompositePart = class extends CompositePart {
       height: top2 + bottom + borderTotal
     };
   }
+  // OpenCode titlebar-step01: 标题栏按钮的可用宽度 = 总宽 − 左侧标签至少要留的位置 − 全局按钮
+  ocTitleActionsAvailableWidth(titleArea, actionsContainer) {
+    if (!this.contentDimension || this.compositeBarPosition !== 1 /* TITLE */ || !this.paneCompositeBar.value) {
+      return super.ocTitleActionsAvailableWidth(titleArea, actionsContainer);
+    }
+    const padding = 16;
+    const borderWidth = this.partId === "workbench.parts.panel" /* PANEL_PART */ ? 0 : 1;
+    const globalToolBarWidth = this.globalToolBar ? this.globalToolBar.getItemsWidth() + this.globalToolBar.getItemsLength() * 4 : 0;
+    return Math.max(24, this.contentDimension.width - padding - borderWidth - globalToolBarWidth - 36 - 8);
+  }
   layoutCompositeBar() {
     this.pendingCompositeBarLayout.clear();
+    try { this.toolBar?.relayout?.(); } catch {}
     if (this.contentDimension && this.dimension && this.paneCompositeBar.value) {
       const padding = this.compositeBarPosition === 1 /* TITLE */ ? 16 : 8;
       const borderWidth = this.partId === "workbench.parts.panel" /* PANEL_PART */ ? 0 : 1;

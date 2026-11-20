@@ -26,7 +26,7 @@ var execFileAsync = (0, import_node_util.promisify)(import_node_child_process5.e
 var hash = (value) => (0, import_node_crypto15.createHash)("sha256").update(value).digest("hex");
 
 function bridgeTunnelLeaseResources(input) {
-  if (input.provider === "cloudflare") return [];
+  if (input.provider === "cloudflare" || input.provider === "tailscale") return [];
   if (input.provider === "ngrok") {
     const resources2 = ["provider:ngrok"];
     const domain2 = input.configuredDomain;

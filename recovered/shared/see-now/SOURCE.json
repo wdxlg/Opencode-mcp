@@ -1,0 +1,177 @@
+{
+  "name": "dsh-see-now",
+  "repository": "https://github.com/SAOS-3624/dsh-see-now",
+  "commit": "8b8e6c6daff5eea44925de55f565d101cee8f684",
+  "commitDate": "2026-11-09 12:51:29 +0800",
+  "upstreamVersion": "0.2.1 (package.json)",
+  "license": "Apache-2.0",
+  "licenseCheck": "Apache-2.0 允许修改与再分发，要求保留 LICENSE/NOTICE 并标明修改；与本工程分发不冲突。上游 NOTICE 声明无第三方代码 vendored；ffmpeg 为运行时外部程序，不随本工程分发。",
+  "retrievedAt": "2026-11-10 CST",
+  "retrievalMethod": "主机 git clone 两次失败（schannel CRYPT_E_REVOCATION_OFFLINE），改为在 Hark 沙箱对同一 URL git clone，按上述 commit 取文件写入主机；逐文件 sha256 见 files。",
+  "files": [
+    {
+      "file": "capture.js",
+      "upstream": "src/capture.js",
+      "upstreamSha256": "0a66945dbf57bed2e7bbc902066041c8b25881825c50105bef871e837ecce43d",
+      "sha256": "cc3d55fee0d6f3853dd145716cb7413be03a0ca5013522f76d4f4a2c1248e012",
+      "modified": true,
+      "changes": "CAPTURE_HINTS['dependency-missing'] 文案：DSH_FFMPEG_PATH 改为 OPENCODE_SEE_NOW_FFMPEG；文件头加修改声明（Apache-2.0 §4(b)）"
+    },
+    {
+      "file": "pipeline.js",
+      "upstream": "src/pipeline.js",
+      "upstreamSha256": "28d02403caf451c40dc805decfc686c5f8b1ca39bb09cac13dbb6d738364ba36",
+      "sha256": "28d02403caf451c40dc805decfc686c5f8b1ca39bb09cac13dbb6d738364ba36",
+      "modified": false
+    },
+    {
+      "file": "cuts.js",
+      "upstream": "src/cuts.js",
+      "upstreamSha256": "d7e4f9ab76bf2662be35bdf613da934084a6251da82a8a1d6a33527d1c22b3a2",
+      "sha256": "d7e4f9ab76bf2662be35bdf613da934084a6251da82a8a1d6a33527d1c22b3a2",
+      "modified": false
+    },
+    {
+      "file": "pack.js",
+      "upstream": "src/pack.js",
+      "upstreamSha256": "3e77f4877a7781b232acc39904e196eb25de7d9aad4aa9a5cc057fd49b71a46b",
+      "sha256": "3e77f4877a7781b232acc39904e196eb25de7d9aad4aa9a5cc057fd49b71a46b",
+      "modified": false
+    },
+    {
+      "file": "png.js",
+      "upstream": "src/png.js",
+      "upstreamSha256": "6288760abcf4845c9a64f70b115af2f89073c2be6192409ff9b2b9ec1689cc44",
+      "sha256": "6288760abcf4845c9a64f70b115af2f89073c2be6192409ff9b2b9ec1689cc44",
+      "modified": false
+    },
+    {
+      "file": "sheet.js",
+      "upstream": "src/sheet.js",
+      "upstreamSha256": "25a3e648d55a840f9b1b031a42493374d4217cab6becaf15f0d6a2a6786cc091",
+      "sha256": "25a3e648d55a840f9b1b031a42493374d4217cab6becaf15f0d6a2a6786cc091",
+      "modified": false
+    },
+    {
+      "file": "layout.js",
+      "upstream": "src/layout.js",
+      "upstreamSha256": "054c2e52e1b243b84c3986fac95acada710b5f7cdc7a28ccf99a36ffde33c70a",
+      "sha256": "054c2e52e1b243b84c3986fac95acada710b5f7cdc7a28ccf99a36ffde33c70a",
+      "modified": false
+    },
+    {
+      "file": "tiers.js",
+      "upstream": "src/tiers.js",
+      "upstreamSha256": "fd51b2a19896c2c0a18f07f1d64b8e98d807ec3bc64029d6c6e7d2a5dbd70e2c",
+      "sha256": "fd51b2a19896c2c0a18f07f1d64b8e98d807ec3bc64029d6c6e7d2a5dbd70e2c",
+      "modified": false
+    },
+    {
+      "file": "scale.js",
+      "upstream": "src/scale.js",
+      "upstreamSha256": "f2d68268d16c83a1fdcbf5bcdfa033a0d06f65deb308cce4e998cfd6bf20354f",
+      "sha256": "f2d68268d16c83a1fdcbf5bcdfa033a0d06f65deb308cce4e998cfd6bf20354f",
+      "modified": false
+    },
+    {
+      "file": "tokens.js",
+      "upstream": "src/tokens.js",
+      "upstreamSha256": "ba8fa712f4d325a7e6b794606915459c1274c1b21ca1c0fa290b97737cc3a31c",
+      "sha256": "ba8fa712f4d325a7e6b794606915459c1274c1b21ca1c0fa290b97737cc3a31c",
+      "modified": false
+    },
+    {
+      "file": "binaries.js",
+      "upstream": "src/binaries.js",
+      "upstreamSha256": "e2e3842d5bfb476baf8e4bf1b09a43721f3668d0e55b82a4677332794903259e",
+      "sha256": "66f48104af6a247cc84782ddcdf9c80e658f6ce79868c401874262eaf774ba6c",
+      "modified": true,
+      "changes": "重写 resolveFfmpeg：去掉 DSH_FFMPEG_PATH/DSH_FFMPEG_DIR/$DSH_HOME 路径，改读 OPENCODE_SEE_NOW_FFMPEG、FFMPEG_PATH、OPENCODE_SEE_NOW_FFMPEG_DIR，否则走 PATH；文件头加修改声明"
+    },
+    {
+      "file": "asr.js",
+      "upstream": "src/listen.js（节选）",
+      "upstreamSha256": "92c916dc39b7be24cad0871ad67d6fd5dfd5c7bc202796736632a3b97a36e24a",
+      "sha256": "0f3881933499e199698df10e08662afbbb98111c64062f56663282c242ab9b6f",
+      "modified": true,
+      "changes": "只取 canonicalizeWav、send、buildMultipart、httpTranscriber、postOpenAiAudio、postChatAudio、chatAudioText 原文；asrConfig 改为只读 OPENCODE_SEE_NOW_ASR_* 环境变量；去掉 hostTranscriber（DSH speechToText）、listen.py 麦克风/回环监听、服务自启 ensureService、~/.dsh 配置与 tuning.js 依赖；文件头加修改声明"
+    },
+    {
+      "file": "LICENSE",
+      "upstream": "LICENSE",
+      "upstreamSha256": "0f4587918026d801b3d9f77de89be59afd06301034f3f9bed5b6a1b1f2fd1c1d",
+      "sha256": "0f4587918026d801b3d9f77de89be59afd06301034f3f9bed5b6a1b1f2fd1c1d",
+      "modified": false
+    },
+    {
+      "file": "NOTICE",
+      "upstream": "NOTICE",
+      "upstreamSha256": "80fddfb5edf555ba34d692ddaa9ae72b2b73b786dd2fe774b06d5065dd41eaa4",
+      "sha256": "80fddfb5edf555ba34d692ddaa9ae72b2b73b786dd2fe774b06d5065dd41eaa4",
+      "modified": false
+    }
+  ],
+  "opencodeAdditions": [
+    {
+      "file": "opencode-see-now.mjs",
+      "sha256": "0e8d681f40fa2d47d775ab12d403133063ad575f07398b899909ff093ad8bb2f",
+      "note": "OpenCode 自写胶水：see_now 工具动作 watch/peek/start/stop/status/region/help，复用上游 capture/pipeline/png/layout；非上游代码"
+    },
+    {
+      "file": "README.md",
+      "note": "OpenCode 接入说明"
+    }
+  ],
+  "excluded": {
+    "floatingWindow": [
+      "src/window.js",
+      "src/indicator.js",
+      "src/indicator.py",
+      "src/kwin-indicator.js",
+      "src/chat.js",
+      "src/speech.js",
+      "src/voice.js",
+      "src/interject.js",
+      "src/region.js（依赖悬浮窗框选）",
+      "examples/floating-chat/*",
+      "bin/see-window.mjs"
+    ],
+    "debugWindow": [
+      "debug/*",
+      "scripts/*（开发与发布脚本）"
+    ],
+    "dshHost": [
+      "src/index.js",
+      "src/define-tool.js（@deepseek-ai/dsh-tools）",
+      "src/runner.js",
+      "src/loop.js",
+      "src/command.js",
+      "src/timer.js",
+      "src/offload.js",
+      "src/tool-spec.js",
+      "src/help.js",
+      "src/settings-api.mjs",
+      "src/settings-trust.js",
+      "src/tuning.js（~/.dsh 配置）",
+      "src/asr-store.mjs",
+      "src/listen.js（除 asr.js 节选部分）",
+      "src/portal-capture.js",
+      "src/portal_stream.py（Linux portal）",
+      "src/pacing.js",
+      "client.js",
+      "cordis.patch.yml",
+      "dsh.plugin.json",
+      "locale/*"
+    ],
+    "other": [
+      "test/*",
+      "samples/*",
+      "docs/*",
+      "README.md",
+      "CHANGELOG.md",
+      "CREDITS.md",
+      "CONTRIBUTING.md"
+    ]
+  },
+  "notes": "上游核心文件中残留的 DSH/~/.dsh 字样仅在注释里，不参与运行。"
+}

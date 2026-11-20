@@ -9,7 +9,8 @@ init_define_OPENCODE_BUILD_INFO();
 
 var DEEPSEEK_CONTEXT_WINDOW_TOKENS = 1e6;
 
-var DEEPSEEK_MAX_OUTPUT_TOKENS = 384e3;
+// OpenCode context-compaction-dsh: 与 dsh DeepSeek 官方 maxTokens 一致（原 384e3）
+var DEEPSEEK_MAX_OUTPUT_TOKENS = 256e3;
 
 var DEEPSEEK_DEFAULT_REASONING_EFFORT = "max";
 

@@ -146,7 +146,7 @@ var ModePickerActionItem = class extends ChatInputPickerActionViewItem {
         return action2;
       }) ?? [];
       const customActions = customModes.custom?.map((mode) => makeActionFromCustomMode(mode, currentMode)) ?? [];
-      return [defaultAction, ...builtInActions, ...customActions];
+      return [...builtInActions, ...customActions]; // OpenCode: 不显示内置 Agent 选项
     };
     const actionProvider = {
       getActions: () => {
@@ -175,7 +175,7 @@ var ModePickerActionItem = class extends ChatInputPickerActionViewItem {
         const customModeActions = customModes.custom?.map((mode) => makeActionFromCustomMode(mode, currentMode)) ?? [];
         customModeActions.sort((a, b) => a.label.localeCompare(b.label));
         const orderedModes = coalesce([
-          agentMode && makeAction(agentMode, currentMode),
+          // OpenCode: 模式列表不再显示内置 Agent 选项
           ...otherBuiltinModes.map((mode) => mode && makeAction(mode, currentMode)),
           ...customBuiltinModeActions,
           ...customModeActions

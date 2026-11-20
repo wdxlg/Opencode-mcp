@@ -1,0 +1,6 @@
+- bridge-native-question-active-only-20261031-182300-step01：已完成源码/构建及唯一打包.cmd；4旧入口备份删除，内部脚本保留；当前运行版未更新，新入口未运行。
+- opencode-concentrated-review-20261101-014103-step01：源码及 source-only 构建完成（ebf6ade224）；未测试，运行版使用中未更新。
+- single-reply-ask-rule-20261101-step01：已完成实时规则库（需求澄清v5/Bridge提问v3）原子升级与源码构建 opencode/（commit abad1a27e7）；运行中 E:\opencode 免重启即时生效。
+- step-reset-turn-and-ask-zero-20261103-step01：已完成 90 步 ask 规则 v4（轮次与每次 ask 步数归零、满 90 步触发）与服务端步数重置逻辑更新及 opencode/ 构建（commit 94bdc2ea4d）；实时规则库（revision 118）免重启即时生效。
+- parallel-branches-20261105-step01：多模型分支真并行（后台作业 + 挂接回放，parallelBranches 默认 3）与协作 worktree 隔离判断修复；源码、update.cjs 构建（errors []）与无界面测试完成；界面内未验证，未发布到 E:\opencode。
+- parallel-branches-20261105-step02：后台并行分支终端命令改为需用户确认（只读白名单自动放行，其余经通知/状态栏「允许一次/拒绝」，取消/放弃/30 分钟超时自动拒绝）；源码、update.cjs 构建（errors []）与无界面测试完成；界面内未验证，未发布到 E:\opencode。

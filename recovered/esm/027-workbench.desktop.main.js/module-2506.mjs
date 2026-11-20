@@ -1465,6 +1465,18 @@ var ChatService = class extends Disposable {
               progressCallback([autostartResult]);
               await autostartResult.wait();
             }
+            // OpenCode: 发送前门槛——MCP 守护里正在启动的服务器最多再等几秒；没连上也照常发送，并提示哪一个未连接
+            try {
+              const ready = await this.mcpService.ensureReady?.(token);
+              if (ready?.enabled && ready.notReady?.length && !token.isCancellationRequested) {
+                progressCallback([{
+                  kind: "warning",
+                  content: new MarkdownString(`MCP 尚未连接：${ready.notReady.join("、")}。本次只发送已连接服务器的工具，守护会继续在后台重连。`)
+                }]);
+              }
+            } catch (err) {
+              this.logService?.warn?.("[MCP 发送前] ensureReady 出错", err);
+            }
           }
           const agentResult = await this.chatAgentService.invokeAgent(agent.id, requestProps, progressCallback, history, token);
           rawResult = agentResult;

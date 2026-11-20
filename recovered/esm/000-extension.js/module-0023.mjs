@@ -1,7 +1,8 @@
-import { registerTaskWorkbench } from './task-workbench.mjs';
+import { buildMcpConnectionPrompt, buildTaskHandoffPrompt } from "./task-handoff-prompts.mjs";
 import { createLocalAssistantSourceLink } from './assistant-source-local.mjs';
 import { createAutomationService } from './automation-store.mjs';
 import { registerAutomationWorkbench } from './automation-workbench.mjs';
+import { registerWorkAndAutomations } from './work-automation.mjs';
 import { initializeBundledDefaults } from './default-bootstrap.mjs';
 import { globalSkillsDirectory as bundledSkillsDirectory } from './module-0025.mjs';
 // Recovered JavaScript implementation; original TS types are not recovered.
@@ -17,10 +18,9 @@ import { WorkspaceHubController } from "./module-0184.mjs";
 import { RuntimeClient } from "./module-0183.mjs";
 import { OpenCodeLanguageModelProvider } from "./module-0171.mjs";
 import { BranchStateStore } from "./module-0163.mjs";
-import { registerOpenCodeNativeChat } from "./module-0177.mjs";
-import { registerOpenCodeCustomAgents } from "./module-0164.mjs";
+import { registerOpenCodeNativeChat, applyBranchWorktreeCommand, discardBranchWorktreeCommand, cleanupBranchWorktreesCommand, cancelParallelBranchesCommand, manageParallelBranchesCommand } from "./module-0177.mjs";
 import { codexAuthManager, onCodexAuthChange } from "./module-0162.mjs";
-import { configureOpenCodeModel, setOpenCodeApiKey } from "./module-0161.mjs";
+import { configureOpenCodeModel, setOpenCodeApiKey, manageOpenCodeProviders, manageOpenCodeTools, manageOpenCodeCommands, manageOpenCodeSkills, manageOpenCodePlugins, manageOpenCodeMarket, manageOpenCodeMemory, openCodeAttachContext, initOpenCodeToolFilter } from "./module-0161.mjs";
 import { testOpenAIModelsEndpoint } from "./module-0172.mjs";
 import { bridgeNoticeText } from "./module-0113.mjs";
 
@@ -83,6 +83,15 @@ function bridgeDiffSnippet(diff, filePath) {
 
 async function activate(context) {
   const output2 = vscode22.window.createOutputChannel("OpenCode");
+  // OpenCode: 模型供应商先于耗时的初始化注册，否则启动后模型选择器会长时间显示 0 个模型
+  const apiModelProvider = new OpenCodeLanguageModelProvider(context, "api");
+  const codexModelProvider = new OpenCodeLanguageModelProvider(context, "codex");
+  context.subscriptions.push(
+    apiModelProvider,
+    codexModelProvider,
+    vscode22.lm.registerLanguageModelChatProvider("opencode", apiModelProvider),
+    vscode22.lm.registerLanguageModelChatProvider("opencode-codex", codexModelProvider)
+  );
   registerSkillCenter(context, output2);
   const externalMcp = new ExternalMcpCenter(context, output2);
   // Optional defaults must not abort activation before Bridge commands exist.
@@ -100,6 +109,8 @@ async function activate(context) {
   });
   const bridge = new BridgeManager(context, output2, ideToolBroker, externalMcp.catalog, automation);
   registerAutomationWorkbench(context, bridge, output2);
+  // 工作（看板）与自动化（定时运行，关闭时经 Windows 计划任务唤起）；见 docs/work-and-automations.md
+  try { registerWorkAndAutomations(context, bridge, output2); } catch (error) { output2.appendLine('[work] 初始化失败：' + (error instanceof Error ? error.message : String(error))); }
   externalMcp.attachBridge(bridge);
   activeBridge = bridge;
   const performanceItem=vscode22.window.createStatusBarItem(vscode22.StatusBarAlignment.Left,10);
@@ -111,22 +122,18 @@ async function activate(context) {
   const workspaceHub = new WorkspaceHubController(context, bridge, output2);
   activeWorkspaceHub = workspaceHub;
   context.subscriptions.push(createLocalAssistantSourceLink(context, { bridge, workspaceHub, trusted: () => vscode22.workspace.isTrusted, log: message => output2.appendLine(message) }));
-  registerTaskWorkbench(context, output2, { bridge, workspaceHub });
   const runtime = new RuntimeClient(
     context,
     output2,
     ideToolBroker,
-    (name, args, ownerId, signal) => bridge.dispatchChatTool(name, args, ownerId, signal),
+    (name, args, ownerId, signal, toolInvocationToken, nativeSession) => bridge.dispatchChatTool(name, args, ownerId, signal, toolInvocationToken, nativeSession),
     automation
   );
-  const apiModelProvider = new OpenCodeLanguageModelProvider(context, "api");
-  const codexModelProvider = new OpenCodeLanguageModelProvider(context, "codex");
   const branchStore = new BranchStateStore(context, output2);
   const participant = registerOpenCodeNativeChat(context, runtime, output2, {
     opencode: apiModelProvider,
     "opencode-codex": codexModelProvider
   }, branchStore, bridge);
-  const customAgents = registerOpenCodeCustomAgents(context);
   const customAgentDiscoveryCts = new vscode22.CancellationTokenSource();
   context.subscriptions.push(
     output2,
@@ -136,18 +143,18 @@ async function activate(context) {
     bridge,
     workspaceHub,
     runtime,
-    apiModelProvider,
-    codexModelProvider,
     branchStore,
     participant,
-    customAgents,
     customAgentDiscoveryCts,
-    vscode22.lm.registerLanguageModelChatProvider("opencode", apiModelProvider),
-    vscode22.lm.registerLanguageModelChatProvider("opencode-codex", codexModelProvider),
     vscode22.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("opencode.model")) apiModelProvider.refresh();
     }),
     onCodexAuthChange(() => codexModelProvider.refresh()),
+    // OpenCode: 提供商列表或密钥变化时刷新模型选择器
+    vscode22.commands.registerCommand("opencode.providers.refreshModels", () => apiModelProvider.refresh()),
+    context.secrets.onDidChange((event) => {
+      if (String(event?.key || "").startsWith("opencode.provider.")) apiModelProvider.refresh();
+    }),
     vscode22.commands.registerCommand("opencode.codex.openView", async () => {
       await vscode22.commands.executeCommand("aiCustomization.openManagementEditor", "codex");
     }),
@@ -159,6 +166,17 @@ async function activate(context) {
       }
     }),
     vscode22.commands.registerCommand("opencode.setApiKey", () => setOpenCodeApiKey(context)),
+    (initOpenCodeToolFilter(context), vscode22.commands.registerCommand("opencode.manageTools", () => manageOpenCodeTools(context))),
+    vscode22.commands.registerCommand("opencode.manageCommands", () => manageOpenCodeCommands(context)),
+    vscode22.commands.registerCommand("opencode.manageSkills", () => manageOpenCodeSkills(context)),
+    vscode22.commands.registerCommand("opencode.managePlugins", () => manageOpenCodePlugins(context)),
+    vscode22.commands.registerCommand("opencode.openMarket", (tab, opts) => manageOpenCodeMarket(context, typeof tab === "string" ? tab : void 0, opts && typeof opts === "object" ? opts : void 0)),
+    // OpenCode memory-step01: 记忆库窗口
+    vscode22.commands.registerCommand("opencode.openMemory", () => manageOpenCodeMemory(context)),
+    vscode22.commands.registerCommand("opencode.attachContext", () => openCodeAttachContext(context)),
+    vscode22.commands.registerCommand("opencode.manageProviders", async () => {
+      await manageOpenCodeProviders(context, () => apiModelProvider.refresh());
+    }),
     vscode22.commands.registerCommand("opencode.branch.getGroupState", async (groupId) => {
       if (typeof groupId !== "string" || !groupId) return void 0;
       await branchStore.ensureLoaded();
@@ -201,6 +219,36 @@ async function activate(context) {
       );
       await vscode22.window.showInformationMessage(`Merge model set to ${picked.label} (${picked.vendor}/${picked.id})`);
     }),
+    vscode22.commands.registerCommand("opencode.pickBranchModels", async () => {
+      const models = await vscode22.lm.selectChatModels({ vendor: "opencode" });
+      const codexModels = await vscode22.lm.selectChatModels({ vendor: "opencode-codex" });
+      const all = [...models, ...codexModels];
+      if (all.length === 0) {
+        await vscode22.window.showWarningMessage("\u6CA1\u6709\u53EF\u7528\u7684 OpenCode \u6A21\u578B\uFF0C\u65E0\u6CD5\u8BBE\u7F6E\u591A\u6A21\u578B\u5206\u652F\u3002");
+        return;
+      }
+      const configuration = vscode22.workspace.getConfiguration("opencode");
+      const current = configuration.get("multiModel.branchModels", []);
+      const currentList = Array.isArray(current) ? current.filter((item) => typeof item === "string") : [];
+      const picked = await vscode22.window.showQuickPick(
+        all.map((model) => {
+          const identifier = `${model.vendor}/${model.id}`;
+          return { label: model.name, description: identifier, picked: currentList.includes(identifier), identifier };
+        }),
+        { title: "\u591A\u6A21\u578B\u535A\u5F08 \u00B7 \u9009\u62E9\u4E00\u952E\u5206\u652F\u6A21\u578B", placeHolder: "\u52FE\u9009\u70B9\u51FB\u300C\u591A\u6A21\u578B\u5206\u652F\u300D\u65F6\u4F9D\u6B21\u4F5C\u7B54\u7684\u6A21\u578B\uFF08\u6309\u5217\u8868\u987A\u5E8F\u751F\u6210\uFF09", canPickMany: true }
+      );
+      if (!picked) return;
+      const order = all.map((model) => `${model.vendor}/${model.id}`);
+      const chosen = picked.map((item) => item.identifier);
+      const kept = currentList.filter((identifier) => chosen.includes(identifier));
+      const added = chosen.filter((identifier) => !kept.includes(identifier)).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+      await configuration.update("multiModel.branchModels", [...kept, ...added], vscode22.ConfigurationTarget.Global);
+    }),
+    vscode22.commands.registerCommand("opencode.multiModel.applyBranch", async (info) => applyBranchWorktreeCommand(info, output2)),
+    vscode22.commands.registerCommand("opencode.multiModel.discardBranch", async (info) => discardBranchWorktreeCommand(info)),
+    vscode22.commands.registerCommand("opencode.multiModel.cleanupWorktrees", async () => cleanupBranchWorktreesCommand(context)),
+    vscode22.commands.registerCommand("opencode.multiModel.cancelParallelBranches", async (batchId, abandon) => cancelParallelBranchesCommand(typeof batchId === "string" ? batchId : void 0, abandon === true, output2)),
+    vscode22.commands.registerCommand("opencode.multiModel.manageParallelBranches", async () => manageParallelBranchesCommand(output2)),
     vscode22.commands.registerCommand("opencode.testApiEndpoint", async (input = {}) => {
       const baseUrl = typeof input?.baseUrl === "string" ? input.baseUrl.trim() : "";
       const apiKey = typeof input?.apiKey === "string" ? input.apiKey.trim() : "";
@@ -373,6 +421,47 @@ async function activate(context) {
       if (typeof provider !== "string") throw new Error("Bridge tunnel provider must be a string.");
       return bridge.setTunnelProvider(provider);
     }),
+    // tunnel-proxy-step01: Bridge 页「隧道代理」。
+    vscode22.commands.registerCommand("opencode.bridge.tunnelProxy.getState", async () => {
+      await bridgeReady;
+      return bridge.tunnelProxy.getState();
+    }),
+    vscode22.commands.registerCommand("opencode.bridge.tunnelProxy.setMode", async (mode, node) => {
+      await bridgeReady;
+      if (typeof mode !== "string") throw new Error("Tunnel proxy mode must be a string.");
+      return bridge.tunnelProxy.setMode(mode, typeof node === "string" ? node : void 0);
+    }),
+    vscode22.commands.registerCommand("opencode.bridge.tunnelProxy.import", async (text, name) => {
+      await bridgeReady;
+      // tunnel-proxy-import-step01: 对象形式按导入方式（订阅 / 分享链接文本 / HTTP / HTTPS / SOCKS5 / Clash 目录 / v2rayN 目录）导入。
+      if (text && typeof text === "object") return bridge.tunnelProxy.importSpec(text);
+      if (typeof text !== "string") throw new Error("Import content must be a string.");
+      return bridge.tunnelProxy.importSource(text, typeof name === "string" ? name : void 0);
+    }),
+    vscode22.commands.registerCommand("opencode.bridge.tunnelProxy.pickDirectory", async (kind) => {
+      const picked = await vscode22.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: "选择此目录",
+        title: kind === "v2rayn" ? "选择 v2rayN 程序目录（含 guiConfigs）" : "选择 Clash 配置目录（含 *.yaml 或 profiles）"
+      });
+      return picked?.[0]?.fsPath ?? "";
+    }),
+    vscode22.commands.registerCommand("opencode.bridge.tunnelProxy.updateSource", async (id) => {
+      await bridgeReady;
+      if (typeof id !== "string") throw new Error("Source id must be a string.");
+      return bridge.tunnelProxy.updateSource(id);
+    }),
+    vscode22.commands.registerCommand("opencode.bridge.tunnelProxy.removeSource", async (id) => {
+      await bridgeReady;
+      if (typeof id !== "string") throw new Error("Source id must be a string.");
+      return bridge.tunnelProxy.removeSource(id);
+    }),
+    vscode22.commands.registerCommand("opencode.bridge.tunnelProxy.test", async () => {
+      await bridgeReady;
+      return bridge.tunnelProxy.testLatency();
+    }),
     vscode22.commands.registerCommand("opencode.bridge.start", async (domain) => {
       await bridgeReady;
       if (domain !== void 0 && typeof domain !== "string") throw new Error("Bridge domain must be a string.");
@@ -421,6 +510,36 @@ async function activate(context) {
       await bridgeReady;
       return bridge.clearActivityLog();
     }),
+    vscode22.commands.registerCommand("opencode.bridge.copyTaskPrompt", async (input) => {
+      await bridgeReady;
+      if (!input || typeof input.taskId !== "string" || typeof input.includeMcp !== "boolean") throw new Error("无效的任务提示词复制请求。");
+      const status = bridge.getStatus();
+      const task = (status.tasks ?? []).find(item => item.id === input.taskId);
+      if (!task) throw new Error("任务显示已变化，请刷新后重试。");
+      if (input.copyMemory !== void 0 && typeof input.copyMemory !== "boolean") throw new Error("无效的任务提示词复制请求。");
+      if (input.includeMcp && (status.state !== "running" || !status.publicUrl)) throw new Error("Bridge 未运行，无法复制有效连接地址；可复制不含地址的接班提示词。");
+      const fork = input.copyMemory ? bridge.forkTask(task.id) : null;
+      const handoff = buildTaskHandoffPrompt(fork ?? task);
+      let text = handoff;
+      if (input.includeMcp) {
+        if (status.state !== "running" || !status.publicUrl) throw new Error("Bridge 未运行，无法复制有效连接地址；可复制不含地址的接班提示词。");
+        const custom = vscode22.workspace.getConfiguration("opencode").get("bridge.copyPromptText", "");
+        text = buildMcpConnectionPrompt(Buffer.from(status.publicUrl, "utf8").toString("base64"), typeof custom === "string" && custom.trim() ? custom.trim() : void 0) + "\n\n" + handoff;
+      }
+      await vscode22.env.clipboard.writeText(text);
+      if (fork) {
+        void vscode22.window.showInformationMessage(`已复制任务卡和记忆（新卡「${fork.title}」，记忆在 ${fork.memory?.memoryDir}），接班提示词已复制。`);
+        return { ...bridge.getStatus(), copied: true, sourceTaskId: task.id, forkedTaskId: fork.id, checkpointPath: fork.memory?.checkpointPath ?? null };
+      }
+      return { copied: true, sourceTaskId: task.id, checkpointPath: task.memory?.checkpointPath ?? null };
+    }),
+    vscode22.commands.registerCommand("opencode.bridge.deleteTaskDisplay", async (input) => {
+      await bridgeReady;
+      const args = input && typeof input === "object" && !Array.isArray(input) ? input : {};
+      const taskId = typeof args.taskId === "string" ? args.taskId : typeof input === "string" ? input : "";
+      if (!taskId) throw new Error("无效的任务显示删除请求。");
+      return bridge.deleteTaskDisplay(taskId);
+    }),
     vscode22.commands.registerCommand("opencode.bridge.clearTasksConfirmed", async (input) => {
       await bridgeReady;
       const args = input && typeof input === "object" && !Array.isArray(input) ? input : {};
@@ -435,15 +554,15 @@ async function activate(context) {
       for (const request of requests) {
         const task = tasks.find((candidate) => candidate.id === request.id && candidate.revision === request.revision);
         if (!task) throw new Error("A task changed or expired; refresh the task list before confirming cleanup.");
-        if (!["completed", "cancelled", "cleared"].includes(task.state) && !(allowAttention && ["blocked", "interrupted"].includes(task.state))) {
+        if (!["completed", "cancelled", "cleared"].includes(task.state) && !(allowAttention && ["blocked", "interrupted", "awaiting_sync", "waiting_plan"].includes(task.state))) {
           throw new Error("Running, planning and awaiting-sync tasks cannot be cleared locally.");
         }
       }
       const zh = vscode22.env.language.startsWith("zh");
-      const confirmLabel = zh ? "\u6C38\u4E45\u6E05\u7406\u4EFB\u52A1" : "Permanently clear tasks";
+      const confirmLabel = zh ? "删除任务显示" : "Remove task display";
       const choice = await vscode22.window.showWarningMessage(
-        allowAttention ? zh ? `\u6C38\u4E45\u6E05\u7406 ${requests.length} \u9879\u963B\u585E\u6216\u4E2D\u65AD\u7684 Bridge \u4EFB\u52A1\uFF1F\u8FD9\u4E9B\u5DE5\u4F5C\u53EF\u80FD\u5C1A\u672A\u5B8C\u6210\u3002` : `Permanently clear ${requests.length} blocked or interrupted Bridge task(s)? Their work may be unfinished.` : zh ? `\u6C38\u4E45\u6E05\u7406 ${requests.length} \u9879\u5DF2\u7ED3\u675F\u7684 Bridge \u4EFB\u52A1\uFF1F` : `Permanently clear ${requests.length} finished Bridge task(s)?`,
-        { modal: true, detail: zh ? "\u65E7 task_id \u5C06\u5931\u6548\uFF1B\u5DE5\u5177\u6D3B\u52A8\u65E5\u5FD7\u4E0D\u53D7\u5F71\u54CD\u3002\u9690\u85CF\u4EFB\u52A1\u53EF\u4EE5\u64A4\u9500\uFF0C\u6C38\u4E45\u6E05\u7406\u4E0D\u80FD\u64A4\u9500\u3002" : "Old task_id handles will stop working. This does not clear tool activity. Hiding a task is reversible; permanent cleanup is not." },
+        zh ? `移除 ${requests.length} 项任务的显示？${allowAttention ? "其中可能有尚未完成的工作。" : ""}记忆仍保留。` : `Remove the display of ${requests.length} task(s)? Memory is retained.`,
+        { modal: true, detail: zh ? "仅移除显示，不删除任务检查点、交接记忆或日志，不停止任何外部进程。接班请新建独立执行记录，不冒用旧 task_id。" : "Only the display is removed. Checkpoints, handoff memory and logs remain. No process is stopped. A successor must create an independent task." },
         confirmLabel
       );
       if (choice !== confirmLabel) return bridge.getStatus();
@@ -476,6 +595,10 @@ async function activate(context) {
       );
       if (choice !== confirmLabel) return bridge.getStatus();
       return bridge.interruptStaleTasks(requests);
+    }),
+    vscode22.commands.registerCommand("opencode.bridge.connectTailscale", async () => {
+      await bridgeReady;
+      return bridge.connectTailscale();
     }),
     vscode22.commands.registerCommand("opencode.bridge.installCloudflared", async () => {
       await bridgeReady;
@@ -518,7 +641,6 @@ async function activate(context) {
   );
   output2.appendLine("[extension] native Chat participant registered: opencode.agent");
   output2.appendLine("[extension] native Language Model provider registered: opencode");
-  output2.appendLine("[extension] first-party modes registered: OpenCode Ask, OpenCode Plan, OpenCode Code");
   output2.appendLine("[extension] IDE tool broker registered: list_directory, run_command, get_command_output, cancel_command, send_command_input, get_diagnostics, lsp");
   output2.appendLine("[extension] Bridge registered: Streamable HTTP MCP + Cloudflare Quick/Named Tunnel + ngrok + report_progress");
   if (vscode22.workspace.getConfiguration("opencode.bridge").get("persistentMode", false)) {
@@ -557,6 +679,63 @@ ${result}`),
   );
 }
 
+// Kill every process this extension host started (tunnels, the bundled proxy core, portable
+// tailscaled, stdio MCP servers such as windows-mcp, PTY shells and what they launched), so no
+// survivor keeps files in the install folder locked after OpenCode quits. Synchronous so it
+// also works from the process "exit" handler; best effort and idempotent.
+var childProcessSweepDone = false;
+function killChildProcessTreesSync(reason) {
+  if (childProcessSweepDone || process.platform !== "win32") return;
+  childProcessSweepDone = true;
+  try {
+    const cp = require("child_process");
+    const script = `$ErrorActionPreference='SilentlyContinue'; Get-CimInstance Win32_Process -Filter "ParentProcessId=${process.pid}" | Where-Object { $_.ProcessId -ne $PID } | ForEach-Object { & taskkill.exe /PID $_.ProcessId /T /F *> $null }`;
+    cp.execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], { windowsHide: true, timeout: 8e3, stdio: "ignore", cwd: require("os").tmpdir() });
+  } catch {
+    /* best effort: never block shutdown */
+  }
+  try {
+    // ocOrphanSweep: a console host or helper whose parent already died can keep its working directory inside the
+    // install (an orphaned conhost.exe held E:\\opencode open for a day); end those so the folder can be moved.
+    const cp = require("child_process"), os = require("os"), fs = require("fs"), path = require("path");
+    const root = path.dirname(process.execPath).replace(/'/g, "''");
+    const ps1 = path.join(os.tmpdir(), "opencode-orphan-sweep.ps1");
+    fs.writeFileSync(ps1, [
+      "param([string]$Root)",
+      "$ErrorActionPreference='SilentlyContinue'",
+      "Add-Type -TypeDefinition @'",
+      "using System; using System.Runtime.InteropServices; using System.Text;",
+      "public static class OcCwd {",
+      "  [DllImport(\"kernel32.dll\")] static extern IntPtr OpenProcess(int a, bool i, int pid);",
+      "  [DllImport(\"kernel32.dll\")] static extern bool CloseHandle(IntPtr h);",
+      "  [DllImport(\"kernel32.dll\")] static extern bool ReadProcessMemory(IntPtr h, IntPtr a, byte[] b, int n, out IntPtr r);",
+      "  [DllImport(\"kernel32.dll\")] static extern bool IsWow64Process(IntPtr h, out bool w);",
+      "  [DllImport(\"ntdll.dll\")] static extern int NtQueryInformationProcess(IntPtr h, int c, byte[] b, int n, out int r);",
+      "  public static string Get(int pid) {",
+      "    IntPtr h = OpenProcess(0x0410, false, pid); if (h == IntPtr.Zero) return null;",
+      "    try { bool w; IsWow64Process(h, out w); if (w) return null;",
+      "      var pbi = new byte[48]; int rl; if (NtQueryInformationProcess(h, 0, pbi, 48, out rl) != 0) return null;",
+      "      long peb = BitConverter.ToInt64(pbi, 8); var b8 = new byte[8]; IntPtr rd;",
+      "      if (!ReadProcessMemory(h, new IntPtr(peb + 0x20), b8, 8, out rd)) return null;",
+      "      long pp = BitConverter.ToInt64(b8, 0); var us = new byte[16];",
+      "      if (!ReadProcessMemory(h, new IntPtr(pp + 0x38), us, 16, out rd)) return null;",
+      "      int len = BitConverter.ToUInt16(us, 0); long buf = BitConverter.ToInt64(us, 8);",
+      "      var s = new byte[len]; if (!ReadProcessMemory(h, new IntPtr(buf), s, len, out rd)) return null;",
+      "      return Encoding.Unicode.GetString(s);",
+      "    } finally { CloseHandle(h); } }",
+      "}",
+      "'@",
+      "$alive = @{}; Get-Process | ForEach-Object { $alive[$_.Id] = 1 }",
+      "Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and $_.Name -notin 'OpenCode.exe','explorer.exe' -and -not $alive.ContainsKey([int]$_.ParentProcessId) } | ForEach-Object {",
+      "  $c = [OcCwd]::Get([int]$_.ProcessId); if ($c -and $c.StartsWith($Root, [StringComparison]::OrdinalIgnoreCase)) { & taskkill.exe /PID $_.ProcessId /T /F *> $null }",
+      "}"
+    ].join("\r\n"), "utf8");
+    cp.execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", ps1, "-Root", root], { windowsHide: true, timeout: 12e3, stdio: "ignore", cwd: os.tmpdir() });
+  } catch {
+    /* best effort */
+  }
+}
+process.once("exit", () => killChildProcessTreesSync("exit"));
 async function deactivate() {
   const hub = activeWorkspaceHub;
   activeWorkspaceHub = void 0;
@@ -573,6 +752,7 @@ async function deactivate() {
   } catch (error2) {
     firstError ??= error2;
   }
+  killChildProcessTreesSync("deactivate");
   if (firstError) throw firstError;
 }
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Info Collector"
+  short_description: "Fetch multi-platform hot trends and search specific social/tech platforms"
+  default_prompt: "Collect recent hot trends across platforms or search a specific platform for high-performing topics."

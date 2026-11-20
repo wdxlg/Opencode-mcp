@@ -69,6 +69,16 @@ function chatHistorySignature(data, omitLast = false) {
   return JSON.stringify((omitLast ? rows.slice(0, -1) : rows).map((r) => ({ id: r.requestId, message: r.message, response: r.response, result: r.result })));
 }
 
+function chatHistoryAhead(hubData, localData) {
+  const text = (r) => {
+    const m = r?.message;
+    return typeof m === "string" ? m : typeof m?.text === "string" ? m.text : JSON.stringify(m ?? null);
+  };
+  const hub = Array.isArray(hubData?.requests) ? hubData.requests : [];
+  const local = (Array.isArray(localData?.requests) ? localData.requests : []).slice(0, -1);
+  if (hub.length > local.length) return true;
+  return hub.some((r, i) => text(r) !== text(local[i]));
+}
 var WorkspaceHubStore = class {
   constructor(root, windowId, workspace17, now = Date.now) {
     this.windowId = windowId;
@@ -253,7 +263,9 @@ var WorkspaceHubStore = class {
         if (previous && previous.ownerWindowId !== this.windowId) {
           const live = (await this.listWindows()).some((w) => w.windowId === previous.ownerWindowId);
           if (live) throw new Error("\u8FD9\u4E2A\u804A\u5929\u5C5E\u4E8E\u53E6\u4E00\u4E2A\u7A97\u53E3\uFF0C\u8BF7\u4ECE\u201C\u5171\u4EAB\u804A\u5929\u201D\u8FDB\u5165\u539F\u7A97\u53E3\u7EE7\u7EED\u3002");
-          if (chatHistorySignature(previous.data) !== chatHistorySignature(data, true)) throw new Error("\u5F53\u524D\u7A97\u53E3\u7684\u8BB0\u5F55\u5DF2\u8FC7\u671F\uFF0C\u8BF7\u4ECE\u201C\u5171\u4EAB\u804A\u5929\u201D\u6062\u590D\u6700\u65B0\u8BB0\u5F55\u540E\u7EE7\u7EED\u3002");
+          // stale-fix-step01: 原窗口已关闭时，只在共享记录里有本窗口没有的消息（另一窗口继续聊过）才算过期；
+          // 回复内容序列化上的差异（重启后恢复的 response/result 形状不同）不再误报“记录已过期”。
+          if (chatHistoryAhead(previous.data, data)) throw new Error("\u5F53\u524D\u7A97\u53E3\u7684\u8BB0\u5F55\u5DF2\u8FC7\u671F\uFF0C\u8BF7\u4ECE\u201C\u5171\u4EAB\u804A\u5929\u201D\u6062\u590D\u6700\u65B0\u8BB0\u5F55\u540E\u7EE7\u7EED\u3002");
         }
         const id = (0, import_node_crypto26.randomUUID)();
         this.generations.set(key, { id, release });

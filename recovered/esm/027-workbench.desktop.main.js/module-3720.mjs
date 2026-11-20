@@ -335,7 +335,7 @@ var Layout = class extends Disposable {
         this.toggleZenMode();
       }
     }
-    this.workbenchGrid.edgeSnapping = this.state.runtime.mainWindowFullscreen;
+    this.workbenchGrid.edgeSnapping = true /* OpenCode-p13: drag hidden parts out from window edges */;
     if (hasCustomTitlebar(this.configurationService)) {
       this.workbenchGrid.setViewVisible(this.titleBarPartView, shouldShowCustomTitleBar(this.configurationService, mainWindow, this.state.runtime.menuBar.toggled));
       this.updateWindowBorder(true);
@@ -1104,7 +1104,7 @@ var Layout = class extends Disposable {
     this.mainContainer.prepend(workbenchGrid.element);
     this.mainContainer.setAttribute("role", "application");
     this.workbenchGrid = workbenchGrid;
-    this.workbenchGrid.edgeSnapping = this.state.runtime.mainWindowFullscreen;
+    this.workbenchGrid.edgeSnapping = true /* OpenCode-p13: drag hidden parts out from window edges */;
     for (const part of [titleBar, editorPart, activityBar, panelPart, sideBar, statusBar, auxiliaryBarPart, bannerPart]) {
       this._register(part.onDidVisibilityChange((visible) => {
         if (!this.inMaximizedAuxiliaryBarTransition) {
@@ -1128,12 +1128,19 @@ var Layout = class extends Disposable {
       }
     }));
     this._register(this.storageService.onWillSaveState(() => {
-      const sideBarSize = this.stateModel.getRuntimeValue(LayoutStateKeys.SIDEBAR_HIDDEN) ? this.workbenchGrid.getViewCachedVisibleSize(this.sideBarPartView) : this.workbenchGrid.getViewSize(this.sideBarPartView).width;
-      this.stateModel.setInitializationValue(LayoutStateKeys.SIDEBAR_SIZE, sideBarSize);
-      const panelSize = this.stateModel.getRuntimeValue(LayoutStateKeys.PANEL_HIDDEN) ? this.workbenchGrid.getViewCachedVisibleSize(this.panelPartView) : isHorizontal(this.stateModel.getRuntimeValue(LayoutStateKeys.PANEL_POSITION)) ? this.workbenchGrid.getViewSize(this.panelPartView).height : this.workbenchGrid.getViewSize(this.panelPartView).width;
-      this.stateModel.setInitializationValue(LayoutStateKeys.PANEL_SIZE, panelSize);
-      const auxiliaryBarSize = this.stateModel.getRuntimeValue(LayoutStateKeys.AUXILIARYBAR_HIDDEN) ? this.workbenchGrid.getViewCachedVisibleSize(this.auxiliaryBarPartView) : this.workbenchGrid.getViewSize(this.auxiliaryBarPartView).width;
-      this.stateModel.setInitializationValue(LayoutStateKeys.AUXILIARYBAR_SIZE, auxiliaryBarSize);
+      // OpenCode p23: 部件被浮窗/停靠移出网格时 getViewSize 会抛 "reading 'parentElement'"，导致布局尺寸永远存不下来
+      const ocSafeViewSize = (hiddenKey, view, dim) => {
+        if (this.stateModel.getRuntimeValue(hiddenKey)) return this.workbenchGrid.getViewCachedVisibleSize(view);
+        try { return this.workbenchGrid.getViewSize(view)[dim]; } catch {
+          try { return this.workbenchGrid.getViewCachedVisibleSize(view); } catch { return void 0; }
+        }
+      };
+      const sideBarSize = ocSafeViewSize(LayoutStateKeys.SIDEBAR_HIDDEN, this.sideBarPartView, "width");
+      if (typeof sideBarSize === "number" && sideBarSize > 0) this.stateModel.setInitializationValue(LayoutStateKeys.SIDEBAR_SIZE, sideBarSize);
+      const panelSize = ocSafeViewSize(LayoutStateKeys.PANEL_HIDDEN, this.panelPartView, isHorizontal(this.stateModel.getRuntimeValue(LayoutStateKeys.PANEL_POSITION)) ? "height" : "width");
+      if (typeof panelSize === "number" && panelSize > 0) this.stateModel.setInitializationValue(LayoutStateKeys.PANEL_SIZE, panelSize);
+      const auxiliaryBarSize = ocSafeViewSize(LayoutStateKeys.AUXILIARYBAR_HIDDEN, this.auxiliaryBarPartView, "width");
+      if (typeof auxiliaryBarSize === "number" && auxiliaryBarSize > 0) this.stateModel.setInitializationValue(LayoutStateKeys.AUXILIARYBAR_SIZE, auxiliaryBarSize);
       this.stateModel.save(true, true);
     }));
     this._register(Event2.any(this.paneCompositeService.onDidPaneCompositeOpen, this.paneCompositeService.onDidPaneCompositeClose)(() => {

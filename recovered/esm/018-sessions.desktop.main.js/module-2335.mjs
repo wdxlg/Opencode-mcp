@@ -5,7 +5,6 @@ import { AbstractToolConfirmationSubPart } from "./module-2320.mjs";
 import { IChatToolInvocation } from "./module-0973.mjs";
 import { AcceptToolConfirmationActionId, SkipToolConfirmationActionId } from "./module-2178.mjs";
 import { localize } from "./module-0001.mjs";
-import { isAutoApprovePolicyRestricted } from "./module-2041.mjs";
 import { Separator } from "./module-0082.mjs";
 import { addDisposableGenericMouseDownListener, addDisposableListener, h } from "./module-0075.mjs";
 import { isEmptyObject } from "./module-0010.mjs";
@@ -72,7 +71,7 @@ var ToolConfirmationSubPart = class extends AbstractToolConfirmationSubPart {
     if (state.type !== IChatToolInvocation.StateKind.WaitingForConfirmation) {
       return actions;
     }
-    if (state.confirmationMessages?.allowAutoConfirm !== false || isAutoApprovePolicyRestricted(this.configurationService)) {
+    if (state.confirmationMessages?.allowAutoConfirm !== false) {
       const approveCombination = state.confirmationMessages?.approveCombination;
       const combination = approveCombination ? {
         label: typeof approveCombination.label === "string" ? approveCombination.label : approveCombination.label.value,

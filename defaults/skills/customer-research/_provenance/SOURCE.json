@@ -1,0 +1,42 @@
+{
+  "id": "customer-research",
+  "sourceName": "customer-research",
+  "title": "客户研究与访谈分析",
+  "category": "产品调研",
+  "repo": "coreyhaines31/marketingskills",
+  "commit": "1efedbc5148b54b2f0f6c6c9fe0be62e151c7fff",
+  "sourcePath": "skills/customer-research/",
+  "sourceUrl": "https://github.com/coreyhaines31/marketingskills/tree/1efedbc5148b54b2f0f6c6c9fe0be62e151c7fff/skills/customer-research",
+  "license": "MIT",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "社区技能；优先处理用户提供材料；访谈邀请、调查发送、账号连接、抓取及上传私人数据需要授权。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "905e65e67268448d88b3b96cf045c6b3615cdd87c1060e129b148a31aa627669"
+    },
+    {
+      "path": "_provenance/REPOSITORY_LICENSE",
+      "upstreamSha256": "b70d71e24e40fce5da8f4b6f9cd862096a048e433db7f3c8cac5e348e6d34591"
+    },
+    {
+      "path": "evals/evals.json",
+      "upstreamSha256": "fc8a15d12e582b55fa52ad27925594ab796ebd6a8ea13fed13722f97e4c51f01"
+    },
+    {
+      "path": "references/interviews-and-surveys.md",
+      "upstreamSha256": "56adecdc40af1242464937100349fc1a161627394909551720494bc5ee537076"
+    },
+    {
+      "path": "references/source-guides.md",
+      "upstreamSha256": "7490a8d04f209d4c8c987530e79d0883a6b42027b86a920fc751cf8ea9904892"
+    }
+  ]
+}

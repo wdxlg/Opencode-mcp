@@ -79,7 +79,7 @@ var AgentSessionStatusIcon = class _AgentSessionStatusIcon extends Disposable {
     if ((session.status === 2 /* InProgress */ || session.status === 3 /* NeedsInput */) && !this.accessibilityService.isMotionReduced()) {
       const isNeedsInput = session.status === 3 /* NeedsInput */;
       const cacheKey3 = isNeedsInput ? _AgentSessionStatusIcon.PIXEL_SPINNER_RING_KEY : _AgentSessionStatusIcon.PIXEL_SPINNER_GRID_KEY;
-      const color3 = isNeedsInput ? asCssVariable("list.warningForeground") : asCssVariable("textLink.foreground");
+      const color3 = isNeedsInput ? asCssVariable("list.warningForeground") : asCssVariable("charts.yellow"); // OpenCode sessions-click-1717: 进行中 = 黄色
       if (this._currentCacheKey === cacheKey3) {
         this.updateActiveIconColor(color3);
         return;
@@ -117,7 +117,7 @@ var AgentSessionStatusIcon = class _AgentSessionStatusIcon extends Disposable {
 
 function getAgentSessionStatusIcon(session) {
   if (session.status === 2 /* InProgress */) {
-    return { ...Codicon.sessionInProgress, color: themeColorFromId("textLink.foreground") };
+    return { ...Codicon.sessionInProgress, color: themeColorFromId("charts.yellow") }; // OpenCode sessions-click-1717: 进行中 = 黄色
   }
   if (session.status === 3 /* NeedsInput */) {
     return { ...Codicon.circleFilled, color: themeColorFromId("list.warningForeground") };
@@ -128,10 +128,12 @@ function getAgentSessionStatusIcon(session) {
   if (session.isArchived()) {
     return { ...Codicon.passFilled, color: themeColorFromId("agentSessionReadIndicator.foreground") };
   }
+  // OpenCode sessions-click-1717: 已完成 = 绿色（未读仍用实心大圆点区分）
+  const ocDone = session.status === 1 /* Completed */;
   if (!session.isRead()) {
-    return { ...Codicon.circleFilled, color: themeColorFromId("textLink.foreground") };
+    return { ...Codicon.circleFilled, color: themeColorFromId(ocDone ? "charts.green" : "textLink.foreground") };
   }
-  return { ...Codicon.circleSmallFilled, color: themeColorFromId("agentSessionReadIndicator.foreground") };
+  return { ...Codicon.circleSmallFilled, color: themeColorFromId(ocDone ? "charts.green" : "agentSessionReadIndicator.foreground") };
 }
 
 var AgentSessionRenderer = class extends Disposable {
@@ -248,6 +250,11 @@ var AgentSessionRenderer = class extends Disposable {
     template2.badge.textContent = "";
     template2.description.textContent = "";
     template2.element.classList.toggle("archived", session.element.isArchived());
+    // OpenCode: 按对话状态叠加颜色（红=失败/等待输入，黄=回复中，绿=已完成未查看；与任务栏圆点一致）
+    const ocStateColor = globalThis.__ocSessionStateColor?.(session.element);
+    for (const ocColor of ["red", "yellow", "green"]) {
+      template2.element.classList.toggle(`oc-session-state-${ocColor}`, ocStateColor === ocColor);
+    }
     if (this.options.isGroupedByRepository?.()) {
       const repoName = getRepositoryName(session.element);
       if (repoName) {
@@ -314,6 +321,14 @@ var AgentSessionRenderer = class extends Disposable {
     template2.separator.classList.toggle("has-separator", !hideDetails && hasBadge && hasDiff);
     template2.description.classList.toggle("has-separator", hasDescription && !hideDetails && (hasBadge || hasDiff));
     template2.statusContainer.classList.toggle("has-separator", !hideDetails && hasStatus && (hasBadge || hasDiff || hasDescription));
+    // OpenCode: 列表项显示该对话的工作区名称
+    const ocWsName = !hideDetails && !hasBadge ? globalThis.__ocSessionWorkspaceLabel?.(session.element.resource) : "";
+    if (ocWsName) {
+      template2.badge.textContent = "\u{1F4C1} " + ocWsName;
+      template2.badge.classList.add("has-badge");
+      template2.description.classList.toggle("has-separator", hasDescription);
+      template2.statusContainer.classList.toggle("has-separator", hasStatus);
+    }
     this.renderHover(session, template2);
     if (this._approvalModel) {
       this.renderApprovalRow(session, template2);

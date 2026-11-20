@@ -18188,6 +18188,123 @@ div.preview.inline .monaco-editor .comment-range-glyph {
   margin-left: 4px;
   white-space: nowrap;
 }
+.interactive-item-container.interactive-response.chat-most-recent-response:not(.chat-response-loading) .chat-footer-toolbar .chat-footer-details:has(.opencode-usage-pill) {
+  opacity: 1;
+}
+.chat-footer-details .opencode-usage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: var(--vscode-descriptionForeground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: default;
+}
+.chat-footer-details .opencode-usage-pill:hover,
+.chat-footer-details .opencode-usage-pill:focus-visible {
+  background-color: var(--vscode-toolbar-hoverBackground);
+  outline: none;
+}
+.chat-footer-details .opencode-usage-pill .codicon {
+  font-size: 13px;
+}
+.chat-footer-details .opencode-usage-meta {
+  color: var(--vscode-descriptionForeground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.opencode-usage-panel {
+  min-width: 260px;
+  max-width: 420px;
+  padding: 4px 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--vscode-descriptionForeground);
+}
+.opencode-usage-panel-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+}
+.opencode-usage-panel-title-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.opencode-usage-panel-title-label .codicon {
+  font-size: 14px;
+}
+.opencode-usage-panel-title-value {
+  font-variant-numeric: tabular-nums;
+}
+.opencode-usage-panel-rule {
+  border-top: 1px solid var(--vscode-widget-border, var(--vscode-editorHoverWidget-border));
+  margin-bottom: 10px;
+  opacity: 0.6;
+}
+.opencode-usage-panel-section {
+  margin: 12px 0 6px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.85;
+}
+.opencode-usage-panel-details {
+  display: grid;
+  grid-template-columns: minmax(76px, auto) minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+}
+.opencode-usage-panel-details dt,
+.opencode-usage-panel-details dd {
+  min-width: 0;
+  margin: 0;
+}
+.opencode-usage-panel-details dd {
+  color: var(--vscode-foreground);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.opencode-usage-panel-sub {
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+}
+.interactive-item-container .opencode-run-clock {
+  display: none;
+}
+.interactive-item-container .opencode-run-clock.active {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  height: 20px;
+  font-size: var(--vscode-chat-font-size-body-s, 12px);
+  color: var(--vscode-textLink-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.interactive-item-container .opencode-run-clock-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: opencode-run-clock-pulse 1.2s ease-in-out infinite;
+}
+@keyframes opencode-run-clock-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .interactive-item-container .opencode-run-clock-dot {
+    animation: none;
+  }
+}
 
 /* src/vs/workbench/contrib/chat/browser/widget/media/chatAgentHover.css */
 .chat-agent-hover {
@@ -24941,6 +25058,16 @@ a.chat-tool-summary-item-label:hover {
 }
 .chat-tool-invocation-part.opencode-chat-native-tool.has-confirmation {
   margin-bottom: 8px;
+}
+/* OpenCode: 工具调用行收紧上下间距 */
+.interactive-item-container .chat-tool-invocation-part .progress-container {
+  margin-bottom: 2px;
+  min-height: 20px;
+  padding-top: 0;
+}
+.interactive-item-container .chat-tool-invocation-part {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 .opencode-chat-activity {
   box-sizing: border-box;
@@ -33062,8 +33189,7 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   margin-bottom: 10px;
   border: 1px solid var(--vscode-widget-border, var(--vscode-editorWidget-border));
   border-radius: 6px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.28);
-  background: linear-gradient(rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.045)), var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
 }
 .opencode-bridge-hero {
   padding: 16px;
@@ -33245,7 +33371,7 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   box-sizing: border-box;
   width: 100%;
   border: 1px solid var(--vscode-widget-border, var(--vscode-editorWidget-border));
-  border-radius: 5px;
+  border-radius: 4px;
   background: var(--vscode-editor-background);
   overflow: hidden;
 }
@@ -33347,7 +33473,7 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   margin-top: 12px;
   padding: 12px;
   border: 1px solid var(--vscode-widget-border, var(--vscode-editorWidget-border));
-  border-radius: 5px;
+  border-radius: 4px;
   background: var(--vscode-editor-background);
 }
 .opencode-bridge-named-configuration h4 {
@@ -33481,7 +33607,7 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   min-width: 0;
   width: 0;
   padding: 6px 8px;
-  border-radius: 3px;
+  border-radius: 4px;
   background: var(--vscode-textCodeBlock-background);
   color: var(--vscode-textPreformat-foreground);
   font-family: var(--monaco-monospace-font);
@@ -33843,7 +33969,7 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   height: 30px;
   padding: 5px 36px 5px 8px;
   border: 1px solid var(--vscode-input-border, var(--vscode-contrastBorder, transparent));
-  border-radius: 3px;
+  border-radius: 4px;
   outline: none;
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
@@ -33859,7 +33985,7 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   box-sizing: border-box;
   height: 30px;
   border: 1px solid var(--vscode-button-border, transparent);
-  border-radius: 3px;
+  border-radius: 4px;
   background: var(--vscode-button-secondaryBackground, var(--vscode-button-background));
   color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground));
   font: inherit;
@@ -33877,7 +34003,7 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   justify-content: center;
   padding: 0;
   border: 0;
-  border-radius: 3px;
+  border-radius: 4px;
   background: transparent;
   color: var(--vscode-descriptionForeground);
   cursor: pointer;
@@ -34928,7 +35054,7 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   min-width: 0;
   width: 100%;
   padding: 6px 8px;
-  border-radius: 3px;
+  border-radius: 4px;
   background: var(--vscode-textCodeBlock-background);
   color: var(--vscode-textPreformat-foreground);
   font-family: var(--monaco-monospace-font);
@@ -34951,7 +35077,7 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   height: 28px;
   padding: 3px 8px;
   border: 1px solid var(--vscode-input-border, transparent);
-  border-radius: 2px;
+  border-radius: 4px;
   outline: none;
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
@@ -37782,6 +37908,395 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
   position: relative;
   z-index: 10;
   overflow: visible;
+}
+/* OpenCode task shelf, dsh plan / question style */
+.opencode-bridge-task-shelf {
+  border-color: color-mix(in srgb, var(--vscode-widget-border, var(--vscode-editorWidget-border)) 70%, transparent);
+  border-radius: 12px;
+  background: var(--vscode-input-background, var(--vscode-sideBar-background));
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--vscode-widget-shadow, #0000004d) 60%, transparent);
+}
+.opencode-bridge-task-shelf-heading {
+  min-height: 30px;
+  padding: 0 12px;
+}
+.opencode-bridge-task-shelf-heading strong {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+.opencode-task-group-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 4px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.opencode-task-group-heading::-webkit-details-marker {
+  display: none;
+}
+.opencode-task-group-heading::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  margin-left: 2px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(-45deg);
+  opacity: .7;
+  transition: transform .12s;
+}
+details[open] > .opencode-task-group-heading::after {
+  transform: rotate(45deg);
+}
+.opencode-task-group-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--opencode-task-group-color, currentColor);
+}
+.opencode-task-group-label {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+.opencode-task-group-count {
+  min-width: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-foreground) 8%, transparent);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  line-height: 16px;
+}
+.opencode-bridge-task-shelf .opencode-bridge-todos {
+  margin: 2px 6px 6px;
+  border-radius: 10px;
+}
+.opencode-bridge-task-shelf .opencode-bridge-todos-summary {
+  min-height: 40px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.opencode-bridge-task-shelf .opencode-bridge-todos-summary:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.opencode-bridge-task-shelf .opencode-bridge-task-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+.opencode-bridge-task-shelf .opencode-bridge-task-state-pill {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vscode-foreground) 8%, transparent);
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 18px;
+}
+.opencode-bridge-task-shelf .opencode-bridge-task-summary-detail {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+.opencode-bridge-task-shelf .opencode-bridge-todos-body {
+  gap: 2px;
+  padding: 2px 6px 8px;
+}
+.opencode-bridge-task-shelf .opencode-bridge-task-current {
+  margin-bottom: 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-textLink-foreground) 8%, transparent);
+}
+.opencode-bridge-task-shelf .opencode-bridge-todo {
+  min-height: 26px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.opencode-bridge-task-shelf .opencode-bridge-todo.in-progress {
+  background: color-mix(in srgb, var(--vscode-textLink-foreground) 10%, transparent);
+  font-weight: 500;
+}
+.opencode-bridge-task-shelf .opencode-bridge-todo.completed .opencode-bridge-todo-title {
+  color: var(--vscode-descriptionForeground);
+}
+.opencode-bridge-task-shelf .opencode-bridge-todo.pending .opencode-bridge-todo-title {
+  color: var(--vscode-foreground);
+  opacity: .85;
+}
+.opencode-question {
+  margin: 6px 6px 8px;
+}
+.opencode-question-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--vscode-widget-border, var(--vscode-editorWidget-border)) 80%, transparent);
+  border-radius: 12px;
+  background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--vscode-widget-shadow, #0000004d) 50%, transparent);
+  padding: 0 0 10px;
+  overflow: hidden;
+}
+.opencode-question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 12px 0 16px;
+}
+.opencode-question-heading {
+  min-width: 0;
+}
+.opencode-question-eyebrow {
+  margin-bottom: 4px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--vscode-descriptionForeground);
+}
+.opencode-question-title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 21px;
+  color: var(--vscode-foreground);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.opencode-question-pager {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+.opencode-question-progress {
+  padding: 0 2px;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+}
+.opencode-question-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+}
+.opencode-question-icon:hover:not(:disabled) {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+.opencode-question-icon:disabled {
+  opacity: .35;
+  cursor: default;
+}
+.opencode-question-detail {
+  margin: 8px 16px 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-textLink-foreground) 8%, transparent);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--vscode-descriptionForeground);
+  white-space: pre-wrap;
+}
+.opencode-question-answered {
+  margin: 8px 16px 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  white-space: pre-wrap;
+}
+.opencode-question-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 8px;
+  padding: 2px 8px;
+}
+.opencode-question-option,
+.opencode-question-custom {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 7px 10px 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .12s, border-color .12s;
+}
+.opencode-question-option:hover,
+.opencode-question-option.selected,
+.opencode-question-custom:hover,
+.opencode-question-custom:focus-within {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.opencode-question-option.selected,
+.opencode-question-custom:focus-within {
+  border-color: color-mix(in srgb, var(--vscode-focusBorder) 70%, transparent);
+}
+.opencode-question-option:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+.opencode-question-number {
+  display: grid;
+  flex: 0 0 20px;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--vscode-foreground) 9%, transparent);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--vscode-descriptionForeground);
+}
+.opencode-question-option.selected .opencode-question-number {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+.opencode-question-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.opencode-question-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+}
+.opencode-question-label {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+.opencode-question-badge {
+  padding: 0 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vscode-textLink-foreground) 16%, transparent);
+  color: var(--vscode-textLink-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 17px;
+}
+.opencode-question-description {
+  font-size: 12px;
+  line-height: 19px;
+  color: var(--vscode-descriptionForeground);
+  overflow-wrap: anywhere;
+}
+.opencode-question-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 22px;
+  max-height: 144px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--vscode-input-foreground, var(--vscode-foreground));
+  font: inherit;
+  font-size: 13px;
+  line-height: 22px;
+}
+.opencode-question-input::placeholder {
+  color: var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground));
+}
+.opencode-question-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 0 12px 0 16px;
+}
+.opencode-question-feedback {
+  flex: 1;
+  min-height: 16px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--vscode-descriptionForeground);
+}
+.opencode-question-feedback.error {
+  color: var(--vscode-errorForeground);
+}
+.opencode-question-submit {
+  flex: none;
+  height: 26px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 13px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  font-size: 12px;
+  cursor: pointer;
+}
+.opencode-question-submit:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground, var(--vscode-button-background));
+}
+.opencode-question-submit:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.opencode-question-hint {
+  margin: 6px 16px 0;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  opacity: .8;
+}
+.opencode-question-note,
+.opencode-question-away {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vscode-foreground) 6%, transparent);
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+.opencode-question-history {
+  margin-top: 8px;
+  font-size: 12px;
+}
+.opencode-question-history > summary {
+  padding: 4px 6px;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+}
+.opencode-question-history-row {
+  padding: 6px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--vscode-widget-border, var(--vscode-editorWidget-border)) 60%, transparent);
+}
+.opencode-question-history-q {
+  color: var(--vscode-foreground);
+  overflow-wrap: anywhere;
+}
+.opencode-question-history-a {
+  margin-top: 2px;
+  color: var(--vscode-descriptionForeground);
+  white-space: pre-wrap;
 }
 
 /* src/vs/workbench/contrib/chat/browser/media/chatPetAchievements.css */
@@ -55925,3 +56440,212 @@ body.issue-reporter-body {
 .monaco-workbench .part.titlebar .window-appicon { background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsbGVkYnk9InRpdGxlIGRlc2MiPgogIDx0aXRsZSBpZD0idGl0bGUiPk9wZW5Db2RlIE1DUDwvdGl0bGU+CiAgPGRlc2MgaWQ9ImRlc2MiPkEgYmxhY2sgcm91bmRlZCByZWN0YW5nbGUgd2l0aCB3aGl0ZSBsb3dlcmNhc2UgbWNwIGxldHRlcmluZyBjb25zdHJ1Y3RlZCBlbnRpcmVseSBmcm9tIHZlY3RvciBwYXRocy48L2Rlc2M+CiAgPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI5NiIgZmlsbD0iIzAwMDAwMCIvPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yIC0yNSkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4KICAgIDxwYXRoIGQ9Ik0xMDIgMzAwVjIyNCBNMTAyIDI0N0MxMDIgMjMyIDExMiAyMjIgMTI3IDIyMkMxNDIgMjIyIDE1MCAyMzIgMTUwIDI0N1YzMDAgTTE1MCAyNDdDMTUwIDIzMiAxNjAgMjIyIDE3NSAyMjJDMTkwIDIyMiAxOTggMjMyIDE5OCAyNDdWMzAwIi8+CiAgICA8cGF0aCBkPSJNMzA2IDIzNEMyOTcgMjI2IDI4NiAyMjIgMjc0IDIyMkMyNTAgMjIyIDIzNiAyMzggMjM2IDI2MkMyMzYgMjg2IDI1MCAzMDIgMjc0IDMwMkMyODYgMzAyIDI5NyAyOTggMzA2IDI4OSIvPgogICAgPHBhdGggZD0iTTM0NCAzNDBWMjI0IE0zNDQgMjQ1QzM1MSAyMzAgMzYzIDIyMiAzNzggMjIyQzQwMCAyMjIgNDE0IDIzOCA0MTQgMjYyQzQxNCAyODYgNDAwIDMwMiAzNzggMzAyQzM2MyAzMDIgMzUxIDI5NCAzNDQgMjgwIi8+CiAgPC9nPgo8L3N2Zz4K")!important;background-size:20px 20px!important;background-position:center!important;background-repeat:no-repeat!important; }
 .monaco-workbench .part.titlebar .window-appicon::before { display:none!important; }
 .monaco-workbench .editor-group-watermark .letterpress { background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsbGVkYnk9InRpdGxlIGRlc2MiPgogIDx0aXRsZSBpZD0idGl0bGUiPk9wZW5Db2RlIE1DUDwvdGl0bGU+CiAgPGRlc2MgaWQ9ImRlc2MiPkEgYmxhY2sgcm91bmRlZCByZWN0YW5nbGUgd2l0aCB3aGl0ZSBsb3dlcmNhc2UgbWNwIGxldHRlcmluZyBjb25zdHJ1Y3RlZCBlbnRpcmVseSBmcm9tIHZlY3RvciBwYXRocy48L2Rlc2M+CiAgPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI5NiIgZmlsbD0iIzAwMDAwMCIvPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yIC0yNSkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4KICAgIDxwYXRoIGQ9Ik0xMDIgMzAwVjIyNCBNMTAyIDI0N0MxMDIgMjMyIDExMiAyMjIgMTI3IDIyMkMxNDIgMjIyIDE1MCAyMzIgMTUwIDI0N1YzMDAgTTE1MCAyNDdDMTUwIDIzMiAxNjAgMjIyIDE3NSAyMjJDMTkwIDIyMiAxOTggMjMyIDE5OCAyNDdWMzAwIi8+CiAgICA8cGF0aCBkPSJNMzA2IDIzNEMyOTcgMjI2IDI4NiAyMjIgMjc0IDIyMkMyNTAgMjIyIDIzNiAyMzggMjM2IDI2MkMyMzYgMjg2IDI1MCAzMDIgMjc0IDMwMkMyODYgMzAyIDI5NyAyOTggMzA2IDI4OSIvPgogICAgPHBhdGggZD0iTTM0NCAzNDBWMjI0IE0zNDQgMjQ1QzM1MSAyMzAgMzYzIDIyMiAzNzggMjIyQzQwMCAyMjIgNDE0IDIzOCA0MTQgMjYyQzQxNCAyODYgNDAwIDMwMiAzNzggMzAyQzM2MyAzMDIgMzUxIDI5NCAzNDQgMjgwIi8+CiAgPC9nPgo8L3N2Zz4K")!important;background-size:160px 160px!important; }
+
+/* oc-ai-title-toggle: AI 命名开关开启时蓝色高亮 */
+.monaco-action-bar .action-item .action-label.codicon-sparkle-filled.checked,.monaco-action-bar .action-item .action-label.codicon-sparkle-filled{color:var(--vscode-textLink-foreground,#3794ff)!important;background-color:var(--vscode-inputOption-activeBackground,rgba(0,127,212,.35))!important;border-radius:4px}
+
+/* oc-run-clock-tokens-inline: 运行中行的 token 与文字同色同字号、同一基线 */
+.opencode-usage-pill.opencode-run-clock-tokens{display:inline!important;color:inherit!important;font:inherit!important;background:none!important;border:0!important;padding:0!important;margin:0!important;height:auto!important;vertical-align:baseline!important;line-height:inherit!important}
+.opencode-run-clock-tokens .opencode-usage-pill-label{color:inherit!important;font:inherit!important;opacity:1!important}
+/* oc-bridge-page-redesign: MCP（Bridge）设置页重排——统一卡片、按钮层级、状态点、地址栏 */
+.opencode-bridge{max-width:820px;margin:0 auto;padding:20px 24px 32px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
+.opencode-bridge .opencode-bridge-card{background:var(--vscode-editorWidget-background,var(--vscode-sideBar-background))!important;border:1px solid var(--vscode-widget-border,rgba(128,128,128,.22))!important;border-radius:6px!important;padding:18px 20px!important;margin:0!important;box-shadow:none!important}
+.opencode-bridge details.opencode-bridge-card>summary{cursor:pointer;display:flex;align-items:center;gap:10px;list-style:none;margin:-2px 0}
+.opencode-bridge details.opencode-bridge-card>summary::-webkit-details-marker{display:none}
+.opencode-bridge details.opencode-bridge-card>summary::before{content:"";width:6px;height:6px;flex:none;border-right:1.5px solid var(--vscode-descriptionForeground);border-bottom:1.5px solid var(--vscode-descriptionForeground);transform:rotate(-45deg);transition:transform .15s;margin-right:2px}
+.opencode-bridge details.opencode-bridge-card[open]>summary::before{transform:rotate(45deg)}
+.opencode-bridge details.opencode-bridge-card[open]>summary{margin-bottom:14px}
+.opencode-bridge h2{font-size:16px!important;font-weight:600!important;margin:0!important;letter-spacing:.1px}
+.opencode-bridge h3{font-size:13px!important;font-weight:600!important;margin:0!important}
+.opencode-bridge h4{font-size:12px!important;font-weight:600!important;margin:14px 0 8px!important;color:var(--vscode-descriptionForeground)}
+.opencode-bridge .opencode-bridge-connection-details{font-size:12px;color:var(--vscode-descriptionForeground);margin-left:8px}
+.opencode-bridge .opencode-bridge-connection-summary-main{display:flex;align-items:baseline;flex:1;min-width:0;flex-wrap:wrap}
+
+/* 头部：标题 + 次要操作 + 状态 */
+.opencode-bridge .opencode-bridge-hero .opencode-bridge-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 4px!important}
+.opencode-bridge .opencode-bridge-hero-header-right{display:flex;align-items:center;gap:10px}
+.opencode-bridge .opencode-bridge-header-actions{display:flex;gap:6px}
+.opencode-bridge .opencode-bridge-hero-description{margin:0 0 2px!important;color:var(--vscode-descriptionForeground);font-size:13px}
+
+/* 按钮：一个主按钮，其余统一为描边次按钮 */
+.opencode-bridge .monaco-button{height:28px!important;min-height:28px;padding:0 12px!important;border-radius:6px!important;font-size:12px!important;line-height:26px!important;box-sizing:border-box;display:inline-flex!important;align-items:center;justify-content:center;gap:6px;width:auto!important;white-space:nowrap}
+.opencode-bridge .opencode-bridge-header-actions .monaco-button,
+.opencode-bridge .opencode-bridge-hero-actions .monaco-button:not(:first-child),
+.opencode-bridge .opencode-bridge-controls:not(.opencode-bridge-hero-actions) .monaco-button,
+.opencode-bridge button.opencode-bridge-copy-url{background:transparent!important;color:var(--vscode-foreground)!important;border:1px solid var(--vscode-button-secondaryBorder,var(--vscode-widget-border,rgba(128,128,128,.35)))!important}
+.opencode-bridge .opencode-bridge-header-actions .monaco-button:hover,
+.opencode-bridge .opencode-bridge-hero-actions .monaco-button:not(:first-child):hover,
+.opencode-bridge .opencode-bridge-controls:not(.opencode-bridge-hero-actions) .monaco-button:hover,
+.opencode-bridge button.opencode-bridge-copy-url:hover{background:var(--vscode-toolbar-hoverBackground,rgba(128,128,128,.15))!important}
+.opencode-bridge .opencode-bridge-hero-actions .monaco-button:first-child{background:var(--vscode-button-background)!important;color:var(--vscode-button-foreground)!important;border:1px solid transparent!important}
+.opencode-bridge .opencode-bridge-hero-actions .monaco-button:first-child:hover{background:var(--vscode-button-hoverBackground)!important}
+.opencode-bridge .opencode-bridge-hero-actions{display:flex!important;flex-wrap:wrap;gap:8px!important;margin:14px 0 0!important}
+.opencode-bridge .opencode-bridge-hero-actions .opencode-bridge-cleanup-button{margin-left:auto!important;border-color:transparent!important;color:var(--vscode-descriptionForeground)!important}
+.opencode-bridge .opencode-bridge-hero-actions .opencode-bridge-cleanup-button:hover{color:var(--vscode-errorForeground)!important}
+.opencode-bridge .opencode-bridge-controls{gap:8px!important}
+
+/* 状态：小圆点 + 文字，不用彩色胶囊 */
+.opencode-bridge .opencode-bridge-state{display:inline-flex!important;align-items:center;gap:6px;background:transparent!important;border:0!important;padding:0!important;font-size:12px!important;font-weight:500;color:var(--vscode-descriptionForeground)!important;white-space:nowrap;height:auto!important}
+.opencode-bridge .opencode-bridge-state::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--vscode-disabledForeground,#888);flex:none}
+.opencode-bridge .opencode-bridge-state.state-running,.opencode-bridge .opencode-bridge-state.state-ready,.opencode-bridge .opencode-bridge-state.state-connected{color:var(--vscode-foreground)!important}
+.opencode-bridge .opencode-bridge-state.state-running::before,.opencode-bridge .opencode-bridge-state.state-ready::before,.opencode-bridge .opencode-bridge-state.state-connected::before{background:var(--vscode-testing-iconPassed,#3fb950);box-shadow:0 0 0 3px color-mix(in srgb,var(--vscode-testing-iconPassed,#3fb950) 22%,transparent)}
+.opencode-bridge .opencode-bridge-state.state-starting::before,.opencode-bridge .opencode-bridge-state.state-checking::before{background:var(--vscode-editorWarning-foreground,#d29922)}
+.opencode-bridge .opencode-bridge-state.state-error{color:var(--vscode-errorForeground)!important}
+.opencode-bridge .opencode-bridge-state.state-error::before{background:var(--vscode-errorForeground)}
+
+/* MCP 地址：标签 + 输入框与复制按钮同高一行 */
+.opencode-bridge .opencode-bridge-url-section{margin-top:16px!important}
+.opencode-bridge .opencode-bridge-url-label{font-size:12px!important;font-weight:600;margin:0 0 6px!important;color:var(--vscode-foreground)}
+.opencode-bridge .opencode-bridge-url-row{display:flex!important;gap:8px!important;align-items:stretch}
+.opencode-bridge .opencode-bridge-url-value-container{flex:1;min-width:0;display:flex;align-items:center;height:28px;border-radius:6px!important;border:1px solid var(--vscode-input-border,var(--vscode-widget-border,rgba(128,128,128,.35)))!important;background:var(--vscode-input-background)!important;padding:0 4px 0 10px;box-sizing:border-box}
+.opencode-bridge input.opencode-bridge-url-value{flex:1;min-width:0;border:0!important;outline:0;background:transparent!important;color:var(--vscode-input-foreground);font-family:var(--vscode-editor-font-family);font-size:12px;height:100%;padding:0!important}
+.opencode-bridge button.opencode-bridge-url-visibility{background:transparent!important;border:0!important;color:var(--vscode-descriptionForeground);width:24px;height:24px;border-radius:4px;cursor:pointer}
+.opencode-bridge button.opencode-bridge-url-visibility:hover{background:var(--vscode-toolbar-hoverBackground,rgba(128,128,128,.15))}
+.opencode-bridge button.opencode-bridge-copy-url{height:28px;padding:0 14px;border-radius:6px;font-size:12px;cursor:pointer}
+
+/* 提示：去掉整条黄底，改成细左边线的轻提示 */
+.opencode-bridge .opencode-bridge-address-notice{margin-top:8px!important;padding:6px 10px!important;border-radius:6px!important;font-size:12px!important;background:color-mix(in srgb,var(--vscode-editorWarning-foreground,#d29922) 9%,transparent)!important;border:0!important;border-left:2px solid var(--vscode-editorWarning-foreground,#d29922)!important;color:var(--vscode-foreground)!important}
+.opencode-bridge .opencode-bridge-status-message{margin-top:6px!important;font-size:12px}
+.opencode-bridge .opencode-bridge-security-note{display:flex!important;align-items:center;gap:6px;margin:14px 0 0!important;padding:10px 0 0!important;border-top:1px solid var(--vscode-widget-border,rgba(128,128,128,.18))!important;background:transparent!important;border-radius:0!important;font-size:12px!important;color:var(--vscode-descriptionForeground)!important}
+.opencode-bridge .opencode-bridge-security-note .codicon{font-size:13px!important;color:var(--vscode-editorWarning-foreground,#d29922)}
+
+/* 表单 */
+.opencode-bridge .opencode-bridge-label{font-size:12px!important;font-weight:600}
+.opencode-bridge input.opencode-bridge-input,.opencode-bridge textarea.opencode-bridge-input{border-radius:6px!important;border:1px solid var(--vscode-input-border,var(--vscode-widget-border,rgba(128,128,128,.35)))!important;background:var(--vscode-input-background)!important;padding:5px 9px!important}
+.opencode-bridge button.opencode-bridge-provider-choice{border-radius:6px!important}
+.opencode-bridge button.opencode-bridge-provider-choice.selected{border-color:var(--vscode-focusBorder)!important;background:color-mix(in srgb,var(--vscode-focusBorder) 8%,transparent)!important}
+
+/* oc-bridge-page-redesign-2: 折叠卡片改为紧凑行、标题靠左、去掉外层大留白 */
+*:has(> .opencode-bridge){padding-top:8px!important}
+.opencode-bridge{padding:8px 24px 32px!important;gap:10px!important;max-width:860px!important}
+.opencode-bridge details.opencode-bridge-card{padding:0!important;overflow:hidden}
+.opencode-bridge details.opencode-bridge-card>summary{flex-direction:row!important;justify-content:flex-start!important;align-items:center!important;gap:10px!important;padding:12px 18px!important;margin:0!important;min-height:22px;list-style:none!important}
+.opencode-bridge details.opencode-bridge-card>summary::marker{content:""!important}
+.opencode-bridge details.opencode-bridge-card>summary:hover{background:var(--vscode-list-hoverBackground,rgba(128,128,128,.08))}
+.opencode-bridge details.opencode-bridge-card[open]>summary{margin:0!important;border-bottom:1px solid var(--vscode-widget-border,rgba(128,128,128,.18))}
+.opencode-bridge details.opencode-bridge-card>summary h3{flex:none;text-align:left!important;margin:0!important}
+.opencode-bridge details.opencode-bridge-card>summary .opencode-bridge-connection-summary-main{flex-direction:row!important;align-items:baseline!important;flex:1;gap:0}
+.opencode-bridge details.opencode-bridge-card>summary>.opencode-bridge-state{margin-left:auto!important}
+.opencode-bridge details.opencode-bridge-card>:not(summary){padding:14px 18px 18px!important;margin:0!important}
+.opencode-bridge .opencode-bridge-hero{padding:18px 20px 14px!important}
+.opencode-bridge .opencode-bridge-hero-description+*{margin-top:2px}
+.opencode-bridge .opencode-bridge-status-message{color:var(--vscode-descriptionForeground)}
+
+/* oc-bridge-page-redesign-3: 去掉卡片内部滚动、防止卡片被压扁；隧道选项卡单层边框、徽标降噪 */
+*:has(> .opencode-bridge){overflow-y:auto!important;overflow-x:hidden!important}
+.opencode-bridge{height:auto!important;max-height:none!important;min-height:0;overflow:visible!important}
+.opencode-bridge>*{flex:0 0 auto!important;max-height:none!important}
+.opencode-bridge .opencode-bridge-connection-body,.opencode-bridge .opencode-bridge-advanced-body,.opencode-bridge .opencode-bridge-tunnel-panel,.opencode-bridge .opencode-bridge-provider-choices{max-height:none!important;overflow:visible!important;height:auto!important}
+.opencode-bridge .opencode-bridge-provider-choices{display:flex!important;flex-direction:column;gap:8px!important}
+.opencode-bridge .opencode-bridge-provider-choice-card{border:1px solid var(--vscode-widget-border,rgba(128,128,128,.22))!important;border-radius:6px!important;background:transparent!important;padding:0!important;overflow:hidden;box-shadow:none!important}
+.opencode-bridge .opencode-bridge-provider-choice-card.selected{border-color:var(--vscode-focusBorder)!important;background:color-mix(in srgb,var(--vscode-focusBorder) 6%,transparent)!important}
+.opencode-bridge button.opencode-bridge-provider-choice,.opencode-bridge button.opencode-bridge-provider-choice.selected{border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;padding:12px 14px!important;width:100%;text-align:left}
+.opencode-bridge button.opencode-bridge-provider-choice:hover{background:var(--vscode-list-hoverBackground,rgba(128,128,128,.08))!important}
+.opencode-bridge .opencode-bridge-provider-choice-card .opencode-bridge-provider-shortcut-host,.opencode-bridge .opencode-bridge-provider-choice-card .opencode-bridge-provider-shortcuts{padding:0 14px 12px!important;margin:0!important;border:0!important;background:transparent!important;justify-content:flex-end}
+.opencode-bridge .opencode-bridge-provider-badge{background:transparent!important;border:1px solid var(--vscode-widget-border,rgba(128,128,128,.35))!important;color:var(--vscode-descriptionForeground)!important;border-radius:6px!important;padding:1px 8px!important;font-size:11px!important;font-weight:500!important}
+.opencode-bridge .opencode-bridge-provider-choice-card.selected .opencode-bridge-provider-badge{border-color:var(--vscode-focusBorder)!important;color:var(--vscode-foreground)!important}
+.opencode-bridge .opencode-bridge-provider-summary{color:var(--vscode-descriptionForeground);font-size:12px;margin:4px 0 0!important}
+.opencode-bridge ul.opencode-bridge-provider-facts{margin:6px 0 0!important;padding-left:16px!important;font-size:12px;color:var(--vscode-descriptionForeground)}
+/* oc-bridge-page-redesign-4: 页面滚动条与 VS Code 原生滚动条风格一致（细、方角、无箭头、主题色） */
+*:has(> .opencode-bridge)::-webkit-scrollbar{width:10px!important;height:10px!important;background:transparent!important}
+*:has(> .opencode-bridge)::-webkit-scrollbar-button{display:none!important;width:0;height:0}
+*:has(> .opencode-bridge)::-webkit-scrollbar-track{background:transparent!important;border:0!important;box-shadow:none!important}
+*:has(> .opencode-bridge)::-webkit-scrollbar-corner{background:transparent!important}
+*:has(> .opencode-bridge)::-webkit-scrollbar-thumb{background:var(--vscode-scrollbarSlider-background)!important;border-radius:0!important;border:0!important;min-height:30px}
+*:has(> .opencode-bridge)::-webkit-scrollbar-thumb:hover{background:var(--vscode-scrollbarSlider-hoverBackground)!important}
+*:has(> .opencode-bridge)::-webkit-scrollbar-thumb:active{background:var(--vscode-scrollbarSlider-activeBackground)!important}
+*:has(> .opencode-bridge){scrollbar-width:auto;scrollbar-color:auto}
+
+/* oc-unified-ui-v1: MCP（Bridge）页精简 + 动效 */
+.opencode-bridge .opencode-bridge-card{border-radius:6px!important;padding:14px 16px!important;animation:ocu-bridge-in .2s cubic-bezier(.2,0,0,1) both}
+.opencode-bridge .opencode-bridge-card:nth-child(2){animation-delay:30ms}.opencode-bridge .opencode-bridge-card:nth-child(n+3){animation-delay:60ms}
+.opencode-bridge{gap:10px!important}
+.opencode-bridge h2{font-size:16px!important}
+.opencode-bridge .opencode-bridge-hero-description{font-size:12px!important}
+.opencode-bridge .opencode-bridge-security-note{font-size:11px!important;margin-top:10px!important;padding-top:8px!important}
+.opencode-bridge .opencode-bridge-provider-choice-card{border-radius:4px!important}
+.opencode-bridge .opencode-bridge-provider-choice-card.selected{box-shadow:none!important;outline:0!important;border-color:var(--vscode-widget-border,rgba(128,128,128,.3))!important;border-left:2px solid var(--vscode-focusBorder)!important;background:color-mix(in srgb,var(--vscode-focusBorder) 5%,transparent)!important}
+.opencode-bridge .opencode-bridge-provider-choice-card:not(.selected):hover{background:var(--vscode-list-hoverBackground)!important}
+.opencode-bridge button.opencode-bridge-provider-choice,.opencode-bridge button.opencode-bridge-provider-choice.selected{padding:9px 12px!important}
+.opencode-bridge .opencode-bridge-provider-choice-card:not(.selected) .opencode-bridge-provider-summary,.opencode-bridge .opencode-bridge-provider-choice-card:not(.selected) .opencode-bridge-provider-facts,.opencode-bridge .opencode-bridge-provider-choice-card:not(.selected) .opencode-bridge-provider-shortcut-host{display:none!important}
+.opencode-bridge .opencode-bridge-provider-choice-card.selected .opencode-bridge-provider-summary,.opencode-bridge .opencode-bridge-provider-choice-card.selected .opencode-bridge-provider-facts{animation:ocu-bridge-in .2s cubic-bezier(.2,0,0,1) both}
+.opencode-bridge .opencode-bridge-provider-badge{border-radius:2px!important;padding:0 6px!important;font-size:11px!important}
+.opencode-bridge details.opencode-bridge-card[open]>:not(summary){animation:ocu-bridge-in .2s cubic-bezier(.2,0,0,1) both}
+.opencode-bridge .monaco-button:is(:hover,:active){transition:background-color .1s cubic-bezier(.2,0,0,1),border-color .1s cubic-bezier(.2,0,0,1),color .1s cubic-bezier(.2,0,0,1)}
+.opencode-bridge .opencode-bridge-state{transition:color .2s cubic-bezier(.2,0,0,1)}
+.opencode-bridge .opencode-bridge-state.state-starting::before,.opencode-bridge .opencode-bridge-state.state-checking::before{animation:ocu-bridge-pulse 1.2s ease-in-out infinite alternate}
+.opencode-bridge .opencode-bridge-status-message:not(:empty){animation:ocu-bridge-in .2s cubic-bezier(.2,0,0,1) both}
+@keyframes ocu-bridge-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes ocu-bridge-pulse{from{opacity:1}to{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.opencode-bridge *,.opencode-bridge{animation:none!important;transition:none!important}}
+
+/* oc-unified-ui-v2: MCP 页窄屏 / 宽屏适配 + 焦点 */
+.opencode-bridge{container-type:inline-size;container-name:ocb}
+.opencode-bridge .opencode-bridge-card-header{display:flex!important;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.opencode-bridge .opencode-bridge-card-header>h2{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opencode-bridge .opencode-bridge-hero-header-right{flex-wrap:wrap;min-width:0;justify-content:flex-end}
+.opencode-bridge .opencode-bridge-header-actions{flex-wrap:wrap}
+.opencode-bridge .monaco-button{width:auto!important;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opencode-bridge .opencode-bridge-hero-actions .monaco-button{flex:0 0 auto}
+.opencode-bridge .opencode-bridge-provider-header{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.opencode-bridge .opencode-bridge-provider-title{min-width:0;flex:1 1 auto}
+.opencode-bridge table{display:block;max-width:100%;overflow-x:auto}
+.opencode-bridge p,.opencode-bridge li,.opencode-bridge .opencode-bridge-url-value{overflow-wrap:anywhere}
+.opencode-bridge :focus-visible,.opencode-bridge .monaco-button:focus-visible,.opencode-bridge button:focus-visible,.opencode-bridge summary:focus-visible{outline:1px solid var(--vscode-focusBorder)!important;outline-offset:1px!important}
+.opencode-bridge .monaco-button:disabled,.opencode-bridge .monaco-button.disabled{opacity:.5}
+@container ocb (max-width:600px){
+ .opencode-bridge .opencode-bridge-card{padding:12px!important}
+ .opencode-bridge .opencode-bridge-card-header>h2{flex-basis:100%}
+ .opencode-bridge .opencode-bridge-hero-header-right{width:100%;justify-content:space-between}
+ .opencode-bridge .opencode-bridge-hero-actions .monaco-button{flex:1 1 auto}
+ .opencode-bridge .opencode-bridge-hero-actions .opencode-bridge-cleanup-button{margin-left:0!important}
+ .opencode-bridge .opencode-bridge-provider-badge{order:3}
+ .opencode-bridge ul.opencode-bridge-provider-facts{padding-left:14px!important}
+}
+@container ocb (max-width:380px){
+ .opencode-bridge .opencode-bridge-hero-actions .monaco-button,.opencode-bridge .opencode-bridge-header-actions .monaco-button{flex:1 1 100%}
+ .opencode-bridge .opencode-bridge-header-actions{width:100%}
+}
+
+/* oc-ui3-tunnel-list */
+/* ui3: 隧道模式 = VS Code 风格单选列表（一个外框 + 分隔线 + 圆形单选点），与下方代理表同宽 */
+.opencode-bridge .opencode-bridge-tunnel-panel,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices{max-width:none!important;width:100%!important}
+.opencode-bridge .opencode-bridge-tunnel-panel .opencode-bridge-provider-choices{display:flex!important;flex-direction:column!important;gap:0!important;border:1px solid var(--vscode-widget-border,var(--vscode-panel-border,rgba(128,128,128,.28)))!important;border-radius:4px!important;overflow:hidden!important;background:transparent!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card.selected{border:0!important;border-radius:0!important;border-top:1px solid var(--vscode-widget-border,var(--vscode-panel-border,rgba(128,128,128,.2)))!important;margin:0!important;padding:0!important;background:transparent!important;box-shadow:none!important;outline:0!important;min-height:0!important;height:auto!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card.selected{border-top:0!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-stack{display:flex!important;flex-direction:column!important;gap:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-stack+.opencode-bridge-provider-choice-stack{border-top:1px solid var(--vscode-widget-border,var(--vscode-panel-border,rgba(128,128,128,.2)))!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-stack>:not(.opencode-bridge-provider-choice-card){margin:0!important;padding:0 12px 10px 36px!important;border:0!important;border-radius:0!important;background:transparent!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-stack>:not(.opencode-bridge-provider-choice-card):empty{display:none!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-stack:has(.opencode-bridge-provider-choice-card.selected){background:var(--vscode-list-inactiveSelectionBackground,rgba(128,128,128,.12))!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card.selected{background:transparent!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card::before,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card::after{display:none!important;content:none!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice.selected{position:relative!important;display:block!important;width:100%!important;border:0!important;border-radius:0!important;box-shadow:none!important;outline:0!important;background:transparent!important;padding:9px 12px 9px 36px!important;margin:0!important;min-height:0!important;text-align:left!important;cursor:pointer;transition:background-color .12s ease}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice::before{content:""!important;display:block!important;position:absolute;left:13px;top:12px;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:1px solid var(--vscode-checkbox-border,var(--vscode-descriptionForeground,#888));background:var(--vscode-checkbox-background,transparent);transition:border-color .12s ease,box-shadow .12s ease}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice.selected::before,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice[aria-checked="true"]::before,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card.selected>button.opencode-bridge-provider-choice::before{border-color:var(--vscode-focusBorder,#007fd4);box-shadow:inset 0 0 0 3px var(--vscode-checkbox-background,var(--vscode-editor-background,#1e1e1e)),inset 0 0 0 6px var(--vscode-focusBorder,#007fd4)}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice::after{display:none!important;content:none!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice:hover{background:var(--vscode-list-hoverBackground,rgba(128,128,128,.08))!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice:focus-visible{outline:0!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice:focus-visible::before{outline:1px solid var(--vscode-focusBorder);outline-offset:2px}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-header{display:flex!important;align-items:center!important;gap:8px!important;min-width:0;margin:0!important;padding:0!important;border:0!important;background:transparent!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-title{flex:1 1 auto;min-width:0;font-size:13px!important;font-weight:600!important;line-height:18px!important;color:var(--vscode-foreground)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-badge{flex:none;border:0!important;background:var(--vscode-badge-background,rgba(128,128,128,.25))!important;color:var(--vscode-badge-foreground,var(--vscode-foreground))!important;border-radius:2px!important;padding:0 6px!important;font-size:11px!important;line-height:16px!important;font-weight:400!important;opacity:.85}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card:not(.selected) .opencode-bridge-provider-badge{background:transparent!important;color:var(--vscode-descriptionForeground)!important;padding:0!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-summary{margin:4px 0 0!important;font-size:12px!important;line-height:18px!important;color:var(--vscode-descriptionForeground)!important;white-space:normal!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices ul.opencode-bridge-provider-facts{margin:4px 0 0!important;padding:0 0 0 14px!important;font-size:12px!important;line-height:18px!important;color:var(--vscode-descriptionForeground)!important;list-style:disc}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices ul.opencode-bridge-provider-facts li{margin:0!important;padding:0!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-shortcut-host,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-shortcuts{display:flex!important;flex-wrap:wrap!important;justify-content:flex-start!important;align-items:center!important;gap:6px!important;margin:0!important;padding:0 12px 10px 36px!important;border:0!important;background:transparent!important;min-height:0!important;height:auto!important;box-shadow:none!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-shortcut-host:empty,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-shortcuts:empty{display:none!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-shortcut-host .opencode-bridge-provider-shortcuts{padding:0!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-shortcuts button{height:24px!important;min-height:24px!important;padding:0 10px!important;font-size:12px!important;border-radius:2px!important;margin:0!important;box-shadow:none!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice:focus,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card:focus-within{outline:0!important;outline-offset:0!important;box-shadow:none!important;border-left:0!important;border-right:0!important;border-bottom:0!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice:focus-visible{outline:0!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice:focus-visible::before{outline:1px solid var(--vscode-focusBorder);outline-offset:2px}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-shortcut-host,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-shortcut-host *:not(.monaco-button):not(.monaco-button *),.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-controls{background:transparent!important;box-shadow:none!important;border:0!important;width:auto!important;max-width:none!important}
+.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card:not(.selected) .opencode-bridge-provider-shortcut-host,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card:not(.selected) .opencode-bridge-provider-shortcuts{display:none!important}
+/* 代理表：表头不折成两行，窄了就横向滚动 */
+.opencode-bridge table th{white-space:nowrap!important;vertical-align:bottom}
+@container (max-width:420px){.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice{padding-left:32px!important}.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-header{flex-wrap:wrap}.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-title{white-space:normal}.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-shortcut-host,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-shortcuts{padding-left:32px!important}}
+@media (forced-colors:active){.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice.selected::before,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices button.opencode-bridge-provider-choice[aria-checked="true"]::before,.opencode-bridge .opencode-bridge-provider-choices.opencode-bridge-provider-choices.opencode-bridge-provider-choices .opencode-bridge-provider-choice-card.selected>button.opencode-bridge-provider-choice::before{background:Highlight;border-color:Highlight;box-shadow:none}}
+
+/* oc-ui3-end */

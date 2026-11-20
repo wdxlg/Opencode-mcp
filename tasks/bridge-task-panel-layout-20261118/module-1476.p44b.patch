@@ -1,0 +1,50 @@
+--- a/recovered/esm/027-workbench.desktop.main.js/module-1476.mjs	2026-11-18 06:46:39.328251964 +0000
++++ b/recovered/esm/027-workbench.desktop.main.js/module-1476.mjs	2026-11-18 06:47:37.565465807 +0000
+@@ -3088,6 +3088,23 @@
+     return other instanceof _OpenCodeViewEditorInput && other.viewId === this.viewId;
+   }
+ };
++// OpenCode p44b: 单个视图做成页面时的窗格标题样式（等同侧栏里的 22px 小标题；页面里不能折叠，隐藏折叠箭头与容器图标）。
++var OC_VIEW_PAGE_CSS = `
++.oc-view-page-host>.pane.oc-view-page-pane{display:flex;flex-direction:column;overflow:hidden}
++.oc-view-page-host>.pane.oc-view-page-pane>.pane-header{flex:none;display:flex;align-items:center;height:22px;min-height:22px;box-sizing:border-box;padding:0 8px 0 12px;overflow:hidden;font-size:11px;font-weight:700;cursor:default;color:var(--vscode-sideBarSectionHeader-foreground,var(--vscode-foreground));background:var(--vscode-sideBarSectionHeader-background,transparent);border-top:1px solid var(--vscode-sideBarSectionHeader-border,transparent)}
++.oc-view-page-host>.pane.oc-view-page-pane>.pane-header.hidden{display:none!important}
++.oc-view-page-host>.pane.oc-view-page-pane>.pane-header>.twisty-container,.oc-view-page-host>.pane.oc-view-page-pane>.pane-header>.icon{display:none!important}
++.oc-view-page-host>.pane.oc-view-page-pane>.pane-header h3.title{flex:0 1 auto;min-width:0;margin:0;font-size:11px;font-weight:700;line-height:22px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
++.oc-view-page-host>.pane.oc-view-page-pane>.pane-header>.actions{margin-left:auto;display:flex;align-items:center}
++.oc-view-page-host>.pane.oc-view-page-pane>.pane-body{flex:1 1 auto;min-height:0;overflow:hidden}
++`;
++function ocViewPageStyle(doc) {
++  if (!doc || doc.getElementById("oc-view-page-style")) return;
++  const style = doc.createElement("style");
++  style.id = "oc-view-page-style";
++  style.textContent = OC_VIEW_PAGE_CSS;
++  doc.head.appendChild(style);
++}
+ var OpenCodeViewEditorPane = class _OpenCodeViewEditorPane extends EditorPane {
+   static {
+     this.ID = "workbench.editor.opencodeViewPage";
+@@ -3105,6 +3122,7 @@
+   createEditor(parent) {
+     this.host = parent.ownerDocument.createElement("div");
+     this.host.className = "oc-view-page-host";
++    ocViewPageStyle(parent.ownerDocument);
+     this.host.style.cssText = "width:100%;height:100%;overflow:hidden;display:flex;flex-direction:column";
+     parent.appendChild(this.host);
+     // OpenCode part-page-relayout: 页面区域大小一变（拖分隔条、侧栏收起、窗口缩放）就按真实宽高重排搬进来的区域，避免空白/挤在左边/右侧留空
+@@ -3170,6 +3188,15 @@
+       });
+       pane.render();
+       pane.element.style.height = "100%";
++      // OpenCode p44b: 页面里的视图不在 PaneView 中，VS Code 的窗格标题样式不生效（折叠箭头/图标挤在左上角、标题成了大号 h3）。
++      // 页签已显示名称：停靠出来的 DOM 面板（如「任务」）没有视图按钮，直接隐藏窗格标题；其他视图保留紧凑标题以便使用其按钮。
++      if (String(descriptor.id).startsWith("opencode.domDock.")) {
++        try {
++          pane.headerVisible = false;
++        } catch {
++        }
++      }
++      pane.element.classList.add("oc-view-page-pane");
+       this.host.appendChild(pane.element);
+       pane.setExpanded(true);
+       pane.setVisible(true);

@@ -1,0 +1,41 @@
+{
+  "id": "web-design-guidelines",
+  "sourceName": "web-design-guidelines",
+  "title": "网页体验与无障碍审查",
+  "category": "界面设计",
+  "repo": "vercel-labs/agent-skills",
+  "commit": "063bee94c3f4df8453406c830b0a7df0f2860278",
+  "sourcePath": "skills/web-design-guidelines/",
+  "sourceUrl": "https://github.com/vercel-labs/agent-skills/tree/063bee94c3f4df8453406c830b0a7df0f2860278/skills/web-design-guidelines",
+  "license": "MIT",
+  "licenseBasis": "Repository README MIT declaration (and frontmatter where present); no LICENSE file at repository root",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "已附MIT许可的固定版本规则，默认离线读取；只有明确要求更新时才联网重新审阅。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance.",
+    "Replaced live main-branch rule fetch with bundled, pinned MIT-licensed rule snapshot."
+  ],
+  "additionalSources": [
+    {
+      "repo": "vercel-labs/web-interface-guidelines",
+      "commit": "434b7f91364665f2f733b310ec54809bf8f37937",
+      "files": [
+        "command.md",
+        "LICENSE"
+      ],
+      "license": "MIT"
+    }
+  ],
+  "upstreamFiles": [
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f"
+    },
+    {
+      "path": "_provenance/REPOSITORY_README.md",
+      "upstreamSha256": "7c02f64b08fc6c4eef03c01d64f3e2ed478193ccfcbd14edba379abe23304651"
+    }
+  ]
+}

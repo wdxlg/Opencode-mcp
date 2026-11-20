@@ -492,11 +492,7 @@ MenuRegistry.appendMenuItem(MenuId.CommandPalette, {
 
 CommandsRegistry.registerCommand("workbench.action.terminal.chat.openTerminalSettingsLink" /* OpenTerminalSettingsLink */, async (accessor, scopeRaw) => {
   const preferencesService = accessor.get(IPreferencesService);
-  if (scopeRaw === "global") {
-    preferencesService.openSettings({
-      query: `@id:${"chat.tools.global.autoApprove" /* GlobalAutoApprove */}`
-    });
-  } else {
+  {
     const scope = parseInt(scopeRaw);
     const target = !isNaN(scope) ? scope : void 0;
     const options3 = {

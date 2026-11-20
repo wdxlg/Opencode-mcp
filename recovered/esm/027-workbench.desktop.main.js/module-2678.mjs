@@ -307,7 +307,11 @@ var AICustomizationManagementEditor = class extends EditorPane {
         }
       }
     }, Sizing.Distribute, void 0, true);
-    this.editorDisposables.add(new CustomizationNavigationToggle(this.container, this.sidebarContainer, {
+    // OpenCode bridge-only-step01: 只剩 Bridge 一个页面，去掉左侧导航和「展开导航」栏
+    this.splitView.setViewVisible(0, false);
+    this.sidebarContainer.hidden = true;
+    this.sidebarContainer.inert = true;
+    if (false) this.editorDisposables.add(new CustomizationNavigationToggle(this.container, this.sidebarContainer, {
       expand: localizeBridge("opencodeBridge.expandNavigation", "Expand navigation"),
       collapse: localizeBridge("opencodeBridge.collapseNavigation", "Collapse navigation")
     }, (visible) => {
@@ -355,7 +359,8 @@ var AICustomizationManagementEditor = class extends EditorPane {
     for (const s of this.allSections) {
       const contribution = aiCustomizationManagementSectionRegistry.get(s.id, activeId);
       const contributed = aiCustomizationManagementSectionRegistry.has(s.id);
-      if (!hidden.has(s.id) && (!contributed || !!contribution)) {
+      // OpenCode bridge-only-step01: MCP 页只保留 Bridge 页面，其余分区一律不显示
+      if (s.id === AICustomizationManagementSection.Bridge && !hidden.has(s.id) && (!contributed || !!contribution)) {
         this.sections.push(contribution ? { ...s, label: contribution.label, icon: contribution.icon, description: contribution.description } : s);
       }
     }
@@ -1581,7 +1586,7 @@ var AICustomizationManagementEditor = class extends EditorPane {
   layout(dimension) {
     this.dimension = dimension;
     if (this.container && this.splitView) {
-      const contentHeight = Math.max(0, dimension.height - CUSTOMIZATION_NAVIGATION_BAR_HEIGHT);
+      const contentHeight = Math.max(0, dimension.height);
       this.splitViewContainer.style.height = `${contentHeight}px`;
       this.splitView.layout(dimension.width, contentHeight);
     }

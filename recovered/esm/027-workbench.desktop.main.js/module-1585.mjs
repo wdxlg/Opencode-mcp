@@ -34,6 +34,18 @@ function isDropIntoEditorEnabledGlobally(configurationService) {
 function isDragIntoEditorEvent(e) {
   return e.shiftKey;
 }
+// OpenCode shift-native-drop: 拖动窗口/标签时默认交给 OpenCode 的停靠蓝框；按住 Shift 才显示编辑区自带的灰色分屏遮罩。
+// 从系统或资源管理器拖进来的文件不受影响，照常打开。
+function ocNativeDropAllowed(e, editorTransfer, groupTransfer) {
+  if (e?.shiftKey) return true;
+  try {
+    if (editorTransfer?.hasData(DraggedEditorIdentifier.prototype) || groupTransfer?.hasData(DraggedEditorGroupIdentifier.prototype)) return false;
+    if (globalThis.__ocDomDockDrag) return false;
+    return containsDragType(e, DataTransfers.FILES, CodeDataTransfers.FILES, DataTransfers.RESOURCES);
+  } catch {
+    return false;
+  }
+}
 
 var DropOverlay = class extends Themable {
   constructor(groupView, supportsSplitting, themeService, configurationService, instantiationService, editorService, editorGroupService, treeViewsDragAndDropService, contextService) {
@@ -103,7 +115,7 @@ var DropOverlay = class extends Themable {
   registerListeners(container3) {
     this._register(new DragAndDropObserver(container3, {
       onDragOver: (e) => {
-        if (this.enableDropIntoEditor && isDragIntoEditorEvent(e)) {
+        if (!ocNativeDropAllowed(e, this.editorTransfer, this.groupTransfer)) {
           this.dispose();
           return;
         }
@@ -427,15 +439,28 @@ var EditorDropTarget = class extends Themable {
   registerListeners() {
     this._register(addDisposableListener(this.container, EventType.DRAG_ENTER, (e) => this.onDragEnter(e)));
     this._register(addDisposableListener(this.container, EventType.DRAG_LEAVE, () => this.onDragLeave()));
+    this._register(addDisposableListener(this.container, EventType.DRAG_OVER, (e) => this.ocDragOver(e)));
     for (const target of [this.container, getWindow(this.container)]) {
       this._register(addDisposableListener(target, EventType.DRAG_END, () => this.onDragEnd()));
     }
   }
   onDragEnter(event) {
-    if (isDropIntoEditorEnabledGlobally(this.configurationService) && isDragIntoEditorEvent(event)) {
+    this.counter++;
+    this.ocEnsureOverlay(event);
+  }
+  ocDragOver(event) {
+    if (!ocNativeDropAllowed(event, this.editorTransfer, this.groupTransfer)) {
+      if (this.overlay) this.disposeOverlay();
+      this.updateContainer(false);
       return;
     }
-    this.counter++;
+    if (!this.overlay) this.ocEnsureOverlay(event);
+  }
+  ocEnsureOverlay(event) {
+    if (!ocNativeDropAllowed(event, this.editorTransfer, this.groupTransfer)) {
+      this.disposeOverlay();
+      return;
+    }
     if (!this.editorTransfer.hasData(DraggedEditorIdentifier.prototype) && !this.groupTransfer.hasData(DraggedEditorGroupIdentifier.prototype) && event.dataTransfer) {
       const dndContributions = Registry.as(Extensions7.DragAndDropContribution).getAll();
       const dndContributionKeys = Array.from(dndContributions).map((e) => e.dataFormatKey);

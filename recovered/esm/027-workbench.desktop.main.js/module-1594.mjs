@@ -51,6 +51,7 @@ var AuxiliaryWindow = class extends BaseWindow {
     this._onWillDispose = this._register(new Emitter());
     this.onWillDispose = this._onWillDispose.event;
     this.compact = false;
+    this.closingFromWorkbench = false;
     this.whenStylesHaveLoaded = stylesHaveLoaded.wait().then(() => void 0);
     this.registerListeners();
   }
@@ -90,6 +91,24 @@ var AuxiliaryWindow = class extends BaseWindow {
     });
     if (veto) {
       this.handleVetoBeforeClose(e, veto);
+      return;
+    }
+    // OpenCode: the window is being closed by the workbench itself (its editors were moved back into the
+    // main window, or the auxiliary window is being disposed) - never ask "close the window?" for that.
+    if (this.closingFromWorkbench) {
+      return;
+    }
+    // OpenCode: the desktop default "always" is meant for quitting the main window. Closing a floating
+    // (auxiliary) window only moves its editors back into the main window, so it confirms only when the
+    // user set window.confirmBeforeClose themselves.
+    let userSetting;
+    try {
+      const inspected = this.configurationService.inspect?.("window.confirmBeforeClose");
+      userSetting = inspected?.userValue ?? inspected?.userLocalValue ?? inspected?.userRemoteValue ?? inspected?.workspaceValue;
+    } catch {
+      userSetting = void 0;
+    }
+    if (userSetting === void 0) {
       return;
     }
     const confirmBeforeCloseSetting = this.configurationService.getValue("window.confirmBeforeClose");
@@ -132,6 +151,7 @@ var AuxiliaryWindow = class extends BaseWindow {
     if (this._store.isDisposed) {
       return;
     }
+    this.closingFromWorkbench = true;
     this._onWillDispose.fire();
     super.dispose();
   }

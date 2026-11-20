@@ -194,13 +194,16 @@ var WebContentsViewRendererFeature = class extends BrowserEditorContribution {
     if (!this._model.visible) {
       return;
     }
+    // OpenCode p25: 截图失败（窗口最小化/被遮挡时常见）不再每秒刷 error，改为 trace 并退避到 5 秒
+    let ocShotFailed = false;
     try {
       const screenshot = await this._model.captureScreenshot({ quality: 80 });
       this._setBackgroundImage(screenshot);
     } catch (error) {
-      this.logService.error("Failed to capture browser view screenshot", error);
+      ocShotFailed = true;
+      this.logService.trace("Failed to capture browser view screenshot", error);
     }
-    const handle2 = setTimeout(() => void this._doScreenshot(), 1e3);
+    const handle2 = setTimeout(() => void this._doScreenshot(), ocShotFailed ? 5e3 : 1e3);
     this._screenshotHandle.value = toDisposable(() => clearTimeout(handle2));
   }
   _setBackgroundImage(buffer) {

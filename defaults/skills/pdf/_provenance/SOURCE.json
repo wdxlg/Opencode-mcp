@@ -1,0 +1,38 @@
+{
+  "id": "pdf",
+  "sourceName": "pdf",
+  "title": "PDF生成与提取",
+  "category": "文档办公",
+  "repo": "openai/skills",
+  "commit": "49f948faa9258a0c61caceaf225e179651397431",
+  "sourcePath": "skills/.curated/pdf/",
+  "sourceUrl": "https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/pdf",
+  "license": "Apache-2.0",
+  "licenseBasis": "Bundled skill LICENSE.txt or preserved repository LICENSE",
+  "historicalSnapshot": false,
+  "dependencyAndSafetyNotes": "常用reportlab、pdfplumber、pypdf；页面渲染需Poppler。未安装依赖或验证渲染。",
+  "modifications": [
+    "Text files normalized to UTF-8/LF with final newline for apply_patch installation; upstream hashes retained.",
+    "Added OpenCode boundary note after front matter; upstream instruction text retained separately.",
+    "Added Chinese usage notes and provenance."
+  ],
+  "additionalSources": [],
+  "upstreamFiles": [
+    {
+      "path": "LICENSE.txt",
+      "upstreamSha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"
+    },
+    {
+      "path": "SKILL.md",
+      "upstreamSha256": "d108cf2b36355ab37eb5962933f4d09785ec002f3105c506129320209306b9d2"
+    },
+    {
+      "path": "agents/openai.yaml",
+      "upstreamSha256": "f8b223e25343559f57e1839ccd849fd1494a9729da33da04bb5074b7f80f4887"
+    },
+    {
+      "path": "assets/pdf.png",
+      "upstreamSha256": "17da356d195d4e3fa24f9becbee6b8d9e60e13005762b5ab0809c520c76da6ee"
+    }
+  ]
+}
